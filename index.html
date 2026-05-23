@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WithMIKI パーソナルカルテ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;600&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0c3a6e;
+  --blue: #1a5fa8;
+  --blue-mid: #2e7fd4;
+  --blue-light: #5aa3e8;
+  --blue-pale: #ddeeff;
+  --blue-bg: #d6e8f7;
+  --washi: #f0f5fb;
+  --washi-deep: #e2ecf7;
+  --ink: #0d1f3c;
+  --ink-mid: #2a3f5a;
+  --ink-light: #3a5070;
+  --border: #b0cce8;
+  --shadow: rgba(13,31,60,0.12);
+  --radius: 10px;
+  --ai-bg: #e8f3fc;
+  --ai-border: #6aaee0;
+  --mark-color: #e63946;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  background: var(--blue-bg);
+  color: var(--ink);
+  min-height: 100vh;
+  font-size: 15px;
+  overflow-x: hidden;
+}
+
+/* ===== HEADER ===== */
+header {
+  background: var(--navy);
+  color: var(--washi);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px var(--shadow);
+}
+.logo { font-family: 'Noto Serif JP', serif; font-size: 1.15rem; letter-spacing: 0.08em; }
+.logo span { color: #7ec8f0; }
+.logo small { font-size: 0.65rem; color: #a0c8e8; margin-left: 8px; letter-spacing: 0.05em; }
+.header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.patient-badge {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 12px;
+  color: #c8e4f8;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media(max-width:520px) {
+  .logo { font-size: 1rem; flex-basis: 100%; }
+  .logo small { display: block; margin-left: 0; margin-top: 2px; }
+  .header-right { width: 100%; justify-content: flex-start; }
+  .patient-badge { flex: 1; max-width: none; min-width: 0; }
+}
+
+/* ===== BUTTONS ===== */
+.btn {
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 500;
+  transition: background 0.18s, transform 0.1s;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--blue-mid); }
+.btn:active { transform: scale(0.97); }
+.btn-main {
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 500;
+  transition: background 0.18s;
+}
+.btn-main:hover { background: var(--blue-mid); }
+.btn-sub {
+  background: transparent;
+  color: var(--blue);
+  border: 1.5px solid var(--blue);
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: 'Noto Sans JP', sans-serif;
+  transition: all 0.18s;
+}
+.btn-sub:hover { background: var(--blue-pale); }
+.btn-ai {
+  background: linear-gradient(135deg, var(--navy), var(--blue));
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: 'Noto Sans JP', sans-serif;
+  display: flex; align-items: center; gap: 6px;
+  transition: opacity 0.18s;
+}
+.btn-ai:hover { opacity: 0.88; }
+.btn-danger { background: #c0392b; }
+.btn-danger:hover { background: #e74c3c; }
+
+/* ===== LAYOUT ===== */
+.app { max-width: 960px; margin: 0 auto; padding: 16px; }
+@media(max-width:520px) { .app { padding: 10px; } }
+
+/* ===== INPUTS: prevent iOS zoom ===== */
+input, select, textarea, button { font-size: 16px; }
+@media(min-width:521px) { input, select, textarea, button { font-size: inherit; } }
+
+/* ===== PATIENT INFO BAR ===== */
+.patient-bar {
+  background: var(--washi);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 6px var(--shadow);
+}
+.patient-bar-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.patient-bar-top h2 {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 1.1rem;
+  color: var(--blue);
+  flex: 1;
+  min-width: 160px;
+}
+.info-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  background: var(--blue-pale);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 3px 12px;
+  font-size: 12px;
+  color: var(--ink-mid);
+}
+.chip strong { color: var(--blue); }
+
+/* ===== TABS ===== */
+.tabs {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 1px;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  padding: 9px 16px;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  background: var(--washi-deep);
+  color: var(--ink-light);
+  cursor: pointer;
+  font-size: 13px;
+  font-family: 'Noto Sans JP', sans-serif;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tab.active {
+  background: var(--washi);
+  color: var(--blue);
+  border-bottom-color: var(--washi);
+  font-weight: 500;
+}
+.panel {
+  background: var(--washi);
+  border: 1px solid var(--border);
+  border-radius: 0 var(--radius) var(--radius) var(--radius);
+  padding: 20px;
+  box-shadow: 0 2px 10px var(--shadow);
+  display: none;
+  margin-bottom: 16px;
+}
+.panel.active { display: block; }
+@media(max-width:520px) {
+  .panel { padding: 14px; border-radius: var(--radius); }
+}
+
+/* ===== FORM ===== */
+.sec-title {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 13px;
+  color: var(--blue);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+  margin-bottom: 14px;
+  letter-spacing: 0.06em;
+}
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media(max-width:600px) { .form-grid { grid-template-columns: 1fr; } }
+.fg { display: flex; flex-direction: column; gap: 3px; }
+.fg.full { grid-column: 1/-1; }
+.fg label { font-size: 11px; color: var(--ink-light); }
+.fg input, .fg select, .fg textarea {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 13px;
+  background: #f5f9ff;
+  color: var(--ink);
+  transition: border-color 0.15s;
+  resize: vertical;
+}
+.fg input:focus, .fg select:focus, .fg textarea:focus {
+  outline: none; border-color: var(--blue); background: #fff;
+}
+textarea { min-height: 72px; }
+
+/* ===== CHECK LIST ===== */
+.check-list { display: flex; flex-direction: column; gap: 6px; }
+.check-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: #f5f9ff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.check-row span { flex: 1; min-width: 160px; }
+.radio-group { display: flex; gap: 12px; }
+.radio-group label { display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer; }
+.radio-group input[type=radio] { accent-color: var(--blue); }
+
+/* ===== BODY DIAGRAM ===== */
+.body-diagram-wrap {
+  background: #f0f7ff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+.diagram-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.diagram-controls .btn { font-size: 11px; padding: 5px 10px; }
+.mark-color-picker {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.color-dot {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.15s, transform 0.1s;
+}
+.color-dot.active { border-color: var(--navy); transform: scale(1.2); }
+.diagram-canvases {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.canvas-box { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.canvas-box label { font-size: 11px; color: var(--ink-light); }
+canvas.body-canvas {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  cursor: crosshair;
+  touch-action: none;
+  max-width: 100%;
+  height: auto;
+}
+@media(max-width:520px) {
+  .diagram-controls { gap: 6px; }
+  .diagram-controls .btn { font-size: 11px; padding: 5px 9px; }
+  .diagram-canvases { gap: 10px; }
+  .canvas-box:nth-child(3) { flex-basis: 100%; }
+  .canvas-box:nth-child(3) textarea { width: 100% !important; height: 120px !important; }
+}
+
+/* ===== VISIT RECORD ===== */
+.visit-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.visit-date-badge {
+  background: var(--blue);
+  color: #fff;
+  border-radius: 6px;
+  padding: 4px 14px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.treatment-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+.tcheck {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #f5f9ff;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+.tcheck input[type=checkbox] { accent-color: var(--blue); }
+.tcheck:has(input:checked) {
+  background: var(--blue-pale);
+  border-color: var(--blue);
+  color: var(--blue);
+  font-weight: 500;
+}
+
+/* ===== SOAP ===== */
+.soap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media(max-width:600px) { .soap-grid { grid-template-columns: 1fr; } }
+.soap-block { display: flex; flex-direction: column; gap: 4px; }
+.soap-lbl {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 11px;
+  color: var(--blue);
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+
+/* ===== MEDIA ===== */
+.media-upload-area {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  color: var(--ink-light);
+  font-size: 13px;
+  transition: all 0.2s;
+  background: #f5f9ff;
+}
+.media-upload-area:hover { border-color: var(--blue); background: var(--blue-pale); }
+.media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-top: 10px; }
+.media-thumb {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--washi-deep);
+  border: 1px solid var(--border);
+}
+.media-thumb img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+.media-thumb video { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+.media-thumb .del-btn {
+  position: absolute; top: 3px; right: 3px;
+  background: rgba(0,0,0,0.65); color: #fff;
+  border: none; border-radius: 50%;
+  width: 20px; height: 20px;
+  cursor: pointer; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+}
+.media-thumb .media-label {
+  font-size: 10px;
+  text-align: center;
+  padding: 3px 4px;
+  color: var(--ink-light);
+  background: var(--washi-deep);
+}
+
+/* ===== AI SCAN ===== */
+.ai-scan-box {
+  background: var(--ai-bg);
+  border: 1px solid var(--ai-border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.ai-scan-box h4 { color: var(--blue); font-size: 13px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.ai-result-box {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.7;
+  min-height: 80px;
+  color: var(--ink);
+  white-space: pre-wrap;
+  margin-top: 8px;
+}
+
+/* ===== AI CHAT ===== */
+.ai-chat-wrap {
+  background: var(--ai-bg);
+  border: 1px solid var(--ai-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.ai-chat-header {
+  background: var(--blue);
+  color: #fff;
+  padding: 10px 16px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ai-dot { width: 8px; height: 8px; background: #7ec8f0; border-radius: 50%; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.ai-messages {
+  height: 260px;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ai-messages::-webkit-scrollbar { width: 3px; }
+.ai-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.msg { display: flex; gap: 8px; align-items: flex-start; }
+.msg.user { flex-direction: row-reverse; }
+.msg-bubble {
+  max-width: 80%;
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.msg.ai .msg-bubble { background: #fff; border: 1px solid var(--ai-border); color: var(--ink); border-radius: 4px 14px 14px 14px; }
+.msg.user .msg-bubble { background: var(--blue); color: #fff; border-radius: 14px 4px 14px 14px; }
+.msg-icon { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; margin-top: 2px; }
+.msg.ai .msg-icon { background: var(--blue); color: #fff; }
+.msg.user .msg-icon { background: var(--ink-light); color: #fff; }
+.ai-input-row {
+  display: flex; gap: 8px; padding: 10px 12px;
+  border-top: 1px solid var(--ai-border);
+  background: #fff;
+}
+.ai-input-row textarea {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 13px;
+  resize: none;
+  min-height: 38px;
+  max-height: 100px;
+  color: var(--ink);
+}
+.ai-input-row textarea:focus { outline: none; border-color: var(--blue); }
+.send-btn {
+  background: var(--blue); color: #fff;
+  border: none; border-radius: 8px;
+  padding: 7px 13px; cursor: pointer;
+  font-size: 16px; align-self: flex-end;
+  transition: background 0.18s;
+}
+.send-btn:hover { background: var(--blue-mid); }
+.send-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.typing { display: flex; gap: 4px; padding: 4px 8px; align-items: center; }
+.typing span { width: 6px; height: 6px; background: #6aaee0; border-radius: 50%; animation: bounce 1.2s infinite; }
+.typing span:nth-child(2) { animation-delay: 0.2s; }
+.typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+/* ===== HISTORY ===== */
+.history-list { display: flex; flex-direction: column; gap: 8px; }
+.history-item {
+  background: var(--washi-deep);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 11px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.history-item:hover { border-color: var(--blue); box-shadow: 0 2px 8px var(--shadow); }
+.history-date { font-size: 11px; color: var(--blue); margin-bottom: 3px; font-weight: 600; }
+.history-summary { font-size: 13px; color: var(--ink); }
+.history-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.tag {
+  font-size: 10px; padding: 2px 8px;
+  border-radius: 20px;
+  background: var(--blue-pale);
+  color: var(--blue);
+  border: 1px solid #90bfe0;
+}
+
+/* ===== ACTION ===== */
+.action-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; align-items: center; }
+.gap { margin-top: 18px; }
+
+/* ===== TOAST ===== */
+#toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--navy); color: #fff;
+  padding: 10px 22px; border-radius: 24px;
+  font-size: 13px; z-index: 500;
+  transition: transform 0.3s; pointer-events: none;
+}
+#toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ===== MODAL ===== */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(13,31,60,0.6);
+  z-index: 400; align-items: center; justify-content: center; padding: 16px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--washi); border-radius: 12px;
+  padding: 24px; width: 100%; max-width: 460px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+  max-height: 90vh; overflow-y: auto;
+}
+.modal h3 { font-family: 'Noto Serif JP', serif; color: var(--blue); margin-bottom: 16px; }
+.modal-btns { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; }
+
+/* ===== QUICK BTNS ===== */
+.quick-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.qbtn {
+  font-size: 11px; padding: 5px 12px;
+  border: 1px solid var(--blue);
+  border-radius: 16px;
+  background: transparent; color: var(--blue);
+  cursor: pointer; font-family: 'Noto Sans JP', sans-serif;
+  transition: all 0.15s;
+}
+.qbtn:hover { background: var(--blue-pale); }
+
+/* ===== VISIT LIST MINI ===== */
+.visit-nav {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.visit-nav-btn {
+  font-size: 11px; padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--washi-deep); color: var(--ink-light);
+  cursor: pointer; font-family: 'Noto Sans JP', sans-serif;
+  transition: all 0.15s;
+}
+.visit-nav-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+/* ===== GLOBAL MOBILE OVERRIDES ===== */
+@media(max-width:520px) {
+  body { font-size: 14px; }
+  .patient-bar { padding: 12px 14px; }
+  .patient-bar-top h2 { font-size: 1rem; min-width: 0; flex-basis: 100%; }
+  .ai-scan-box { padding: 12px; }
+  .ai-scan-box .btn-ai { width: 100%; justify-content: center; }
+  .media-upload-area { width: 100% !important; }
+  .media-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+  .ai-messages { height: 50vh; }
+  .msg-bubble { max-width: 86%; }
+  .action-row { gap: 8px; }
+  .action-row .btn-main, .action-row .btn-sub { flex: 1; min-width: 140px; text-align: center; }
+  .modal { padding: 18px; }
+  .visit-header { gap: 6px; }
+  .treatment-checks { gap: 6px; }
+  .tcheck { padding: 5px 11px; }
+}
+@media(max-width:380px) {
+  .info-chips { gap: 4px; }
+  .chip { padding: 3px 9px; font-size: 11px; }
+  .tab { padding: 8px 12px; font-size: 12px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">With<span>MIKI</span> <small>パーソナルカルテ</small></div>
+  <div class="header-right">
+    <div class="patient-badge" id="headerPatientName">患者未設定</div>
+    <button class="btn" onclick="openSetup()">患者設定</button>
+    <button class="btn" onclick="exportData()">出力</button>
+  </div>
+</header>
+
+<div class="app">
+
+  <!-- 患者情報バー -->
+  <div class="patient-bar" id="patientBar">
+    <div class="patient-bar-top">
+      <h2 id="patientNameDisp">── 患者名未設定 ──</h2>
+      <button class="btn" onclick="openSetup()">基本情報を編集</button>
+    </div>
+    <div class="info-chips" id="patientChips"></div>
+  </div>
+
+  <!-- タブ -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('intake',this)">📋 問診・基本情報</div>
+    <div class="tab" onclick="switchTab('visit',this)">🩺 施術記録</div>
+    <div class="tab" onclick="switchTab('body',this)">🫀 部位マーキング</div>
+    <div class="tab" onclick="switchTab('media',this)">📷 画像・動画</div>
+    <div class="tab" onclick="switchTab('ai',this)">💙 AIアシスタント</div>
+    <div class="tab" onclick="switchTab('history',this)">📅 来院履歴</div>
+  </div>
+
+  <!-- ① 問診・基本情報 -->
+  <div class="panel active" id="tab-intake">
+
+    <!-- 写メ読み取り -->
+    <div class="ai-scan-box">
+      <h4>📷 紙カルテ・問診票の写メ読み取り（AI自動入力）</h4>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button class="btn-ai" onclick="document.getElementById('scanInput').click()">
+          📷 写メを選択してAI読み取り
+        </button>
+        <input type="file" id="scanInput" accept="image/*" style="display:none" onchange="scanIntake(event)">
+        <span style="font-size:11px;color:var(--ink-light)">問診票・紙カルテを撮影してアップロード</span>
+      </div>
+      <div class="ai-result-box" id="scanResult">読み取り結果がここに表示されます。確認後「この内容をカルテに反映」ボタンで入力できます。</div>
+      <div style="margin-top:8px;display:flex;gap:8px;">
+        <button class="btn-main" onclick="applyScanResult()" id="applyScanBtn" style="display:none">✅ この内容をカルテに反映</button>
+      </div>
+    </div>
+
+    <div class="sec-title">基本情報</div>
+    <div class="form-grid">
+      <div class="fg">
+        <label>氏名（フリガナ）</label>
+        <input type="text" id="f-name" placeholder="田中 花子（タナカ ハナコ）">
+      </div>
+      <div class="fg">
+        <label>生年月日</label>
+        <input type="date" id="f-dob">
+      </div>
+      <div class="fg">
+        <label>性別</label>
+        <select id="f-sex">
+          <option value="">選択</option>
+          <option>女性</option><option>男性</option><option>その他</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>電話番号</label>
+        <input type="tel" id="f-tel" placeholder="090-0000-0000">
+      </div>
+      <div class="fg">
+        <label>職業・スポーツ</label>
+        <input type="text" id="f-job" placeholder="例：会社員・テニス（週3）">
+      </div>
+      <div class="fg">
+        <label>初診日</label>
+        <input type="date" id="f-firstvisit">
+      </div>
+      <div class="fg full">
+        <label>主訴（部位1・2・3）</label>
+        <textarea id="f-chief" placeholder="1) 右肩痛&#10;2) 腰痛&#10;3) 月経不順"></textarea>
+      </div>
+      <div class="fg full">
+        <label>いつから・どのようになったか</label>
+        <textarea id="f-onset" placeholder="例：3ヶ月前から、デスクワーク増加により右肩に違和感…"></textarea>
+      </div>
+      <div class="fg full">
+        <label>現在の状態（痛み・腫れ・悪化要因）</label>
+        <textarea id="f-current"></textarea>
+      </div>
+    </div>
+
+    <div class="sec-title gap">既往歴チェックリスト</div>
+    <div class="check-list" id="checkList"></div>
+
+    <div class="sec-title gap">その他・備考</div>
+    <div class="form-grid">
+      <div class="fg full">
+        <label>既往歴・現病歴（詳細）</label>
+        <textarea id="f-history" placeholder="例：チョコレート嚢腫（右）、WPW症候群…"></textarea>
+      </div>
+      <div class="fg">
+        <label>睡眠（よい・ふつう・眠れない） / 平均時間</label>
+        <input type="text" id="f-sleep" placeholder="ふつう / 6時間">
+      </div>
+      <div class="fg">
+        <label>食欲 / 排尿・排便</label>
+        <input type="text" id="f-appetite" placeholder="よい / 排尿8回・便通1回">
+      </div>
+      <div class="fg full">
+        <label>現在の服薬・サプリ</label>
+        <textarea id="f-meds" placeholder="例：マグネシウム、ビタミンD3…"></textarea>
+      </div>
+      <div class="fg full">
+        <label>禁忌・アレルギー・特記事項</label>
+        <textarea id="f-note" placeholder="例：金属アレルギー（ステンレス可）、IAP禁忌なし"></textarea>
+      </div>
+    </div>
+
+    <div class="action-row">
+      <button class="btn-main" onclick="saveBasic()">基本情報を保存</button>
+    </div>
+  </div>
+
+  <!-- ② 施術記録 -->
+  <div class="panel" id="tab-visit">
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+      <input type="date" id="visitDate" style="border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:13px;background:#f5f9ff;color:var(--ink);">
+      <button class="btn-main" onclick="newVisit()">＋ この日の施術記録を作成</button>
+    </div>
+
+    <!-- 来院ナビ -->
+    <div class="visit-nav" id="visitNav"></div>
+
+    <div id="visitForm" style="display:none">
+      <div class="visit-header">
+        <div class="visit-date-badge" id="currentVisitBadge"></div>
+        <span style="font-size:12px;color:var(--ink-light)">来院記録</span>
+      </div>
+
+      <div class="sec-title">処置内容</div>
+      <div class="treatment-checks">
+        <label class="tcheck"><input type="checkbox" value="鍼">鍼</label>
+        <label class="tcheck"><input type="checkbox" value="灸">灸</label>
+        <label class="tcheck"><input type="checkbox" value="マイクロP3">マイクロP3</label>
+        <label class="tcheck"><input type="checkbox" value="マイクロP1">マイクロP1</label>
+        <label class="tcheck"><input type="checkbox" value="超音波">超音波</label>
+        <label class="tcheck"><input type="checkbox" value="手技">手技</label>
+        <label class="tcheck"><input type="checkbox" value="全身調整">全身調整</label>
+        <label class="tcheck"><input type="checkbox" value="半身調整">半身調整</label>
+        <label class="tcheck"><input type="checkbox" value="骨盤ex">骨盤ex</label>
+        <label class="tcheck"><input type="checkbox" value="肩ex">肩ex</label>
+        <label class="tcheck"><input type="checkbox" value="微弱電流">微弱電流</label>
+        <label class="tcheck"><input type="checkbox" value="IAP呼吸">IAP呼吸</label>
+        <label class="tcheck"><input type="checkbox" value="リンパケア">リンパケア</label>
+      </div>
+
+      <div class="sec-title gap">傷害・障害記録</div>
+      <div class="form-grid">
+        <div class="fg">
+          <label>傷害部位</label>
+          <input type="text" id="v-injurypart" placeholder="例：右膝関節">
+        </div>
+        <div class="fg">
+          <label>傷害名</label>
+          <input type="text" id="v-injuryname" placeholder="例：半月板損傷">
+        </div>
+        <div class="fg">
+          <label>障害部位</label>
+          <input type="text" id="v-disorderpart" placeholder="例：頸部">
+        </div>
+        <div class="fg">
+          <label>障害名</label>
+          <input type="text" id="v-disordername" placeholder="例：頸椎症">
+        </div>
+      </div>
+
+      <div class="sec-title gap">SOAP記録</div>
+      <div class="soap-grid">
+        <div class="soap-block">
+          <div class="soap-lbl">S — Subjective（主訴・自覚症状）</div>
+          <textarea id="soap-s" style="min-height:100px" placeholder="患者の訴え…"></textarea>
+        </div>
+        <div class="soap-block">
+          <div class="soap-lbl">O — Objective（客観所見）</div>
+          <textarea id="soap-o" style="min-height:100px" placeholder="触診・動作確認…"></textarea>
+        </div>
+        <div class="soap-block">
+          <div class="soap-lbl">A — Assessment（評価）</div>
+          <textarea id="soap-a" style="min-height:100px" placeholder="病態判断…"></textarea>
+        </div>
+        <div class="soap-block">
+          <div class="soap-lbl">P — Plan（治療計画）</div>
+          <textarea id="soap-p" style="min-height:100px" placeholder="次回プラン…"></textarea>
+        </div>
+      </div>
+
+      <div class="sec-title gap">取穴・施術詳細</div>
+      <div class="form-grid">
+        <div class="fg">
+          <label>主要取穴</label>
+          <textarea id="v-points" placeholder="SP6, ST36, CV4, BL23…"></textarea>
+        </div>
+        <div class="fg">
+          <label>施術手技詳細</label>
+          <textarea id="v-tech" placeholder="微弱電流（耳介・仙骨）…"></textarea>
+        </div>
+        <div class="fg full">
+          <label>memo（評価・経過状況etc）</label>
+          <textarea id="v-memo" placeholder="施術後の患者反応、変化…"></textarea>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn-main" onclick="saveVisit()">施術記録を保存</button>
+        <button class="btn-sub" onclick="aiSOAP()">💙 AIでSOAP文章化</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ 部位マーキング -->
+  <div class="panel" id="tab-body">
+    <div class="sec-title">治療部位マーキング</div>
+    <p style="font-size:12px;color:var(--ink-light);margin-bottom:12px;">体の図をタップ/クリックして治療部位に印をつけてください</p>
+
+    <div class="body-diagram-wrap">
+      <div class="diagram-controls">
+        <span style="font-size:12px;color:var(--ink-light)">マーク色：</span>
+        <div class="mark-color-picker">
+          <div class="color-dot active" style="background:#e63946" onclick="setMarkColor('#e63946',this)" title="赤（治療部位）"></div>
+          <div class="color-dot" style="background:#1a5fa8" onclick="setMarkColor('#1a5fa8',this)" title="青（鍼）"></div>
+          <div class="color-dot" style="background:#f4a261" onclick="setMarkColor('#f4a261',this)" title="橙（灸）"></div>
+          <div class="color-dot" style="background:#2a9d8f" onclick="setMarkColor('#2a9d8f',this)" title="緑（電気）"></div>
+          <div class="color-dot" style="background:#6d28d9" onclick="setMarkColor('#6d28d9',this)" title="紫（手技）"></div>
+        </div>
+        <span style="font-size:12px;color:var(--ink-light);margin-left:10px">マークサイズ：</span>
+        <input type="range" id="markSize" min="4" max="20" value="8" style="width:80px;accent-color:var(--blue)">
+        <button class="btn btn-danger" onclick="clearMarks()">消去</button>
+        <button class="btn" onclick="saveBodyDiagram()">マークを保存</button>
+      </div>
+      <div class="diagram-canvases" id="diagramCanvases">
+        <div class="canvas-box">
+          <label>前面</label>
+          <canvas class="body-canvas" id="canvas-front" width="160" height="320"></canvas>
+        </div>
+        <div class="canvas-box">
+          <label>背面</label>
+          <canvas class="body-canvas" id="canvas-back" width="160" height="320"></canvas>
+        </div>
+        <div class="canvas-box">
+          <label>メモ</label>
+          <textarea style="width:160px;height:320px;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12px;resize:none;background:#f5f9ff;font-family:'Noto Sans JP',sans-serif;" id="bodyNote" placeholder="部位・メモ…"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ 画像・動画 -->
+  <div class="panel" id="tab-media">
+    <div class="sec-title">画像・動画の添付</div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+      <div>
+        <div class="media-upload-area" onclick="document.getElementById('imgUpload').click()" style="width:200px;padding:14px;">
+          📷 画像を追加<br><span style="font-size:11px">レントゲン・エコー・写真</span>
+        </div>
+        <input type="file" id="imgUpload" accept="image/*" multiple style="display:none" onchange="addMedia(event,'image')">
+      </div>
+      <div>
+        <div class="media-upload-area" onclick="document.getElementById('vidUpload').click()" style="width:200px;padding:14px;">
+          🎥 動画を追加<br><span style="font-size:11px">シュート・サーブ・動作</span>
+        </div>
+        <input type="file" id="vidUpload" accept="video/*" multiple style="display:none" onchange="addMedia(event,'video')">
+      </div>
+    </div>
+
+    <div class="fg" style="margin-bottom:12px">
+      <label>画像・動画のメモ</label>
+      <textarea id="mediaMemo" placeholder="例：2026-05-11 右肩エコー、回旋筋腱板に陰影あり…"></textarea>
+    </div>
+
+    <div class="media-grid" id="mediaGrid"></div>
+
+    <div class="action-row">
+      <button class="btn-main" onclick="saveMedia()">メディア情報を保存</button>
+    </div>
+  </div>
+
+  <!-- ⑤ AIアシスタント -->
+  <div class="panel" id="tab-ai">
+    <div class="sec-title">AIカルテアシスタント</div>
+    <div class="ai-chat-wrap">
+      <div class="ai-chat-header">
+        <div class="ai-dot"></div>
+        WithMIKI AI（鍼灸・統合医療 専門アシスタント）
+      </div>
+      <div class="ai-messages" id="aiMessages">
+        <div class="msg ai">
+          <div class="msg-icon">💙</div>
+          <div class="msg-bubble">こんにちは。パーソナルカルテAIアシスタントです。
+
+• SOAP記録の文章化・整理
+• 取穴・施術プランの提案
+• 検査値・症状の読み解き
+• 患者説明文の作成サポート
+
+ご相談をどうぞ。</div>
+        </div>
+      </div>
+      <div class="ai-input-row">
+        <textarea id="aiInput" placeholder="例：「今日の施術をSOAPにまとめて」「この症状に合う取穴は？」" rows="2" onkeydown="handleAIKey(event)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendAI()">➤</button>
+      </div>
+    </div>
+    <div class="quick-btns">
+      <button class="qbtn" onclick="qp('今回の施術記録をSOAPにまとめてください')">SOAP文章化</button>
+      <button class="qbtn" onclick="qp('この患者に適した取穴プランを提案してください')">取穴提案</button>
+      <button class="qbtn" onclick="qp('患者への説明文（わかりやすい言葉で）を作成してください')">患者説明文</button>
+      <button class="qbtn" onclick="qp('今回の問診内容で気になる点・注意事項を教えてください')">問診チェック</button>
+      <button class="qbtn" onclick="qp('次回の治療計画を提案してください')">次回プラン</button>
+    </div>
+  </div>
+
+  <!-- ⑥ 来院履歴 -->
+  <div class="panel" id="tab-history">
+    <div class="sec-title">来院履歴一覧</div>
+    <div class="history-list" id="historyList">
+      <p style="font-size:13px;color:var(--ink-light)">施術記録を保存すると履歴が表示されます。</p>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- 患者設定モーダル -->
+<div class="modal-overlay" id="setupModal">
+  <div class="modal">
+    <h3>患者情報の設定</h3>
+    <div class="fg" style="margin-bottom:10px">
+      <label>患者名</label>
+      <input type="text" id="m-name" placeholder="田中 花子">
+    </div>
+    <div class="fg" style="margin-bottom:10px">
+      <label>カルテNo.</label>
+      <input type="text" id="m-no" placeholder="自動生成も可">
+    </div>
+    <div class="modal-btns">
+      <button class="btn-sub" onclick="closeModal('setupModal')">キャンセル</button>
+      <button class="btn-main" onclick="setupPatient()">設定</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast">保存しました</div>
+
+<script>
+// ========== STATE ==========
+const STORAGE_KEY = 'withmiki_personal_' + location.pathname;
+let state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"patient":{},"basicInfo":{},"checks":{},"visits":{},"media":[],"mediaMemo":"","bodyNote":"","bodyMarks":{"front":[],"back":[]}}');
+let currentVisitId = null;
+let mediaFiles = [];
+let scanResultData = null;
+let currentMarkColor = '#e63946';
+let currentMarkSize = 8;
+const aiHistory = [];
+
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function showToast(msg='保存しました✓') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// ========== TAB ==========
+function switchTab(name, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'history') renderHistory();
+  if (name === 'body') initCanvases();
+  if (name === 'media') renderMediaGrid();
+}
+
+// ========== MODAL ==========
+function openSetup() { document.getElementById('setupModal').classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function setupPatient() {
+  const name = document.getElementById('m-name').value.trim();
+  if (!name) { alert('患者名を入力してください'); return; }
+  const no = document.getElementById('m-no').value.trim() || ('P' + Date.now().toString().slice(-5));
+  state.patient = { name, no, createdAt: new Date().toISOString() };
+  save();
+  updatePatientHeader();
+  closeModal('setupModal');
+  showToast('患者を設定しました: ' + name);
+}
+function updatePatientHeader() {
+  const p = state.patient;
+  if (!p.name) return;
+  document.getElementById('headerPatientName').textContent = p.name + (p.no ? ` [${p.no}]` : '');
+  document.getElementById('patientNameDisp').textContent = p.name + (p.no ? `　No.${p.no}` : '');
+  // chips
+  const b = state.basicInfo;
+  const chips = [];
+  if (b.sex) chips.push(`<span class="chip"><strong>性別</strong> ${b.sex}</span>`);
+  if (b.dob) {
+    const age = Math.floor((new Date() - new Date(b.dob)) / (365.25*24*3600*1000));
+    chips.push(`<span class="chip"><strong>年齢</strong> ${age}歳</span>`);
+  }
+  if (b.job) chips.push(`<span class="chip">${b.job}</span>`);
+  if (b.firstvisit) chips.push(`<span class="chip"><strong>初診</strong> ${b.firstvisit}</span>`);
+  document.getElementById('patientChips').innerHTML = chips.join('');
+}
+
+// ========== CHECK LIST ==========
+const CHECK_ITEMS = [
+  '大きな病気にかかったことがある',
+  '肝炎にかかったことがある / 輸血を受けたことがある',
+  '血圧が高い（低い）と言われたことがある',
+  '特異体質・アレルギーといわれたことがある',
+  '生理が不順なことが多い / 生理痛が強い（女性のみ）',
+];
+function buildCheckList() {
+  const el = document.getElementById('checkList');
+  el.innerHTML = CHECK_ITEMS.map((item, i) => `
+    <div class="check-row">
+      <span>${item}</span>
+      <div class="radio-group">
+        <label><input type="radio" name="chk${i}" value="はい"> はい</label>
+        <label><input type="radio" name="chk${i}" value="いいえ"> いいえ</label>
+        <label><input type="radio" name="chk${i}" value="わからない"> わからない</label>
+      </div>
+    </div>`).join('');
+  // restore
+  Object.keys(state.checks || {}).forEach(k => {
+    const r = document.querySelector(`input[name="chk${k}"][value="${state.checks[k]}"]`);
+    if (r) r.checked = true;
+  });
+}
+
+// ========== BASIC INFO ==========
+function loadBasicForm() {
+  const b = state.basicInfo || {};
+  ['name','dob','sex','tel','job','firstvisit','chief','onset','current','history','sleep','appetite','meds','note'].forEach(k => {
+    const el = document.getElementById('f-' + k);
+    if (el && b[k]) el.value = b[k];
+  });
+}
+function saveBasic() {
+  const b = {};
+  ['name','dob','sex','tel','job','firstvisit','chief','onset','current','history','sleep','appetite','meds','note'].forEach(k => {
+    const el = document.getElementById('f-' + k);
+    if (el) b[k] = el.value;
+  });
+  state.basicInfo = b;
+  // checks
+  state.checks = {};
+  CHECK_ITEMS.forEach((_, i) => {
+    const r = document.querySelector(`input[name="chk${i}"]:checked`);
+    if (r) state.checks[i] = r.value;
+  });
+  // update patient name if empty
+  if (!state.patient.name && b.name) {
+    state.patient.name = b.name;
+    state.patient.no = state.patient.no || ('P' + Date.now().toString().slice(-5));
+  }
+  save();
+  updatePatientHeader();
+  showToast('基本情報を保存しました');
+}
+
+// ========== AI SCAN ==========
+async function scanIntake(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const resultEl = document.getElementById('scanResult');
+  resultEl.textContent = '📷 読み取り中...';
+  const base64 = await fileToBase64(file);
+  const mediaType = file.type;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+            { type: 'text', text: `この紙カルテ・問診票の画像を読み取り、以下の形式でJSONで返してください（日本語）。
+{
+  "name": "氏名",
+  "dob": "生年月日(YYYY-MM-DD形式があれば)",
+  "sex": "性別",
+  "chief": "主訴・部位",
+  "onset": "いつから・どのように",
+  "current": "現在の状態",
+  "history": "既往歴",
+  "meds": "服薬",
+  "note": "その他・気になる記載",
+  "checks": "チェック項目の回答（箇条書き）"
+}
+JSONのみ返してください。読み取れない項目は空文字にしてください。` }
+          ]
+        }]
+      })
+    });
+    const data = await res.json();
+    const raw = data.content?.[0]?.text || '{}';
+    const clean = raw.replace(/```json|```/g, '').trim();
+    scanResultData = JSON.parse(clean);
+    resultEl.textContent = JSON.stringify(scanResultData, null, 2);
+    document.getElementById('applyScanBtn').style.display = 'inline-flex';
+  } catch(err) {
+    resultEl.textContent = '読み取りエラー: ' + err.message + '\n手入力してください。';
+  }
+  e.target.value = '';
+}
+
+function applyScanResult() {
+  if (!scanResultData) return;
+  const map = { name:'f-name', dob:'f-dob', sex:'f-sex', chief:'f-chief', onset:'f-onset', current:'f-current', history:'f-history', meds:'f-meds', note:'f-note' };
+  Object.keys(map).forEach(k => {
+    if (scanResultData[k]) {
+      const el = document.getElementById(map[k]);
+      if (el) el.value = scanResultData[k];
+    }
+  });
+  showToast('カルテに反映しました。内容を確認して保存してください。');
+  document.getElementById('applyScanBtn').style.display = 'none';
+}
+
+// ========== VISIT ==========
+function newVisit() {
+  const date = document.getElementById('visitDate').value || new Date().toISOString().slice(0,10);
+  currentVisitId = 'v_' + Date.now();
+  state.visits[currentVisitId] = { id: currentVisitId, date, treatments: [], soap: {}, injury: {}, points: '', tech: '', memo: '', createdAt: new Date().toISOString() };
+  save();
+  clearVisitForm();
+  showVisitForm(date);
+  renderVisitNav();
+  showToast('施術記録を作成: ' + date);
+}
+function clearVisitForm() {
+  document.querySelectorAll('.tcheck input').forEach(c => c.checked = false);
+  ['soap-s','soap-o','soap-a','soap-p','v-points','v-tech','v-memo','v-injurypart','v-injuryname','v-disorderpart','v-disordername'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+}
+function showVisitForm(date) {
+  document.getElementById('visitForm').style.display = 'block';
+  document.getElementById('currentVisitBadge').textContent = date;
+}
+function renderVisitNav() {
+  const nav = document.getElementById('visitNav');
+  const visits = Object.values(state.visits).sort((a,b) => b.date.localeCompare(a.date));
+  nav.innerHTML = visits.map(v =>
+    `<button class="visit-nav-btn ${v.id===currentVisitId?'active':''}" onclick="loadVisit('${v.id}')">${v.date}</button>`
+  ).join('');
+}
+function loadVisit(id) {
+  currentVisitId = id;
+  const v = state.visits[id];
+  if (!v) return;
+  clearVisitForm();
+  showVisitForm(v.date);
+  (v.treatments||[]).forEach(t => {
+    const cb = document.querySelector(`.tcheck input[value="${t}"]`);
+    if (cb) cb.checked = true;
+  });
+  if (v.soap) {
+    ['s','o','a','p'].forEach(k => { const el = document.getElementById('soap-'+k); if(el) el.value = v.soap[k]||''; });
+  }
+  if (v.injury) {
+    ['injurypart','injuryname','disorderpart','disordername'].forEach(k => { const el = document.getElementById('v-'+k); if(el) el.value = v.injury[k]||''; });
+  }
+  document.getElementById('v-points').value = v.points||'';
+  document.getElementById('v-tech').value = v.tech||'';
+  document.getElementById('v-memo').value = v.memo||'';
+  renderVisitNav();
+}
+function saveVisit() {
+  if (!currentVisitId) { alert('施術記録を作成してください'); return; }
+  const v = state.visits[currentVisitId];
+  v.treatments = Array.from(document.querySelectorAll('.tcheck input:checked')).map(c => c.value);
+  v.soap = { s: document.getElementById('soap-s').value, o: document.getElementById('soap-o').value, a: document.getElementById('soap-a').value, p: document.getElementById('soap-p').value };
+  v.injury = { injurypart: document.getElementById('v-injurypart').value, injuryname: document.getElementById('v-injuryname').value, disorderpart: document.getElementById('v-disorderpart').value, disordername: document.getElementById('v-disordername').value };
+  v.points = document.getElementById('v-points').value;
+  v.tech = document.getElementById('v-tech').value;
+  v.memo = document.getElementById('v-memo').value;
+  save(); renderVisitNav(); showToast('施術記録を保存しました');
+}
+
+// ========== BODY DIAGRAM ==========
+const bodies = {
+  front: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 320" width="160" height="320">
+  <style>path,circle,ellipse,rect,line{stroke:#2a4a6a;fill:none;stroke-width:1.2}</style>
+  <ellipse cx="80" cy="28" rx="18" ry="22" fill="#e8f0f8" stroke="#2a4a6a"/>
+  <rect x="73" y="48" width="14" height="12" rx="3" fill="#e8f0f8"/>
+  <path d="M30 70 Q55 58 73 60 L87 60 Q105 58 130 70" stroke-width="1.5"/>
+  <path d="M40 70 L35 140 L45 175 L115 175 L125 140 L120 70 Z" fill="#e8f0f8"/>
+  <path d="M40 70 Q25 85 20 110 Q17 135 20 160 Q22 172 28 175" fill="#e8f0f8"/>
+  <path d="M120 70 Q135 85 140 110 Q143 135 140 160 Q138 172 132 175" fill="#e8f0f8"/>
+  <ellipse cx="24" cy="182" rx="9" ry="12" fill="#e8f0f8"/>
+  <ellipse cx="136" cy="182" rx="9" ry="12" fill="#e8f0f8"/>
+  <path d="M45 175 Q80 185 115 175"/>
+  <path d="M55 175 L50 250 Q48 268 55 285" fill="#e8f0f8" stroke-width="1.2"/>
+  <path d="M75 175 L72 250 Q71 268 65 285" fill="#e8f0f8"/>
+  <path d="M55 175 L75 175"/>
+  <path d="M85 175 L88 250 Q89 268 95 285" fill="#e8f0f8"/>
+  <path d="M105 175 L110 250 Q112 268 105 285" fill="#e8f0f8"/>
+  <path d="M85 175 L105 175"/>
+  <path d="M50 285 Q45 295 40 300 Q48 305 70 300 L65 285"/>
+  <path d="M95 285 Q90 295 90 300 Q108 305 120 300 Q115 295 110 285"/>
+  <line x1="80" y1="60" x2="80" y2="175" stroke-dasharray="3,3" stroke-width="0.7" stroke="#9bb8d4"/>
+  <path d="M55 62 Q65 65 73 60" stroke-width="0.8"/>
+  <path d="M87 60 Q95 65 105 62" stroke-width="0.8"/>
+  <circle cx="80" cy="130" r="3" fill="#c8d8e8" stroke="none"/>
+</svg>`,
+  back: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 320" width="160" height="320">
+  <style>path,circle,ellipse,rect,line{stroke:#2a4a6a;fill:none;stroke-width:1.2}</style>
+  <ellipse cx="80" cy="28" rx="18" ry="22" fill="#e8f0f8" stroke="#2a4a6a"/>
+  <rect x="73" y="48" width="14" height="12" rx="3" fill="#e8f0f8"/>
+  <path d="M30 70 Q55 58 73 60 L87 60 Q105 58 130 70" stroke-width="1.5"/>
+  <path d="M40 70 L35 140 L45 175 L115 175 L125 140 L120 70 Z" fill="#e8f0f8"/>
+  <line x1="80" y1="62" x2="80" y2="175" stroke-dasharray="4,3" stroke-width="1" stroke="#6a8aaa"/>
+  <path d="M55 80 Q50 100 58 115 Q65 118 72 110 Q74 95 70 80" fill="#d0e0f0"/>
+  <path d="M105 80 Q110 100 102 115 Q95 118 88 110 Q86 95 90 80" fill="#d0e0f0"/>
+  <path d="M40 70 Q25 85 20 110 Q17 135 20 160 Q22 172 28 175" fill="#e8f0f8"/>
+  <path d="M120 70 Q135 85 140 110 Q143 135 140 160 Q138 172 132 175" fill="#e8f0f8"/>
+  <ellipse cx="24" cy="182" rx="9" ry="12" fill="#e8f0f8"/>
+  <ellipse cx="136" cy="182" rx="9" ry="12" fill="#e8f0f8"/>
+  <path d="M45 175 Q80 190 115 175"/>
+  <path d="M55 175 Q80 182 105 175"/>
+  <path d="M55 175 L50 250 Q48 268 55 285" fill="#e8f0f8"/>
+  <path d="M75 175 L72 250 Q71 268 65 285" fill="#e8f0f8"/>
+  <path d="M55 175 L75 175"/>
+  <path d="M85 175 L88 250 Q89 268 95 285" fill="#e8f0f8"/>
+  <path d="M105 175 L110 250 Q112 268 105 285" fill="#e8f0f8"/>
+  <path d="M85 175 L105 175"/>
+  <path d="M50 285 L48 300 Q55 308 68 302 L65 285"/>
+  <path d="M95 285 L95 302 Q108 308 115 300 L110 285"/>
+</svg>`
+};
+
+function initCanvases() {
+  ['front','back'].forEach(side => {
+    const canvas = document.getElementById('canvas-' + side);
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    const blob = new Blob([bodies[side]], {type:'image/svg+xml'});
+    const url = URL.createObjectURL(blob);
+    img.onload = () => {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      (state.bodyMarks[side]||[]).forEach(m => drawMark(ctx, m.x, m.y, m.color, m.size));
+    };
+    img.src = url;
+    canvas.removeEventListener('click', canvas._clickHandler);
+    canvas._clickHandler = e => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+      const mark = { x, y, color: currentMarkColor, size: parseInt(document.getElementById('markSize').value) };
+      state.bodyMarks[side] = state.bodyMarks[side] || [];
+      state.bodyMarks[side].push(mark);
+      drawMark(ctx, x, y, mark.color, mark.size);
+    };
+    canvas.addEventListener('click', canvas._clickHandler);
+    canvas.removeEventListener('touchend', canvas._touchHandler);
+    canvas._touchHandler = e => {
+      e.preventDefault();
+      const t = e.changedTouches[0];
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (t.clientX - rect.left) * scaleX;
+      const y = (t.clientY - rect.top) * scaleY;
+      const mark = { x, y, color: currentMarkColor, size: parseInt(document.getElementById('markSize').value) };
+      state.bodyMarks[side] = state.bodyMarks[side] || [];
+      state.bodyMarks[side].push(mark);
+      drawMark(ctx, x, y, mark.color, mark.size);
+    };
+    canvas.addEventListener('touchend', canvas._touchHandler, {passive:false});
+  });
+  if (state.bodyNote) document.getElementById('bodyNote').value = state.bodyNote;
+}
+
+function drawMark(ctx, x, y, color, size) {
+  ctx.beginPath();
+  ctx.arc(x, y, size/2, 0, Math.PI*2);
+  ctx.fillStyle = color + 'cc';
+  ctx.fill();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function setMarkColor(color, el) {
+  currentMarkColor = color;
+  document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function clearMarks() {
+  if (!confirm('マークをすべて消去しますか？')) return;
+  state.bodyMarks = { front: [], back: [] };
+  initCanvases();
+}
+
+function saveBodyDiagram() {
+  state.bodyNote = document.getElementById('bodyNote').value;
+  save();
+  showToast('部位マークを保存しました');
+}
+
+// ========== MEDIA ==========
+function addMedia(e, type) {
+  const files = Array.from(e.target.files);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      mediaFiles.push({ dataUrl: ev.target.result, type, name: file.name });
+      renderMediaGrid();
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = '';
+}
+function renderMediaGrid() {
+  const files = mediaFiles.length ? mediaFiles : (state.media||[]).map(m=>({...m}));
+  const grid = document.getElementById('mediaGrid');
+  grid.innerHTML = files.map((m, i) => `
+    <div class="media-thumb">
+      ${m.type==='video'
+        ? `<video src="${m.dataUrl}" controls></video>`
+        : `<img src="${m.dataUrl}" alt="${m.name}" onclick="window.open(this.src)">`}
+      <div class="media-label">${m.name.slice(0,14)}</div>
+      <button class="del-btn" onclick="delMedia(${i})">×</button>
+    </div>`).join('');
+  if (state.mediaMemo) document.getElementById('mediaMemo').value = state.mediaMemo;
+}
+function delMedia(i) {
+  const arr = mediaFiles.length ? mediaFiles : state.media;
+  arr.splice(i, 1);
+  if (!mediaFiles.length) { state.media = arr; save(); }
+  renderMediaGrid();
+}
+function saveMedia() {
+  state.media = mediaFiles.length ? mediaFiles : state.media;
+  state.mediaMemo = document.getElementById('mediaMemo').value;
+  save();
+  showToast('メディアを保存しました');
+}
+
+// ========== HISTORY ==========
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  const visits = Object.values(state.visits).sort((a,b) => b.date.localeCompare(a.date));
+  if (!visits.length) { list.innerHTML = '<p style="font-size:13px;color:var(--ink-light)">施術記録がありません。</p>'; return; }
+  list.innerHTML = visits.map(v => {
+    const tags = [];
+    if (v.treatments?.length) tags.push(...v.treatments.slice(0,3));
+    if (v.soap?.s) tags.push('SOAP');
+    return `<div class="history-item" onclick="goToVisit('${v.id}')">
+      <div class="history-date">${v.date}</div>
+      <div class="history-summary">${v.injury?.injurypart||''} ${v.soap?.s ? v.soap.s.slice(0,50)+'…' : '（メモなし）'}</div>
+      <div class="history-tags">${tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+    </div>`;
+  }).join('');
+}
+function goToVisit(id) {
+  document.querySelectorAll('.tab')[1].click();
+  setTimeout(() => loadVisit(id), 50);
+}
+
+// ========== AI ==========
+function buildContext() {
+  const b = state.basicInfo || {};
+  const p = state.patient || {};
+  let ctx = `【患者】${p.name||'未設定'} ${b.sex||''} ${b.dob ? Math.floor((new Date()-new Date(b.dob))/(365.25*24*3600*1000))+'歳' : ''}
+主訴: ${b.chief||'-'}
+既往歴: ${b.history||'-'}
+服薬: ${b.meds||'-'}
+禁忌: ${b.note||'-'}`;
+  if (currentVisitId && state.visits[currentVisitId]) {
+    const v = state.visits[currentVisitId];
+    ctx += `\n\n【今回 ${v.date}】処置: ${(v.treatments||[]).join('・')||'-'}
+傷害: ${v.injury?.injurypart||'-'} ${v.injury?.injuryname||''}
+S: ${v.soap?.s||'-'}  O: ${v.soap?.o||'-'}
+A: ${v.soap?.a||'-'}  P: ${v.soap?.p||'-'}
+取穴: ${v.points||'-'}  手技: ${v.tech||'-'}
+memo: ${v.memo||'-'}`;
+  }
+  return ctx;
+}
+
+function appendMsg(role, text) {
+  const c = document.getElementById('aiMessages');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = `<div class="msg-icon">${role==='ai'?'💙':'👤'}</div><div class="msg-bubble">${text}</div>`;
+  c.appendChild(div);
+  c.scrollTop = c.scrollHeight;
+}
+function showTyping() {
+  const c = document.getElementById('aiMessages');
+  const div = document.createElement('div');
+  div.className = 'msg ai'; div.id = 'typing';
+  div.innerHTML = `<div class="msg-icon">💙</div><div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  c.appendChild(div); c.scrollTop = c.scrollHeight;
+}
+function removeTyping() { const el = document.getElementById('typing'); if(el) el.remove(); }
+
+async function sendAI() {
+  const input = document.getElementById('aiInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  document.getElementById('sendBtn').disabled = true;
+  appendMsg('user', text);
+  aiHistory.push({ role:'user', content: text });
+  showTyping();
+
+  const system = `あなたはWithMIKIクリニックの鍼灸・統合医療専門AIアシスタントです。
+鍼灸師・アスレティックトレーナーの三木先生のカルテ作成・診察をサポートします。
+東洋医学（経穴・気血津液・五臓六腑）と現代医学（整形外科・婦人科・スポーツ医学）の両視点から助言できます。
+日本語で簡潔かつ実践的に回答してください。
+
+現在のカルテ情報:
+${buildContext()}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:1000,
+        system,
+        messages: aiHistory.map(m=>({ role: m.role==='ai'?'assistant':m.role, content: m.content }))
+      })
+    });
+    const data = await res.json();
+    removeTyping();
+    const reply = data.content?.[0]?.text || 'エラー';
+    appendMsg('ai', reply);
+    aiHistory.push({ role:'ai', content: reply });
+  } catch(e) {
+    removeTyping();
+    appendMsg('ai', 'エラー: ' + e.message);
+  }
+  document.getElementById('sendBtn').disabled = false;
+}
+function handleAIKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI();} }
+function qp(text) { document.getElementById('aiInput').value = text; sendAI(); }
+
+async function aiSOAP() {
+  const prompt = '現在入力されているS/O/A/P・取穴・手技・メモをもとに、整理されたSOAP記録文章を作成してください。';
+  document.querySelectorAll('.tab')[4].click();
+  setTimeout(() => { document.getElementById('aiInput').value = prompt; sendAI(); }, 100);
+}
+
+// ========== EXPORT ==========
+function exportData() {
+  const json = JSON.stringify(state, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const name = (state.patient?.name || 'patient').replace(/\s/g,'_');
+  a.download = `withmiki_${name}_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('JSONファイルを出力しました');
+}
+
+// ========== UTILS ==========
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+// ========== INIT ==========
+buildCheckList();
+loadBasicForm();
+updatePatientHeader();
+renderVisitNav();
+if (state.visits && Object.keys(state.visits).length) {
+  const latest = Object.values(state.visits).sort((a,b)=>b.date.localeCompare(a.date))[0];
+  loadVisit(latest.id);
+}
+document.getElementById('visitDate').value = new Date().toISOString().slice(0,10);
+if (!state.patient?.name) setTimeout(openSetup, 500);
+</script>
+</body>
+</html>
