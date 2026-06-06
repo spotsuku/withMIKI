@@ -55,7 +55,7 @@ DO $$
 DECLARE t text;
 BEGIN
   FOREACH t IN ARRAY ARRAY[
-    'app_user','care_program','patient_program','patient_intake','karte_cover',
+    'patient','app_user','care_program','patient_program','patient_intake','karte_cover',
     'problem','visit','soap_note','body_diagram','daily_record','medication',
     'training_session','nutrition_goal','attachment','food_entry','lab_result',
     'media','observation_definition','observation','line_account',
@@ -63,6 +63,7 @@ BEGIN
   ]
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY;', t);
+    EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_%1$s ON %1$s;', t);
     EXECUTE format($p$
       CREATE POLICY tenant_isolation_%1$s ON %1$s
       USING (tenant_id = current_setting('app.tenant_id', true)::uuid);
@@ -77,6 +78,13 @@ ALTER TABLE selfcare_log   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE medication_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE visit_vital    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lab_value      ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS parent_isolation_gyneco_daily ON gyneco_daily;
+DROP POLICY IF EXISTS parent_isolation_athlete_daily ON athlete_daily;
+DROP POLICY IF EXISTS parent_isolation_selfcare_log ON selfcare_log;
+DROP POLICY IF EXISTS parent_isolation_medication_log ON medication_log;
+DROP POLICY IF EXISTS parent_isolation_visit_vital ON visit_vital;
+DROP POLICY IF EXISTS parent_isolation_lab_value ON lab_value;
 
 CREATE POLICY parent_isolation_gyneco_daily ON gyneco_daily USING (
   EXISTS (SELECT 1 FROM daily_record d

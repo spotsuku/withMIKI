@@ -2,6 +2,8 @@
 .env
 .env.*
 !.env.example
+!*.example
+!**/*.env.example
 *.pem
 *.key
 secrets/
@@ -21,6 +23,9 @@ build/
 .next/
 out/
 coverage/
+next-env.d.ts
+*.tsbuildinfo
+.vercel
 *.log
 npm-debug.log*
 yarn-debug.log*

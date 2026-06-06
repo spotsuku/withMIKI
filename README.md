@@ -23,6 +23,8 @@ WithMIKI（ウィズミキ）は、**患者さんが日々の体調を記録し�
 8. **DB 設計レビュー（決定事項）**（[`docs/07-db-design-review.md`](docs/07-db-design-review.md)）
 9. **意思決定記録（ADR）**（[`docs/adr/`](docs/adr/)）— 技術スタック等
 10. **移行インポータ（実装）**（[`tools/importer/`](tools/importer/)）— 既存 JSON → DB 取り込み
+11. **セットアップ手順**（[`docs/setup/`](docs/setup/)）— Supabase 構築・Vercel デプロイ
+12. **先生用カルテ Web（実装）**（[`apps/karte/`](apps/karte/)）— Next.js + Supabase
 
 > ⚠️ 現時点ではコードの本実装はまだ着手していません。**まず設計を固める**フェーズです（ロードマップ Phase 0）。
 
@@ -112,14 +114,21 @@ withMIKI/
 │   ├── 05-security-compliance.md 医療データ安全管理・同意・監査・暗号化
 │   ├── 06-roadmap.md          フェーズ別開発計画・マイルストーン
 │   ├── 07-db-design-review.md DB設計レビューと決定事項（共通基盤＋対象別）
-│   └── adr/
-│       └── 0001-tech-stack-supabase.md  技術スタック確定(ADR)
+│   ├── adr/
+│   │   └── 0001-tech-stack-supabase.md  技術スタック確定(ADR)
+│   └── setup/
+│       ├── supabase-setup.md  Supabase 構築・マイグレーション適用・RLS確認
+│       └── vercel-deploy.md   Vercel デプロイ手順（apps/karte）
 ├── db/
 │   ├── schema.sql             PostgreSQL DDL（設計の実体）
 │   └── migrations/
 │       ├── 0001_init.sql      初期マイグレーション（標準プログラム・検査カタログ）
 │       ├── 0002_review_refinements.sql  レビュー反映（RLS全テーブル・索引等）
-│       └── 0003_import_compat.sql       既存データ無損失のためのスキーマ補完
+│       ├── 0003_import_compat.sql       既存データ無損失のためのスキーマ補完
+│       └── supabase/
+│           └── 0004_supabase_auth_rls.sql  Supabase専用RLS（auth.uid()ベース）
+├── apps/
+│   └── karte/                 先生用カルテ Web（Next.js + Supabase Auth）
 ├── tools/
 │   └── importer/              既存JSON → Supabase 取り込みツール（TypeScript）
 └── legacy/                    ← 現行 HTML 原本（設計の元データ・改変禁止）

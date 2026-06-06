@@ -535,18 +535,8 @@ CREATE INDEX idx_audit_entity ON audit_log(entity, entity_id);
 -- =============================================================================
 -- 10. Row-Level Security（テナント分離）
 --   API は接続時に  SET app.tenant_id = '<uuid>';  を実行する前提。
---   ここでは代表テーブルのみ例示。全業務テーブルに同様のポリシーを適用すること。
+--   RLS の有効化とポリシーは 0002_review_refinements.sql で「全業務テーブルに」
+--   一元的に定義する（ここで重複定義すると名前衝突するため schema.sql 側では行わない）。
+--   適用順: schema.sql → migrations/0001 → 0002(RLS) → 0003
 -- =============================================================================
-ALTER TABLE patient        ENABLE ROW LEVEL SECURITY;
-ALTER TABLE daily_record   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE visit          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE lab_result     ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY tenant_isolation_patient ON patient
-  USING (tenant_id = current_setting('app.tenant_id', true)::uuid);
-CREATE POLICY tenant_isolation_daily ON daily_record
-  USING (tenant_id = current_setting('app.tenant_id', true)::uuid);
-CREATE POLICY tenant_isolation_visit ON visit
-  USING (tenant_id = current_setting('app.tenant_id', true)::uuid);
-CREATE POLICY tenant_isolation_lab ON lab_result
-  USING (tenant_id = current_setting('app.tenant_id', true)::uuid);
+-- （RLS は db/migrations/0002_review_refinements.sql を参照）
