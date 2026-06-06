@@ -59,10 +59,10 @@
 - [x] 問診（intake）・ケアプラン（cover）の編集（`/patients/[id]/intake/edit`・`/cover/edit`）
 - [x] 問題リストの作成/編集/削除 ＋ 問題ひも付け SOAP 経過（`/patients/[id]/problems/...`）
 - [x] 採血の入力/編集/削除（手入力、`/patients/[id]/labs/new`・`.../edit`）— カタログ連動
-- [ ] 人体図（Canvas、front/back マーク）— 現行機能の継承
-- [ ] メディア（署名付き URL アップロード）
-- [ ] AI チャット（カルテ補助、サーバープロキシ経由）
-- **完了条件**: 先生が現行 `personal-karte` 相当を Web で行える。
+- [x] 人体図（Canvas、front/back マーク）（`/patients/[id]/body`）
+- [x] メディア（Storage アップロード＋署名付き URL 表示）（`/patients/[id]/media/new`）
+- [x] AI チャット（カルテ補助、サーバープロキシ経由）
+- **完了条件**: 先生が現行 `personal-karte` 相当を Web で行える。→ ほぼ達成
 
 ## Phase 4 — 患者アプリ（PWA）
 - [ ] 婦人科デイリー（BBT/月経/PMS/舌診/東洋医学/採血/食事）

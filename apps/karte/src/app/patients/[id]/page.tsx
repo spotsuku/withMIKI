@@ -35,7 +35,7 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
   const p = patient as Patient;
 
   // 関連データを並行取得
-  const [intakeRes, coverRes, visitsRes, problemsRes, labsRes] = await Promise.all([
+  const [intakeRes, coverRes, visitsRes, problemsRes, labsRes, mediaRes] = await Promise.all([
     supabase.from('patient_intake').select('*').eq('patient_id', p.id).maybeSingle(),
     supabase.from('karte_cover').select('*').eq('patient_id', p.id).maybeSingle(),
     supabase
@@ -58,6 +58,13 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
       .is('deleted_at', null)
       .order('taken_date', { ascending: false })
       .limit(5),
+    supabase
+      .from('media')
+      .select('id, title, category, taken_date')
+      .eq('patient_id', p.id)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(12),
   ]);
 
   const intake = intakeRes.data as PatientIntake | null;
@@ -65,6 +72,7 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
   const visits = (visitsRes.data ?? []) as Visit[];
   const problems = (problemsRes.data ?? []) as Problem[];
   const labs = (labsRes.data ?? []) as LabResult[];
+  const media = (mediaRes.data ?? []) as { id: string; title: string | null; category: string | null; taken_date: string | null }[];
   const age = ageFromDob(p.dob);
 
   return (
@@ -92,6 +100,14 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
             </div>
             <Link className="btn secondary" href={`/patients/${p.id}/edit`}>
               基本情報を編集
+            </Link>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+            <Link className="btn secondary" href={`/patients/${p.id}/body`}>
+              🧍 人体図
+            </Link>
+            <Link className="btn secondary" href={`/patients/${p.id}/media/new`}>
+              📷 メディア追加
             </Link>
           </div>
         </div>
@@ -234,6 +250,34 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
             </ul>
           ) : (
             <div className="empty">採血記録なし</div>
+          )}
+        </div>
+
+        {/* メディア */}
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ margin: 0 }}>メディア</h2>
+            <Link className="btn secondary" href={`/patients/${p.id}/media/new`}>
+              ＋ 追加
+            </Link>
+          </div>
+          {media.length ? (
+            <ul className="patient-list" style={{ marginTop: 12 }}>
+              {media.map((m) => (
+                <li key={m.id}>
+                  <a href={`/api/media/${m.id}/url`} target="_blank" rel="noreferrer">
+                    <span style={{ flex: 1 }}>
+                      {m.category ? <span className="tag">{m.category}</span> : null}
+                      <strong>{m.title ?? 'メディア'}</strong>
+                      {m.taken_date ? <span className="meta">　{m.taken_date}</span> : null}
+                    </span>
+                    <span className="meta">表示 ›</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="empty">メディアなし</div>
           )}
         </div>
 
