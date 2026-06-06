@@ -20,7 +20,14 @@ export interface PatientInitial {
   first_visit_date?: string | null;
   hospital?: string | null;
   avatar?: string | null;
+  program?: string | null; // care_program.code: gyneco / athlete / master
 }
+
+const PROGRAMS = [
+  { value: 'gyneco', label: '婦人科' },
+  { value: 'athlete', label: 'アスリート' },
+  { value: 'master', label: '総合・一般' },
+];
 
 function SubmitButton({ isEdit }: { isEdit: boolean }) {
   const { pending } = useFormStatus();
@@ -46,6 +53,14 @@ export function PatientForm({ initial }: { initial?: PatientInitial }) {
           <div className="field">
             <label htmlFor="name">氏名 *</label>
             <input id="name" name="name" required defaultValue={initial?.name ?? ''} />
+          </div>
+          <div className="field">
+            <label htmlFor="program">カルテ種別</label>
+            <select id="program" name="program" defaultValue={initial?.program ?? 'gyneco'}>
+              {PROGRAMS.map((p) => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+            </select>
           </div>
           <div className="field">
             <label htmlFor="kana">フリガナ</label>

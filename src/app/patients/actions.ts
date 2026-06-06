@@ -68,6 +68,26 @@ export async function savePatient(
     savedId = (data as { id: string }).id;
   }
 
+  // ケアプログラム（婦人科/アスリート/総合）の割当（主プログラムを1つに置換）
+  const program = str(formData, 'program');
+  if (program && savedId) {
+    const { data: cp } = await supabase
+      .from('care_program')
+      .select('id')
+      .eq('code', program)
+      .is('tenant_id', null)
+      .maybeSingle();
+    if (cp) {
+      await supabase.from('patient_program').delete().eq('patient_id', savedId);
+      await supabase.from('patient_program').insert({
+        tenant_id: tenant,
+        patient_id: savedId,
+        care_program_id: (cp as { id: string }).id,
+        is_primary: true,
+      });
+    }
+  }
+
   revalidatePath('/patients');
   revalidatePath(`/patients/${savedId}`);
   redirect(`/patients/${savedId}`);

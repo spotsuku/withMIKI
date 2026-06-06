@@ -35,6 +35,18 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
   if (!patient) notFound();
   const p = patient as Patient;
 
+  // 主プログラム（カルテ種別）
+  const { data: ppRow } = await supabase
+    .from('patient_program')
+    .select('is_primary, care_program:care_program_id(code, name)')
+    .eq('patient_id', p.id)
+    .order('is_primary', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const ppRel = (ppRow as { care_program: { code: string; name: string } | { code: string; name: string }[] | null } | null)?.care_program;
+  const program = Array.isArray(ppRel) ? ppRel[0] : ppRel;
+  const programLabel = program?.code === 'gyneco' ? '婦人科' : program?.code === 'athlete' ? 'アスリート' : program ? '総合・一般' : null;
+
   // 関連データを並行取得
   const [intakeRes, coverRes, visitsRes, problemsRes, labsRes, mediaRes] = await Promise.all([
     supabase.from('patient_intake').select('*').eq('patient_id', p.id).maybeSingle(),
@@ -137,7 +149,10 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
               {p.avatar || '🧑'}
             </span>
             <div style={{ flex: 1 }}>
-              <h1 style={{ margin: 0, fontSize: '1.4rem' }}>{p.name}</h1>
+              <h1 style={{ margin: 0, fontSize: '1.4rem' }}>
+                {p.name}
+                {programLabel ? <span className="tag" style={{ marginLeft: 8, verticalAlign: 'middle' }}>{programLabel}</span> : null}
+              </h1>
               <div className="meta">
                 {p.kana ?? ''} {p.code ? `／ No.${p.code}` : ''}
               </div>

@@ -24,6 +24,16 @@ export default async function EditPatientPage({ params }: { params: { id: string
   if (!data) notFound();
   const p = data as Patient;
 
+  const { data: pp } = await supabase
+    .from('patient_program')
+    .select('is_primary, care_program:care_program_id(code)')
+    .eq('patient_id', p.id)
+    .order('is_primary', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const cpRel = (pp as { care_program: { code: string } | { code: string }[] | null } | null)?.care_program;
+  const programCode = (Array.isArray(cpRel) ? cpRel[0]?.code : cpRel?.code) ?? 'gyneco';
+
   const initial: PatientInitial = {
     id: p.id,
     name: p.name,
@@ -39,6 +49,7 @@ export default async function EditPatientPage({ params }: { params: { id: string
     first_visit_date: p.first_visit_date,
     hospital: p.hospital,
     avatar: p.avatar,
+    program: programCode,
   };
 
   return (
