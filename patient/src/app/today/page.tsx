@@ -46,33 +46,35 @@ export default async function TodayPage() {
   const supabase = createClient();
   const { data: daily } = await supabase
     .from('daily_record')
-    .select('id, weight, body_temp, sleep_hours, memo')
+    .select('id, weight, body_fat, body_temp, sleep_hours, water, memo, payload')
     .eq('patient_id', ctx.patient.id)
     .eq('record_date', today)
     .is('deleted_at', null)
     .maybeSingle();
 
-  let gyneco: Record<string, number | string | null> | null = null;
+  let gyneco: Record<string, unknown> | null = null;
   if (daily) {
     const { data } = await supabase
       .from('gyneco_daily')
-      .select('bbt, menstrual, flow, pain')
+      .select('*')
       .eq('daily_record_id', (daily as { id: string }).id)
       .maybeSingle();
-    gyneco = (data as Record<string, number | string | null> | null) ?? null;
+    gyneco = (data as Record<string, unknown> | null) ?? null;
   }
 
-  const d = (daily as Record<string, number | string | null> | null) ?? {};
+  const d = (daily as Record<string, unknown> | null) ?? {};
   const initial: DailyInitial = {
     record_date: today,
     weight: (d.weight as number) ?? null,
+    body_fat: (d.body_fat as number) ?? null,
     body_temp: (d.body_temp as number) ?? null,
     sleep_hours: (d.sleep_hours as number) ?? null,
+    water: (d.water as number) ?? null,
     memo: (d.memo as string) ?? null,
     bbt: (gyneco?.bbt as number) ?? null,
-    menstrual: (gyneco?.menstrual as string) ?? null,
-    flow: (gyneco?.flow as string) ?? null,
     pain: (gyneco?.pain as number) ?? null,
+    gyneco: gyneco ?? {},
+    payload: (d.payload as Record<string, unknown>) ?? {},
   };
 
   return (

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getPatientContext } from '@/lib/patient';
+import { GYNECO_CHIPS, GYNECO_EXTRA_CHIPS } from '@/lib/gyneco';
 
 export interface DailyState {
   error?: string;
@@ -21,8 +22,13 @@ function str(fd: FormData, k: string): string | null {
   const s = String(v).trim();
   return s === '' ? null : s;
 }
+function arr(fd: FormData, k: string): string[] {
+  const v = fd.get(k);
+  if (!v) return [];
+  try { const a = JSON.parse(String(v)); return Array.isArray(a) ? a.map(String) : []; } catch { return []; }
+}
 
-/** 患者本人のその日のデイリーを保存（daily_record + gyneco_daily を upsert 相当） */
+/** 患者本人のその日の婦人科デイリーを保存（daily_record + gyneco_daily を upsert 相当） */
 export async function saveDaily(_prev: DailyState, formData: FormData): Promise<DailyState> {
   const ctx = await getPatientContext();
   if (!ctx) return { error: 'ログインが必要です。' };
@@ -32,24 +38,39 @@ export async function saveDaily(_prev: DailyState, formData: FormData): Promise<
   const supabase = createClient();
   const patientId = ctx.patient.id;
 
+  // 追加チップ → payload
+  const payload: Record<string, unknown> = {};
+  for (const g of GYNECO_EXTRA_CHIPS) {
+    if (g.type === 'single') { const v = str(formData, `s_${g.key}`); if (v) payload[g.key] = v; }
+    else { const a = arr(formData, `m_${g.key}`); if (a.length) payload[g.key] = a; }
+  }
+
   const common = {
     tenant_id: ctx.patient.tenant_id,
     patient_id: patientId,
     record_date: recordDate,
     source: 'patient',
     weight: num(formData, 'weight'),
+    body_fat: num(formData, 'body_fat'),
     body_temp: num(formData, 'body_temp'),
     sleep_hours: num(formData, 'sleep_hours'),
+    water: num(formData, 'water'),
     memo: str(formData, 'memo'),
-  };
-  const gyneco = {
-    bbt: num(formData, 'bbt'),
-    menstrual: str(formData, 'menstrual'),
-    flow: str(formData, 'flow'),
-    pain: num(formData, 'pain'),
+    payload,
   };
 
-  // 既存の当日レコードを検索
+  // gyneco_daily（型付き列）
+  const gyneco: Record<string, unknown> = {
+    bbt: num(formData, 'bbt'),
+    pain: num(formData, 'pain'),
+  };
+  for (const g of GYNECO_CHIPS) {
+    if (!g.col) continue;
+    if (g.type === 'single') gyneco[g.col] = str(formData, `s_${g.key}`);
+    else gyneco[g.col] = arr(formData, `m_${g.key}`);
+  }
+
+  // 既存当日レコード
   const { data: existing } = await supabase
     .from('daily_record')
     .select('id')
@@ -70,7 +91,6 @@ export async function saveDaily(_prev: DailyState, formData: FormData): Promise<
     dailyId = (data as { id: string }).id;
   }
 
-  // gyneco_daily upsert（PK = daily_record_id）
   const { error: gErr } = await supabase
     .from('gyneco_daily')
     .upsert({ daily_record_id: dailyId, ...gyneco }, { onConflict: 'daily_record_id' });
