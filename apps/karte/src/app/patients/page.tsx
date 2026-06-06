@@ -45,8 +45,12 @@ export default async function PatientsPage() {
       <Topbar userEmail={user.email} />
       <div className="container">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 style={{ fontSize: '1.3rem' }}>患者一覧</h1>
-          <span className="meta">{patients.length} 名</span>
+          <h1 style={{ fontSize: '1.3rem' }}>
+            患者一覧 <span className="meta">{patients.length} 名</span>
+          </h1>
+          <Link className="btn" href="/patients/new">
+            ＋ 新規患者
+          </Link>
         </div>
 
         {error ? (

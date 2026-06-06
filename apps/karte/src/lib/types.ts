@@ -11,6 +11,10 @@ export interface Patient {
   blood_type: string | null;
   tel: string | null;
   email: string | null;
+  address: string | null;
+  job: string | null;
+  first_visit_date: string | null;
+  hospital: string | null;
   avatar: string | null;
   status: string;
   created_at: string;

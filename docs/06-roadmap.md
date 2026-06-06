@@ -54,7 +54,8 @@
 - [x] 患者一覧（`/patients`）— RLS でテナント分離
 - [x] 患者詳細（`/patients/[id]`）— 基本情報/問診/ケアプラン/問題/施術/採血の閲覧
 - [x] Vercel デプロイ設定（`vercel.json` / Root Directory = apps/karte）
-- [ ] 編集・新規作成 UI（基本情報・visit・SOAP の作成/更新）
+- [x] 患者の新規登録 / 基本情報編集（`/patients/new`, `/patients/[id]/edit`）
+- [x] 施術記録の新規作成 / 編集 / 削除（`/patients/[id]/visits/new`・`.../edit`）— SOAP・バイタル込み
 - [ ] 人体図（Canvas、front/back マーク）— 現行機能の継承
 - [ ] メディア（署名付き URL アップロード）
 - [ ] AI チャット（カルテ補助、サーバープロキシ経由）

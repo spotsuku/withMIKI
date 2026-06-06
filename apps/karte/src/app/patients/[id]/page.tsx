@@ -80,7 +80,7 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
             <span className="avatar" style={{ width: 56, height: 56, fontSize: 28 }}>
               {p.avatar || '🧑'}
             </span>
-            <div>
+            <div style={{ flex: 1 }}>
               <h1 style={{ margin: 0, fontSize: '1.4rem' }}>{p.name}</h1>
               <div className="meta">
                 {p.kana ?? ''} {p.code ? `／ No.${p.code}` : ''}
@@ -89,6 +89,9 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
                 {p.sex ?? ''} {age !== null ? `${age}歳` : ''} {p.blood_type ? `／ ${p.blood_type}型` : ''}
               </div>
             </div>
+            <Link className="btn secondary" href={`/patients/${p.id}/edit`}>
+              基本情報を編集
+            </Link>
           </div>
         </div>
 
@@ -148,14 +151,19 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
 
         {/* 施術記録 */}
         <div className="card">
-          <h2>施術記録（最近10件）</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ margin: 0 }}>施術記録（最近10件）</h2>
+            <Link className="btn" href={`/patients/${p.id}/visits/new`}>
+              ＋ 新規施術記録
+            </Link>
+          </div>
           {visits.length ? (
-            <ul className="patient-list">
+            <ul className="patient-list" style={{ marginTop: 12 }}>
               {visits.map((v) => (
                 <li key={v.id}>
-                  <div style={{ padding: '10px 4px' }}>
-                    <div style={{ fontWeight: 600 }}>
-                      {v.visit_date}
+                  <Link href={`/patients/${p.id}/visits/${v.id}/edit`}>
+                    <span style={{ flex: 1 }}>
+                      <span style={{ fontWeight: 600 }}>{v.visit_date}</span>
                       {v.treatments?.length
                         ? v.treatments.map((t) => (
                             <span className="tag" key={t} style={{ marginLeft: 8 }}>
@@ -163,14 +171,16 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
                             </span>
                           ))
                         : null}
-                    </div>
-                    <div className="meta">
-                      {[v.injury_part, v.injury_name].filter(Boolean).join(' ') || ''}
-                      {v.points ? `／取穴: ${v.points}` : ''}
-                      {v.technique ? `／手技: ${v.technique}` : ''}
-                    </div>
-                    {v.memo ? <div className="meta">{v.memo}</div> : null}
-                  </div>
+                      <br />
+                      <span className="meta">
+                        {[v.injury_part, v.injury_name].filter(Boolean).join(' ') || ''}
+                        {v.points ? `／取穴: ${v.points}` : ''}
+                        {v.technique ? `／手技: ${v.technique}` : ''}
+                      </span>
+                      {v.memo ? <div className="meta">{v.memo}</div> : null}
+                    </span>
+                    <span className="meta">編集 ›</span>
+                  </Link>
                 </li>
               ))}
             </ul>

@@ -65,9 +65,11 @@ a:hover { text-decoration: underline; }
 
 .field { margin-bottom: 12px; }
 .field label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 4px; }
-.field input {
-  width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 1rem;
+.field input, .field select, .field textarea {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+  font-size: 1rem; font-family: inherit; background: #fff; color: var(--ink);
 }
+.field textarea { resize: vertical; }
 
 .kv { display: grid; grid-template-columns: 120px 1fr; gap: 6px 12px; }
 .kv dt { color: var(--muted); font-size: .85rem; }
