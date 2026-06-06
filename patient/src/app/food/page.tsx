@@ -25,6 +25,12 @@ export default async function FoodPage() {
     .order('created_at', { ascending: true });
   const foods = (data ?? []) as FoodRow[];
   const total = foods.reduce((s, f) => s + (f.calories ?? 0), 0);
+  const { data: goalRow } = await supabase
+    .from('nutrition_goal')
+    .select('calories')
+    .eq('patient_id', ctx.patient.id)
+    .maybeSingle();
+  const goalCal = (goalRow as { calories: number | null } | null)?.calories ?? null;
 
   return (
     <>
@@ -35,6 +41,10 @@ export default async function FoodPage() {
       <div className="container">
         <p className="meta"><Link href="/today">‹ 今日の記録</Link></p>
         <h1 style={{ fontSize: '1.3rem' }}>食事 <span className="meta">{today}</span></h1>
+        <p className="meta">
+          目標: {goalCal != null ? `${goalCal} kcal（残り ${Math.max(0, goalCal - total)} kcal）` : '未設定'}
+          <Link href="/nutrition">目標を設定</Link>
+        </p>
         <FoodForm entryDate={today} />
         <div className="card">
           <h2>今日の食事（合計 {total} kcal）</h2>
