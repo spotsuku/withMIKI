@@ -15,7 +15,7 @@ export default async function PatientsPage() {
           <div className="notice">
             <strong>Supabase が未設定です。</strong>
             <p>
-              <code>apps/karte/.env.local.example</code> をコピーして{' '}
+              <code>.env.local.example</code> をコピーして{' '}
               <code>.env.local</code> を作成し、<code>NEXT_PUBLIC_SUPABASE_URL</code> と{' '}
               <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> を設定してください。
               手順は <code>docs/setup/supabase-setup.md</code>。

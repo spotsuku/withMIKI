@@ -24,8 +24,8 @@ WithMIKI（ウィズミキ）は、**患者さんが日々の体調を記録し�
 9. **意思決定記録（ADR）**（[`docs/adr/`](docs/adr/)）— 技術スタック等
 10. **移行インポータ（実装）**（[`tools/importer/`](tools/importer/)）— 既存 JSON → DB 取り込み
 11. **セットアップ手順**（[`docs/setup/`](docs/setup/)）— Supabase 構築・Vercel デプロイ
-12. **先生用カルテ Web（実装）**（[`apps/karte/`](apps/karte/)）— Next.js + Supabase
-13. **患者用デイリーレコード PWA（実装）**（[`apps/patient/`](apps/patient/)）— Next.js PWA + Supabase
+12. **先生用カルテ Web（実装）**（リポジトリ直下 `src/`）— Next.js + Supabase
+13. **患者用デイリーレコード PWA（実装）**（[`patient/`](patient/)）— Next.js PWA + Supabase
 
 > ⚠️ 現時点ではコードの本実装はまだ着手していません。**まず設計を固める**フェーズです（ロードマップ Phase 0）。
 
@@ -104,8 +104,19 @@ WithMIKI（ウィズミキ）は、**患者さんが日々の体調を記録し�
 
 ## 5. リポジトリ構成
 
+> **デプロイ構成**: 先生用カルテ（Next.js）を**リポジトリ直下**に配置し、Vercel は Root Directory を
+> 既定（`./`）のままデプロイできる。患者用 PWA は `patient/` を別 Vercel プロジェクト（Root Directory=`patient`）でデプロイする。
+
 ```
-withMIKI/
+withMIKI/                      ← 直下が先生用カルテ Web（Next.js）
+├── package.json               カルテアプリ（@withmiki/karte）
+├── next.config.mjs / tsconfig.json / vercel.json / .eslintrc.json
+├── .env.local.example         カルテ用環境変数テンプレート
+├── src/                       カルテアプリのソース（App Router）
+│   ├── app/                   画面・API ルート（/patients, /api/ai/*, /api/media/* など）
+│   ├── components/  lib/       UI 部品・Supabase/AI ヘルパー
+│   └── middleware.ts
+├── patient/                   患者用デイリーレコード（PWA + Supabase）※別デプロイ
 ├── README.md                  ← このファイル（全体ルール・運用）
 ├── docs/
 │   ├── 01-architecture.md     システム構成・コンポーネント・データフロー
@@ -119,7 +130,7 @@ withMIKI/
 │   │   └── 0001-tech-stack-supabase.md  技術スタック確定(ADR)
 │   └── setup/
 │       ├── supabase-setup.md  Supabase 構築・マイグレーション適用・RLS確認
-│       └── vercel-deploy.md   Vercel デプロイ手順（apps/karte）
+│       └── vercel-deploy.md   Vercel デプロイ手順（直下＝カルテ / patient）
 ├── db/
 │   ├── schema.sql             PostgreSQL DDL（設計の実体）
 │   └── migrations/
@@ -129,9 +140,6 @@ withMIKI/
 │       └── supabase/
 │           ├── 0004_supabase_auth_rls.sql  Supabase専用RLS（auth.uid()ベース）
 │           └── 0005_patient_portal.sql     患者ポータル（本人限定RLS）
-├── apps/
-│   ├── karte/                 先生用カルテ Web（Next.js + Supabase Auth）
-│   └── patient/               患者用デイリーレコード（PWA + Supabase）
 ├── tools/
 │   └── importer/              既存JSON → Supabase 取り込みツール（TypeScript）
 └── legacy/                    ← 現行 HTML 原本（設計の元データ・改変禁止）

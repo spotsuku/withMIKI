@@ -31,7 +31,7 @@
 
 ## Phase 1 — 基盤構築
 - [ ] 技術スタック確定（README §4 をベースに）
-- [ ] モノレポ構成（`apps/api`, `apps/patient`, `apps/karte`, `packages/shared`）
+- [x] 構成（直下＝カルテ Next.js / `patient/` PWA / `tools/importer` / `db` / `docs`）
 - [ ] PostgreSQL 構築（`db/schema.sql` 適用）＋ マイグレーションツール導入
 - [ ] 認証（先生メール/IdP、患者 LINE）＋ JWT
 - [ ] テナント＋ RLS の有効化・テスト
@@ -49,11 +49,11 @@
 - [ ] 「インポート → 再エクスポート → 差分ゼロ」回帰テスト
 - **完了条件**: 既存患者の JSON を取り込んでも 1 件も失わない。
 
-## Phase 3 — 先生用カルテ Web（`apps/karte`）
+## Phase 3 — 先生用カルテ Web（リポジトリ直下）
 - [x] Supabase Auth ログイン / ログアウト / セッション（middleware）
 - [x] 患者一覧（`/patients`）— RLS でテナント分離
 - [x] 患者詳細（`/patients/[id]`）— 基本情報/問診/ケアプラン/問題/施術/採血の閲覧
-- [x] Vercel デプロイ設定（`vercel.json` / Root Directory = apps/karte）
+- [x] Vercel デプロイ設定（直下 `vercel.json` / Root Directory = `./`）
 - [x] 患者の新規登録 / 基本情報編集（`/patients/new`, `/patients/[id]/edit`）
 - [x] 施術記録の新規作成 / 編集 / 削除（`/patients/[id]/visits/new`・`.../edit`）— SOAP・バイタル込み
 - [x] 問診（intake）・ケアプラン（cover）の編集（`/patients/[id]/intake/edit`・`/cover/edit`）
@@ -64,7 +64,7 @@
 - [x] AI チャット（カルテ補助、サーバープロキシ経由）
 - **完了条件**: 先生が現行 `personal-karte` 相当を Web で行える。→ ほぼ達成
 
-## Phase 4 — 患者アプリ（PWA, `apps/patient`）
+## Phase 4 — 患者アプリ（PWA, `patient/`）
 - [x] 患者ポータル基盤（`patient_user` ＋ `app_current_patient()` ＋ 本人限定 RLS）= 0005
 - [x] 患者ログイン（Supabase Auth）/ ログアウト
 - [x] 婦人科デイリー MVP（基礎体温/月経/経血量/痛み/体重/体温/睡眠/メモ）当日 upsert

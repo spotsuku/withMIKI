@@ -119,7 +119,7 @@ values ('<TENANT_ID>', 'doctor@example.com', '三木裕昭', 'owner', '鍼灸師
 
 ## 6. 環境変数
 
-アプリ（`apps/karte`）と各ツールで使用する。**サービスロールキーは絶対にクライアントへ出さない / コミットしない**（[../05-security-compliance.md](../05-security-compliance.md)）。
+カルテアプリ（リポジトリ直下）と各ツールで使用する。**サービスロールキーは絶対にクライアントへ出さない / コミットしない**（[../05-security-compliance.md](../05-security-compliance.md)）。
 
 | 変数 | 用途 | 公開可否 | 取得元 |
 |---|---|---|---|
@@ -130,7 +130,7 @@ values ('<TENANT_ID>', 'doctor@example.com', '三木裕昭', 'owner', '鍼灸師
 | `TENANT_ID` | インポータ `--commit` 投入先テナント | サーバーのみ | §4 で作成した tenant.id |
 | `ANTHROPIC_API_KEY` | AI（OCR/食事解析）※将来 | **サーバーのみ** | Anthropic Console |
 
-`apps/karte/.env.local.example` をコピーして `.env.local` を作成し値を設定（[vercel-deploy.md](vercel-deploy.md) も参照）。
+リポジトリ直下の `.env.local.example` をコピーして `.env.local` を作成し値を設定（[vercel-deploy.md](vercel-deploy.md) も参照）。
 
 ---
 
@@ -146,7 +146,7 @@ values ('<TENANT_ID>', 'doctor@example.com', '三木裕昭', 'owner', '鍼灸師
 
 ---
 
-## 9. 患者ポータル（患者 PWA `apps/patient`）
+## 9. 患者ポータル（患者 PWA `patient/`）
 
 患者本人がデイリー記録を入力できるようにする手順（`0005_patient_portal.sql` 適用済み前提）。
 
@@ -158,7 +158,7 @@ insert into patient_user (tenant_id, patient_id, auth_user_id)
 values ('<TENANT_ID>', '<PATIENT_ID>', '<患者の AUTH_USER_UID>');
 ```
 
-3. 患者は `apps/patient`（PWA）にそのメール/パスワードでログイン → 当日のデイリーを記録。
+3. 患者は `patient/`（PWA・別 Vercel プロジェクト）にそのメール/パスワードでログイン → 当日のデイリーを記録。
 4. RLS により患者は**自分の記録だけ**読み書き可能（他患者・他院は不可。実機検証済み）。
 5. iOS は Safari で開き「ホーム画面に追加」（現行運用の体験を継承）。
 

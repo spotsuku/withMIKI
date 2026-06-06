@@ -1,9 +1,8 @@
 # Vercel デプロイガイド（先生用カルテ Web）
 
-`apps/karte`（Next.js）を Vercel にデプロイする手順。前提として [supabase-setup.md](supabase-setup.md) が完了していること。
+先生用カルテ（Next.js）は **リポジトリ直下**に配置済み。Vercel は **Root Directory を既定（`./`）のまま**デプロイできる（特別な設定不要）。前提として [supabase-setup.md](supabase-setup.md) が完了していること。
 
-> このリポジトリは **モノレポ**（`apps/karte`, `tools/importer`, `db/`, `docs/`）。
-> Vercel では **Root Directory を `apps/karte`** に設定するのが要点。
+> 患者用 PWA は `patient/` にあり、**別の Vercel プロジェクト**として Root Directory=`patient` でデプロイする（§9）。
 
 ---
 
@@ -14,9 +13,8 @@
   - `NEXT_PUBLIC_SUPABASE_URL`
   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
   - （任意）`SUPABASE_SERVICE_ROLE_KEY` … サーバー専用。MVP の閲覧機能だけなら不要。
-- ローカル動作確認:
+- ローカル動作確認（リポジトリ直下で）:
   ```bash
-  cd apps/karte
   cp .env.local.example .env.local   # 値を設定
   npm install
   npm run dev                        # http://localhost:3000
@@ -30,13 +28,15 @@
 1. https://vercel.com → **Add New… → Project**。
 2. **Import Git Repository** で `spotsuku/withMIKI` を選択（初回は GitHub 連携を承認）。
 3. **Configure Project**:
-   - **Root Directory**: **`apps/karte`** を指定（Edit → apps/karte を選択）。★最重要
-   - **Framework Preset**: `Next.js`（自動検出）。
-   - **Build Command**: `next build`（既定。`apps/karte/vercel.json` でも指定済み）。
+   - **Root Directory**: **`./`（既定のまま）** ＝ リポジトリ直下。★変更不要
+   - **Framework Preset**: `Next.js`（直下の `package.json`/`next.config.mjs` から自動検出）。
+   - **Build Command**: `next build`（既定。直下 `vercel.json` でも指定済み）。
    - **Install Command**: `npm install`（既定）。
    - **Node.js Version**: 20.x 以上。
 4. **Environment Variables**（次節）を設定。
 5. **Deploy**。
+
+> もし以前 Root Directory を `apps/karte` に設定していた場合は、**`./`（空）に戻して** Redeploy してください。
 
 ---
 
@@ -76,8 +76,8 @@ Vercel は GitHub と連携すると以下を自動化する:
 
 ```bash
 npm i -g vercel
-cd apps/karte
-vercel            # 初回: プロジェクトひも付け（Root Directory を apps/karte に）
+# リポジトリ直下で（カルテアプリ）
+vercel            # 初回: プロジェクトひも付け（Root Directory は ./ のまま）
 vercel pull       # 環境変数をローカルへ取得
 vercel build      # ローカルで本番ビルド
 vercel deploy --prebuilt          # Preview デプロイ
@@ -102,7 +102,7 @@ vercel deploy --prebuilt --prod   # Production デプロイ
 
 | 症状 | 原因 / 対処 |
 |---|---|
-| ビルドは通るが 404/500 | Root Directory が `apps/karte` になっていない |
+| 404 NOT_FOUND（直下なのに出る）| 以前の Root Directory 設定が残存 → `./`（空）に戻して Redeploy |
 | ログインできるが患者が 0 件 | `app_user.auth_user_id` 未ひも付け、または別テナント（supabase §4）|
 | `Invalid API key` | 環境変数の貼り間違い / 変更後に Redeploy していない |
 | Middleware で Edge 警告 | `@supabase/ssr` 由来の既知の警告。動作に影響なし |
@@ -110,7 +110,19 @@ vercel deploy --prebuilt --prod   # Production デプロイ
 
 ---
 
-## 8. 次に
+## 8. 患者用 PWA（`patient/`）のデプロイ
+
+患者アプリは**別の Vercel プロジェクト**として公開する（カルテとは別ドメイン）。
+
+1. Vercel → **Add New… → Project** → 同じ `spotsuku/withMIKI` を再度 Import。
+2. **Root Directory** に **`patient`** を指定。
+3. Framework=Next.js（自動）。環境変数は `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` のみ。
+4. Deploy。患者は Safari で開き「ホーム画面に追加」。
+5. 患者アカウントのひも付けは [supabase-setup.md §9](supabase-setup.md)。
+
+---
+
+## 9. 次に
 
 - 既存患者データの取り込み: [`../../tools/importer/`](../../tools/importer/)（`--commit`）。
-- 認証強化（MFA）、施術記録の新規作成 UI、患者 PWA（Phase 4）は [../06-roadmap.md](../06-roadmap.md)。
+- 認証強化（MFA）、患者 PWA の項目拡充は [../06-roadmap.md](../06-roadmap.md)。
