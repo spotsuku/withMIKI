@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getPatientContext } from '@/lib/patient';
-import { GYNECO_CHIPS, GYNECO_EXTRA_CHIPS } from '@/lib/gyneco';
+import { GYNECO_CHIPS, GYNECO_EXTRA_CHIPS, SELFCARES, MEDS } from '@/lib/gyneco';
 
 export interface DailyState {
   error?: string;
@@ -95,6 +95,28 @@ export async function saveDaily(_prev: DailyState, formData: FormData): Promise<
     .from('gyneco_daily')
     .upsert({ daily_record_id: dailyId, ...gyneco }, { onConflict: 'daily_record_id' });
   if (gErr) return { error: '記録の保存に失敗しました：' + gErr.message };
+
+  // セルフケア（入れ替え）
+  await supabase.from('selfcare_log').delete().eq('daily_record_id', dailyId);
+  const scRows = SELFCARES.filter((sc) => formData.get(`sc_${sc.id}`) === 'on')
+    .map((sc) => ({ daily_record_id: dailyId, selfcare_code: sc.id, done: true }));
+  if (scRows.length) await supabase.from('selfcare_log').insert(scRows);
+
+  // 服薬（medication マスタを用意し medication_log を入れ替え）
+  const takenMeds = MEDS.filter((m) => formData.get(`med_${m}`) === 'on');
+  await supabase.from('medication_log').delete().eq('daily_record_id', dailyId);
+  for (const name of takenMeds) {
+    const { data: med } = await supabase
+      .from('medication')
+      .upsert({ tenant_id: ctx.patient.tenant_id, patient_id: patientId, name }, { onConflict: 'patient_id,name' })
+      .select('id')
+      .single();
+    if (med) {
+      await supabase.from('medication_log').insert({
+        daily_record_id: dailyId, medication_id: (med as { id: string }).id, taken: true,
+      });
+    }
+  }
 
   revalidatePath('/today');
   return { ok: true };

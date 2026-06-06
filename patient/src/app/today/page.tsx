@@ -123,9 +123,28 @@ export default async function TodayPage() {
     gyneco = (data as Record<string, unknown> | null) ?? null;
   }
 
+  // セルフケア・服薬の既存値
+  let selfcare: string[] = [];
+  let meds: string[] = [];
+  if (daily) {
+    const did = (daily as { id: string }).id;
+    const { data: sc } = await supabase.from('selfcare_log').select('selfcare_code, done').eq('daily_record_id', did);
+    selfcare = ((sc ?? []) as { selfcare_code: string; done: boolean }[]).filter((r) => r.done).map((r) => r.selfcare_code);
+    const { data: ml } = await supabase
+      .from('medication_log')
+      .select('taken, medication:medication_id(name)')
+      .eq('daily_record_id', did);
+    meds = ((ml ?? []) as { taken: boolean; medication: { name: string } | { name: string }[] | null }[])
+      .filter((r) => r.taken)
+      .map((r) => (Array.isArray(r.medication) ? r.medication[0]?.name : r.medication?.name))
+      .filter((x): x is string => !!x);
+  }
+
   const d = (daily as Record<string, unknown> | null) ?? {};
   const initial: DailyInitial = {
     record_date: today,
+    selfcare,
+    meds,
     weight: (d.weight as number) ?? null,
     body_fat: (d.body_fat as number) ?? null,
     body_temp: (d.body_temp as number) ?? null,

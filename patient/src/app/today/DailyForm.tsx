@@ -3,7 +3,7 @@
 import { useFormState, useFormStatus } from 'react-dom';
 import { saveDaily, type DailyState } from './actions';
 import { Chips } from '@/components/Chips';
-import { GYNECO_CHIPS, GYNECO_EXTRA_CHIPS } from '@/lib/gyneco';
+import { GYNECO_CHIPS, GYNECO_EXTRA_CHIPS, SELFCARES, MEDS } from '@/lib/gyneco';
 
 export interface DailyInitial {
   record_date: string;
@@ -19,6 +19,10 @@ export interface DailyInitial {
   gyneco?: Record<string, unknown>;
   /** daily_record.payload（追加チップ） */
   payload?: Record<string, unknown>;
+  /** 実施済みセルフケア code 配列 */
+  selfcare?: string[];
+  /** 服用した薬名 配列 */
+  meds?: string[];
 }
 
 function SubmitButton() {
@@ -101,6 +105,29 @@ export function DailyForm({ initial }: { initial: DailyInitial }) {
         <div className="field">
           <label htmlFor="memo">メモ・体調</label>
           <textarea id="memo" name="memo" rows={3} defaultValue={i.memo ?? ''} />
+        </div>
+      </div>
+
+      <div className="card">
+        <h2>セルフケア</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {SELFCARES.map((sc) => (
+            <label key={sc.id} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink)' }}>
+              <input type="checkbox" name={`sc_${sc.id}`} defaultChecked={i.selfcare?.includes(sc.id)} />
+              <span>{sc.icon} {sc.name}<span className="meta">（{sc.sub}）</span></span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="card">
+        <h2>服薬・サプリ</h2>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 14px' }}>
+          {MEDS.map((m) => (
+            <label key={m} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--ink)' }}>
+              <input type="checkbox" name={`med_${m}`} defaultChecked={i.meds?.includes(m)} /> {m}
+            </label>
+          ))}
         </div>
       </div>
 

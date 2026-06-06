@@ -44,3 +44,19 @@ export const GYNECO_EXTRA_CHIPS: ChipGroup[] = [
 ];
 
 export const ALL_GYNECO_CHIPS = [...GYNECO_CHIPS, ...GYNECO_EXTRA_CHIPS];
+
+/** セルフケア項目（現行 SELFCARES） */
+export const SELFCARES: { id: string; icon: string; name: string; sub: string }[] = [
+  { id: 'iap', icon: '🫁', name: 'IAP腹圧呼吸', sub: '横隔膜・腹腔内圧' },
+  { id: 'pelvic', icon: '🦴', name: '骨盤底筋トレーニング', sub: 'ケーゲル体操など' },
+  { id: 'autonomic', icon: '🧠', name: '自律神経訓練法', sub: '自律訓練法・瞑想・呼吸法' },
+  { id: 'stretch', icon: '🤸', name: '骨盤ストレッチ', sub: '股関節・腰回り' },
+  { id: 'lymph', icon: '💆', name: 'リンパマッサージ', sub: 'セルフリンパケア' },
+  { id: 'walk', icon: '🚶', name: 'ウォーキング', sub: '有酸素運動' },
+];
+
+/** 服薬・サプリの既定リスト（現行 MEDS） */
+export const MEDS: string[] = [
+  'ジエノゲスト', '黄体ホルモン剤', 'ピル（低用量）', 'HRT', 'マグネシウム',
+  'ビタミンD3', 'オメガ3', '葉酸', '鉄サプリ', 'ミヤリサン', 'プロバイオティクス',
+];
