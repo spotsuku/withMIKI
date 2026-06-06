@@ -76,6 +76,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
                           <span className="tag" style={{ marginLeft: 8 }}>{STATUS_LABEL[a.status] ?? a.status}</span>
                         </span>
                         <span style={{ display: 'flex', gap: 6 }}>
+                          <Link className="btn secondary" style={{ padding: '2px 8px', fontSize: 12 }} href={`/appointments/${a.id}/edit`}>変更</Link>
                           {a.status !== 'confirmed' ? (
                             <form action={setAppointmentStatus}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="status" value="confirmed" /><button className="btn secondary" style={{ padding: '2px 8px', fontSize: 12 }}>確定</button></form>
                           ) : null}

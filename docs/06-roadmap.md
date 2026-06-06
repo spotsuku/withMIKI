@@ -129,4 +129,7 @@
 - [x] Google Calendar OAuth連携（/api/google/*、確定→イベント自動作成、予定→空き枠ブロック）
 - [x] 通知：メール(Resend)・LINE(Messaging)・24時間前リマインダー(/api/cron/reminders)
 - [x] 患者詳細から予約リンク送付（LINE/URL）
-- [ ] 予約変更（リスケ）UI、複数施術者・営業時間テンプレ
+- [x] 営業時間からの空き枠一括生成（曜日・時間帯・間隔, Google同期）
+- [x] 予約変更（リスケ）UI
+- [x] 予約枠の作成/削除/ブロックを Google カレンダーへ同期
+- [ ] 複数施術者対応

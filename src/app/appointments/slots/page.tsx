@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { Topbar } from '@/components/Topbar';
 import { SlotForm } from './SlotForm';
+import { GenerateForm } from './GenerateForm';
 import { toggleSlot, deleteSlot } from '../actions';
 import { fmtJst, fmtTimeJst } from '@/lib/datetime';
 
@@ -30,6 +31,7 @@ export default async function SlotsPage() {
       <Topbar userEmail={user.email} />
       <div className="container">
         <p className="meta"><Link href="/appointments">‹ 予約一覧</Link></p>
+        <GenerateForm />
         <SlotForm />
         <div className="card">
           <h2>今後の空き枠</h2>

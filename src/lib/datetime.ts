@@ -30,6 +30,16 @@ export function isoDateJst(iso: string): string {
   return new Date(iso).toLocaleDateString('sv-SE', { timeZone: JST }); // sv-SE = YYYY-MM-DD
 }
 
+/** ISO を JST の "HH:MM"（input[type=time] 用） */
+export function isoTimeJst(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-GB', { timeZone: JST, hour: '2-digit', minute: '2-digit' });
+}
+
+/** 2つのISOの分差 */
+export function diffMinutes(startIso: string, endIso: string): number {
+  return Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60000);
+}
+
 /** 今日(JST)起点の week 日付配列（7日）。offsetWeeks で前後移動 */
 export function weekDatesJst(offsetWeeks = 0): string[] {
   const now = new Date();

@@ -41,6 +41,32 @@ export async function createAppointment(_p: ApptState, fd: FormData): Promise<Ap
   redirect('/appointments');
 }
 
+/** 予約の変更（リスケ・内容更新） */
+export async function updateAppointment(_p: ApptState, fd: FormData): Promise<ApptState> {
+  const ctx = await getUserContext();
+  if (!ctx?.appUser) return { error: 'アカウントが未設定です。' };
+  const id = s(fd, 'id');
+  if (!id) return { error: '対象がありません。' };
+  const date = s(fd, 'date'); const time = s(fd, 'time');
+  if (!date || !time) return { error: '日付と時刻を入力してください。' };
+  const dur = parseInt(String(fd.get('duration') ?? '60'), 10) || 60;
+  const start = jstToIso(date, time);
+  const supabase = createClient();
+  const { error } = await supabase.from('appointments').update({
+    patient_id: s(fd, 'patient_id'),
+    title: s(fd, 'title'),
+    start_at: start,
+    end_at: addMinutesIso(start, dur),
+    status: s(fd, 'status') ?? 'confirmed',
+    notes: s(fd, 'notes'),
+  }).eq('id', id);
+  if (error) return { error: '予約の更新に失敗しました：' + error.message };
+  // Google イベントへ反映（連携済みなら）
+  try { const { syncAppointmentToGoogle } = await import('@/lib/google'); await syncAppointmentToGoogle(ctx.appUser.tenant_id, id); } catch { /* ignore */ }
+  revalidatePath('/appointments');
+  redirect('/appointments');
+}
+
 /** 予約のステータス変更（確定/キャンセル） */
 export async function setAppointmentStatus(fd: FormData): Promise<void> {
   const ctx = await getUserContext();
@@ -78,6 +104,52 @@ export async function createSlot(_p: ApptState, fd: FormData): Promise<ApptState
   if (error || !slot) return { error: '枠の作成に失敗しました：' + (error?.message ?? '') };
   // Googleカレンダーへ同期（連携済みなら）
   try { const { pushSlotToGoogle } = await import('@/lib/google'); await pushSlotToGoogle(ctx.appUser.tenant_id, (slot as { id: string }).id); } catch { /* 未設定なら無視 */ }
+  revalidatePath('/appointments/slots');
+  redirect('/appointments/slots');
+}
+
+/** 営業時間から空き枠を一括生成（曜日・時間帯・間隔） */
+export async function generateSlots(_p: ApptState, fd: FormData): Promise<ApptState> {
+  const ctx = await getUserContext();
+  if (!ctx?.appUser) return { error: 'アカウントが未設定です。' };
+  const from = s(fd, 'date_from'); const to = s(fd, 'date_to');
+  const start = s(fd, 'start'); const end = s(fd, 'end');
+  const interval = parseInt(String(fd.get('interval') ?? '60'), 10) || 60;
+  const weekdays = fd.getAll('wd').map((x) => parseInt(String(x), 10)); // 0=日..6=土
+  if (!from || !to || !start || !end || weekdays.length === 0) return { error: '期間・曜日・時間帯を入力してください。' };
+
+  const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+  const sMin = toMin(start); const eMin = toMin(end);
+  if (eMin <= sMin) return { error: '終了は開始より後にしてください。' };
+
+  const rows: { tenant_id: string; start_at: string; end_at: string; is_blocked: boolean }[] = [];
+  const cur = new Date(`${from}T12:00:00+09:00`);
+  const last = new Date(`${to}T12:00:00+09:00`);
+  let guard = 0;
+  while (cur <= last && guard < 400) {
+    guard++;
+    const dateStr = cur.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' });
+    if (weekdays.includes(cur.getUTCDay())) {
+      for (let m = sMin; m + interval <= eMin; m += interval) {
+        const st = jstToIso(dateStr, hhmm(m));
+        rows.push({ tenant_id: ctx.appUser.tenant_id, start_at: st, end_at: addMinutesIso(st, interval), is_blocked: false });
+      }
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  if (rows.length === 0) return { error: '生成対象がありませんでした。' };
+  if (rows.length > 500) return { error: `生成枠が多すぎます（${rows.length}）。期間を短くしてください。` };
+
+  const supabase = createClient();
+  const { data, error } = await supabase.from('appointment_slots').insert(rows).select('id');
+  if (error) return { error: '一括生成に失敗しました：' + error.message };
+  // Googleへ同期（連携済みなら）
+  try {
+    const { pushSlotToGoogle } = await import('@/lib/google');
+    for (const r of (data ?? []) as { id: string }[]) await pushSlotToGoogle(ctx.appUser.tenant_id, r.id);
+  } catch { /* ignore */ }
+
   revalidatePath('/appointments/slots');
   redirect('/appointments/slots');
 }
