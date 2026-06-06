@@ -114,6 +114,54 @@ export async function syncAppointmentToGoogle(tenantId: string, appointmentId: s
   }
 }
 
+/** 予約枠を Google カレンダーへ作成/更新（google_event_id を枠に保存） */
+export async function pushSlotToGoogle(tenantId: string, slotId: string): Promise<void> {
+  const admin = createAdminClient();
+  if (!admin) return;
+  const auth = await getToken(tenantId);
+  if (!auth) return;
+  const { data } = await admin
+    .from('appointment_slots')
+    .select('start_at, end_at, is_blocked, google_event_id')
+    .eq('id', slotId)
+    .maybeSingle();
+  const s = data as { start_at: string; end_at: string; is_blocked: boolean; google_event_id: string | null } | null;
+  if (!s) return;
+
+  const event = {
+    summary: s.is_blocked ? 'WithMIKI 予約枠（受付不可）' : 'WithMIKI 予約枠（受付中）',
+    description: 'WithMIKI で作成された予約枠',
+    start: { dateTime: s.start_at },
+    end: { dateTime: s.end_at },
+  };
+  const base = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(auth.calendarId)}/events`;
+  const url = s.google_event_id ? `${base}/${s.google_event_id}` : base;
+  const res = await fetch(url, {
+    method: s.google_event_id ? 'PATCH' : 'POST',
+    headers: { authorization: `Bearer ${auth.token.access_token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(event),
+  });
+  if (res.ok && !s.google_event_id) {
+    const ev = (await res.json()) as { id?: string };
+    if (ev.id) await admin.from('appointment_slots').update({ google_event_id: ev.id }).eq('id', slotId);
+  }
+}
+
+/** 予約枠に対応する Google イベントを削除 */
+export async function removeSlotFromGoogle(tenantId: string, slotId: string): Promise<void> {
+  const admin = createAdminClient();
+  if (!admin) return;
+  const auth = await getToken(tenantId);
+  if (!auth) return;
+  const { data } = await admin.from('appointment_slots').select('google_event_id').eq('id', slotId).maybeSingle();
+  const eventId = (data as { google_event_id: string | null } | null)?.google_event_id;
+  if (!eventId) return;
+  await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(auth.calendarId)}/events/${eventId}`, {
+    method: 'DELETE',
+    headers: { authorization: `Bearer ${auth.token.access_token}` },
+  });
+}
+
 /** Google の予定を取得して appointment_slots にブロック枠として反映（空き枠検出） */
 export async function syncBusyFromGoogle(tenantId: string, fromIso: string, toIso: string): Promise<number> {
   const admin = createAdminClient();

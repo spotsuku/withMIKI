@@ -69,13 +69,15 @@ export async function createSlot(_p: ApptState, fd: FormData): Promise<ApptState
   const date = s(fd, 'date'); const start = s(fd, 'start'); const end = s(fd, 'end');
   if (!date || !start || !end) return { error: '日付・開始・終了を入力してください。' };
   const supabase = createClient();
-  const { error } = await supabase.from('appointment_slots').insert({
+  const { data: slot, error } = await supabase.from('appointment_slots').insert({
     tenant_id: ctx.appUser.tenant_id,
     start_at: jstToIso(date, start),
     end_at: jstToIso(date, end),
     is_blocked: false,
-  });
-  if (error) return { error: '枠の作成に失敗しました：' + error.message };
+  }).select('id').single();
+  if (error || !slot) return { error: '枠の作成に失敗しました：' + (error?.message ?? '') };
+  // Googleカレンダーへ同期（連携済みなら）
+  try { const { pushSlotToGoogle } = await import('@/lib/google'); await pushSlotToGoogle(ctx.appUser.tenant_id, (slot as { id: string }).id); } catch { /* 未設定なら無視 */ }
   revalidatePath('/appointments/slots');
   redirect('/appointments/slots');
 }
@@ -88,6 +90,8 @@ export async function toggleSlot(fd: FormData): Promise<void> {
   if (!id) return;
   const supabase = createClient();
   await supabase.from('appointment_slots').update({ is_blocked: blocked === '1' }).eq('id', id);
+  // Google側の表記（受付中/受付不可）も更新
+  try { const { pushSlotToGoogle } = await import('@/lib/google'); await pushSlotToGoogle(ctx.appUser.tenant_id, id); } catch { /* ignore */ }
   revalidatePath('/appointments/slots');
 }
 export async function deleteSlot(fd: FormData): Promise<void> {
@@ -95,6 +99,8 @@ export async function deleteSlot(fd: FormData): Promise<void> {
   if (!ctx?.appUser) return;
   const id = s(fd, 'id'); if (!id) return;
   const supabase = createClient();
+  // 先に Google イベントを削除（枠の google_event_id を読むため delete 前に実行）
+  try { const { removeSlotFromGoogle } = await import('@/lib/google'); await removeSlotFromGoogle(ctx.appUser.tenant_id, id); } catch { /* ignore */ }
   await supabase.from('appointment_slots').delete().eq('id', id);
   revalidatePath('/appointments/slots');
 }
