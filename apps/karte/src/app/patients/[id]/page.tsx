@@ -96,10 +96,15 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
         </div>
 
         {/* ケアプラン（表紙） */}
-        {cover ? (
-          <div className="card">
-            <h2>ケアプラン</h2>
-            <dl className="kv">
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ margin: 0 }}>ケアプラン</h2>
+            <Link className="btn secondary" href={`/patients/${p.id}/cover/edit`}>
+              編集
+            </Link>
+          </div>
+          {cover ? (
+            <dl className="kv" style={{ marginTop: 12 }}>
               {cover.purpose ? (<><dt>目的</dt><dd>{cover.purpose}</dd></>) : null}
               {cover.goal ? (<><dt>目標</dt><dd>{cover.goal}</dd></>) : null}
               {cover.diagnosis ? (<><dt>診断</dt><dd>{cover.diagnosis}</dd></>) : null}
@@ -108,13 +113,20 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
               {cover.caution ? (<><dt>注意</dt><dd>{cover.caution}</dd></>) : null}
               {cover.next_visit ? (<><dt>次回</dt><dd>{cover.next_visit}</dd></>) : null}
             </dl>
-          </div>
-        ) : null}
+          ) : (
+            <div className="empty">未設定 — 「編集」から登録できます</div>
+          )}
+        </div>
 
         <div className="grid cols-2">
           {/* 問診 */}
           <div className="card">
-            <h2>問診・基本情報</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0 }}>問診</h2>
+              <Link className="btn secondary" href={`/patients/${p.id}/intake/edit`}>
+                編集
+              </Link>
+            </div>
             {intake ? (
               <dl className="kv">
                 {intake.chief ? (<><dt>主訴</dt><dd>{intake.chief}</dd></>) : null}
@@ -131,15 +143,22 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
 
           {/* 問題リスト */}
           <div className="card">
-            <h2>問題リスト</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0 }}>問題リスト</h2>
+              <Link className="btn secondary" href={`/patients/${p.id}/problems/new`}>
+                ＋ 追加
+              </Link>
+            </div>
             {problems.length ? (
-              <ul style={{ paddingLeft: 18, margin: 0 }}>
+              <ul style={{ paddingLeft: 0, margin: '12px 0 0', listStyle: 'none' }}>
                 {problems.map((pr) => (
-                  <li key={pr.id} style={{ marginBottom: 6 }}>
-                    {pr.category ? <span className="tag">{pr.category}</span> : null}
-                    <strong>{pr.title}</strong>
-                    {pr.status === 'resolved' ? <span className="meta">（解決）</span> : null}
-                    {pr.detail ? <div className="meta">{pr.detail}</div> : null}
+                  <li key={pr.id} style={{ marginBottom: 8 }}>
+                    <Link href={`/patients/${p.id}/problems/${pr.id}/edit`}>
+                      {pr.category ? <span className="tag">{pr.category}</span> : null}
+                      <strong>{pr.title}</strong>
+                      {pr.status === 'resolved' ? <span className="meta">（解決）</span> : null}
+                      {pr.detail ? <div className="meta">{pr.detail}</div> : null}
+                    </Link>
                   </li>
                 ))}
               </ul>

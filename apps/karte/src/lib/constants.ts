@@ -26,3 +26,14 @@ export const VITAL_FIELDS: { key: string; label: string; unit?: string; step?: s
 ];
 
 export const SEX_OPTIONS = ['女性', '男性', 'その他'] as const;
+
+/** 問題リストのステータス（value は DB 保存値） */
+export const PROBLEM_STATUS: { value: string; label: string }[] = [
+  { value: 'active', label: '進行中' },
+  { value: 'monitoring', label: '経過観察' },
+  { value: 'resolved', label: '解決' },
+];
+
+export function problemStatusLabel(value: string | null): string {
+  return PROBLEM_STATUS.find((s) => s.value === value)?.label ?? value ?? '';
+}

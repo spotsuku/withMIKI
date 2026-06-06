@@ -56,6 +56,8 @@
 - [x] Vercel デプロイ設定（`vercel.json` / Root Directory = apps/karte）
 - [x] 患者の新規登録 / 基本情報編集（`/patients/new`, `/patients/[id]/edit`）
 - [x] 施術記録の新規作成 / 編集 / 削除（`/patients/[id]/visits/new`・`.../edit`）— SOAP・バイタル込み
+- [x] 問診（intake）・ケアプラン（cover）の編集（`/patients/[id]/intake/edit`・`/cover/edit`）
+- [x] 問題リストの作成/編集/削除 ＋ 問題ひも付け SOAP 経過（`/patients/[id]/problems/...`）
 - [ ] 人体図（Canvas、front/back マーク）— 現行機能の継承
 - [ ] メディア（署名付き URL アップロード）
 - [ ] AI チャット（カルテ補助、サーバープロキシ経由）
