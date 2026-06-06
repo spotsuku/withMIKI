@@ -97,7 +97,7 @@ export default async function TodayPage() {
         </div>
         <div className="container">
           <h1 style={{ fontSize: '1.3rem' }}>今日の記録 <span className="meta">{today}</span></h1>
-          <p className="meta">{ctx.patient.name} さん（アスリート）　<Link href="/food">🍱 食事</Link>　<Link href="/history">📈 推移</Link></p>
+          <p className="meta">{ctx.patient.name} さん（アスリート）　<Link href="/food">🍱 食事</Link>　<Link href="/history">📈 推移</Link>　<Link href="/labs">🩸 採血</Link>　<Link href="/media">📷 写真</Link></p>
           <AthleteForm initial={aInitial} />
         </div>
       </>
@@ -169,7 +169,7 @@ export default async function TodayPage() {
         <h1 style={{ fontSize: '1.3rem' }}>
           今日の記録 <span className="meta">{today}</span>
         </h1>
-        <p className="meta">{ctx.patient.name} さん　毎日の体調を記録しましょう。　<Link href="/food">🍱 食事</Link>　<Link href="/history">📈 推移</Link></p>
+        <p className="meta">{ctx.patient.name} さん　毎日の体調を記録しましょう。　<Link href="/food">🍱 食事</Link>　<Link href="/history">📈 推移</Link>　<Link href="/labs">🩸 採血</Link>　<Link href="/media">📷 写真</Link></p>
         <DailyForm initial={initial} />
       </div>
     </>
