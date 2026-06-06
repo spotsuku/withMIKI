@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useFormState, useFormStatus } from 'react-dom';
 import { saveVisit, type VisitFormState } from './actions';
-import { TREATMENT_OPTIONS, VITAL_FIELDS } from '@/lib/constants';
+import { TREATMENT_OPTIONS, VISIT_VITAL_GROUPS } from '@/lib/constants';
 
 export interface VisitInitial {
   id?: string;
@@ -16,7 +16,7 @@ export interface VisitInitial {
   technique?: string | null;
   treatments?: string[] | null;
   memo?: string | null;
-  vital?: Record<string, number | null> | null;
+  vital?: Record<string, string | number | null> | null;
   soap?: { s?: string | null; o?: string | null; a?: string | null; p?: string | null } | null;
 }
 
@@ -125,27 +125,34 @@ export function VisitForm({
         </div>
       </div>
 
-      {/* バイタル */}
+      {/* バイタル・血液検査（全項目・任意） */}
       <div className="card">
-        <h2>バイタル（任意）</h2>
-        <div className="grid cols-2">
-          {VITAL_FIELDS.map((f) => (
-            <div className="field" key={f.key}>
-              <label>
-                {f.label}
-                {f.unit ? <span className="meta">（{f.unit}）</span> : null}
-              </label>
-              <input
-                name={`v_${f.key}`}
-                type="number"
-                step={f.step ?? '1'}
-                inputMode="decimal"
-                defaultValue={v[f.key] ?? ''}
-              />
-            </div>
-          ))}
-        </div>
+        <h2>バイタル・血液検査（任意・必要な項目のみ）</h2>
+        <p className="meta">入力した項目だけ保存されます。</p>
       </div>
+      {VISIT_VITAL_GROUPS.map((g) => (
+        <details className="card" key={g.category} open={g.category === 'バイタル・体組成'}>
+          <summary style={{ cursor: 'pointer', fontWeight: 600 }}>{g.category}</summary>
+          <div className="grid cols-2" style={{ marginTop: 10 }}>
+            {g.items.map((it) => (
+              <div className="field" key={it.code}>
+                <label>
+                  {it.label}
+                  {it.unit ? <span className="meta">（{it.unit}）</span> : null}
+                </label>
+                <input
+                  name={`v_${it.code}`}
+                  type={it.text ? 'text' : 'number'}
+                  step={it.text ? undefined : 'any'}
+                  inputMode={it.text ? undefined : 'decimal'}
+                  placeholder={it.ph ?? ''}
+                  defaultValue={v[it.code] ?? ''}
+                />
+              </div>
+            ))}
+          </div>
+        </details>
+      ))}
 
       <div className="card">
         <div className="field">

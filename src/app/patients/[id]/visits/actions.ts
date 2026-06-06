@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getUserContext } from '@/lib/auth';
-import { TREATMENT_OPTIONS, VITAL_FIELDS } from '@/lib/constants';
+import { TREATMENT_OPTIONS, ALL_VITAL_CODES, VITAL_TYPED_COLS } from '@/lib/constants';
 
 export interface VisitFormState {
   error?: string;
@@ -74,14 +74,23 @@ export async function saveVisit(
     savedVisitId = (data as { id: string }).id;
   }
 
-  // バイタル（visit_vital）upsert
-  const vital: Record<string, number | null | string> = { visit_id: savedVisitId!, tenant_id: tenant };
+  // バイタル・全血液検査（visit_vital）upsert：型付き列＋それ以外は extra jsonb
+  const vital: Record<string, unknown> = { visit_id: savedVisitId!, tenant_id: tenant };
+  const extra: Record<string, number | string> = {};
   let hasVital = false;
-  for (const f of VITAL_FIELDS) {
-    const val = numv(formData, `v_${f.key}`);
-    vital[f.key] = val;
-    if (val !== null) hasVital = true;
+  for (const code of ALL_VITAL_CODES) {
+    if (code === 'labother') {
+      const t = str(formData, 'v_labother');
+      if (t) { extra.labother = t; hasVital = true; }
+      continue;
+    }
+    const val = numv(formData, `v_${code}`);
+    if (val === null) continue;
+    hasVital = true;
+    if (VITAL_TYPED_COLS.has(code)) vital[code] = val;
+    else extra[code] = val;
   }
+  vital.extra = extra;
   if (hasVital) {
     const { error } = await supabase.from('visit_vital').upsert(vital, { onConflict: 'visit_id' });
     if (error) return { error: 'バイタルの保存に失敗しました：' + error.message };

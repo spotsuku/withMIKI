@@ -30,8 +30,22 @@ export default async function EditVisitPage({
   if (!patientRes.data || !visitRes.data) notFound();
   const p = patientRes.data as Pick<Patient, 'id' | 'name'>;
   const visit = visitRes.data as Record<string, unknown>;
-  const vital = (vitalRes.data as Record<string, number | null> | null) ?? null;
+  const vitalRow = (vitalRes.data as Record<string, unknown> | null) ?? null;
   const soap = (soapRes.data as VisitInitial['soap']) ?? null;
+
+  // 型付き列 + extra(jsonb) を1つのコード→値マップに統合
+  let vital: Record<string, string | number | null> | null = null;
+  if (vitalRow) {
+    vital = {};
+    for (const [k, val] of Object.entries(vitalRow)) {
+      if (k === 'extra' || k === 'visit_id' || k === 'tenant_id') continue;
+      if (val !== null && val !== undefined) vital[k] = val as number;
+    }
+    const extra = (vitalRow.extra as Record<string, unknown> | null) ?? {};
+    for (const [k, val] of Object.entries(extra)) {
+      if (val !== null && val !== undefined) vital[k] = val as string | number;
+    }
+  }
 
   const initial: VisitInitial = {
     id: visit.id as string,
