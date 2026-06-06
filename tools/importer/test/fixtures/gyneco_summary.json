@@ -1,0 +1,18 @@
+{
+  "patientName": "テスト花子",
+  "patientId": "P-0001",
+  "cover": {
+    "purpose": "月経周期の安定",
+    "goal": "PMS軽減",
+    "therapist": "三木"
+  },
+  "latestLab": {
+    "date": "2026-01-10",
+    "hb": 11.2,
+    "ferritin": 8,
+    "e2": 45,
+    "amh": 2.1
+  },
+  "stats": { "totalDays": 42, "periodDays": 6 },
+  "exportedAt": "2026-01-12T00:00:00.000Z"
+}

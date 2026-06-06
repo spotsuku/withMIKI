@@ -1,0 +1,32 @@
+{
+  "settings": { "height": 175, "sport": "陸上", "category": "中距離", "weightRestriction": "none" },
+  "cover": { "name": "テスト太郎", "sport": "陸上", "team": "○○高校", "dob": "2008-04-01", "goal": "自己ベスト更新" },
+  "foodGoals": { "calories": 2800, "protein": 130, "carbs": 350, "weight": 62 },
+  "records": {
+    "2026-03-01": {
+      "date": "2026-03-01",
+      "weight": 63.2,
+      "fat": 10.5,
+      "muscle": 52.1,
+      "hr": 48,
+      "sleep": 8,
+      "height": 175,
+      "condition": "良好",
+      "injury": "右膝に違和感",
+      "memo": "ポイント練習"
+    }
+  },
+  "trainings": [
+    { "id": "train_1", "date": "2026-03-01", "type": "インターバル", "duration": 90, "intensity": "high", "volume": "1000m x 5", "memo": "good" },
+    { "id": "train_2", "date": "2026-03-02", "type": "ジョグ", "duration": 40, "intensity": "low", "volume": "8km", "memo": "" }
+  ],
+  "foodEntries": [
+    { "id": "food_1", "date": "2026-03-01", "type": "朝", "memo": "和食", "analysis": { "calories": 600, "protein": 30, "carbs": 80, "fat": 15 } }
+  ],
+  "labHistory": [
+    { "id": "lab_1", "date": "2026-02-20", "comment": "鉄不足注意", "hb": 14.5, "ferritin": 25, "ck": 320, "testosterone": 5.2, "cortisol": 12 }
+  ],
+  "mediaEntries": [
+    { "id": "media_1", "cat": "フォーム", "date": "2026-03-01", "title": "走りの動画", "memo": "接地確認", "files": ["x"] }
+  ]
+}

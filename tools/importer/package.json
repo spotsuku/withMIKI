@@ -1,0 +1,22 @@
+{
+  "name": "@withmiki/importer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "WithMIKI 既存JSON(localStorage/エクスポート) → Supabase 取り込みツール",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "import": "node src/cli.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "@types/node": "^22.0.0"
+  }
+}

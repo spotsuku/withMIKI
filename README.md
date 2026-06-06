@@ -20,6 +20,9 @@ WithMIKI（ウィズミキ）は、**患者さんが日々の体調を記録し�
 5. **既存 JSON からの移行・互換性**（[`docs/04-data-migration.md`](docs/04-data-migration.md)）
 6. **セキュリティ・医療コンプライアンス**（[`docs/05-security-compliance.md`](docs/05-security-compliance.md)）
 7. **開発ロードマップ**（[`docs/06-roadmap.md`](docs/06-roadmap.md)）
+8. **DB 設計レビュー（決定事項）**（[`docs/07-db-design-review.md`](docs/07-db-design-review.md)）
+9. **意思決定記録（ADR）**（[`docs/adr/`](docs/adr/)）— 技術スタック等
+10. **移行インポータ（実装）**（[`tools/importer/`](tools/importer/)）— 既存 JSON → DB 取り込み
 
 > ⚠️ 現時点ではコードの本実装はまだ着手していません。**まず設計を固める**フェーズです（ロードマップ Phase 0）。
 
@@ -107,11 +110,18 @@ withMIKI/
 │   ├── 03-api-design.md       REST API・認証・LINE Webhook・AI プロキシ
 │   ├── 04-data-migration.md   既存 localStorage/JSON → DB マッピング
 │   ├── 05-security-compliance.md 医療データ安全管理・同意・監査・暗号化
-│   └── 06-roadmap.md          フェーズ別開発計画・マイルストーン
+│   ├── 06-roadmap.md          フェーズ別開発計画・マイルストーン
+│   ├── 07-db-design-review.md DB設計レビューと決定事項（共通基盤＋対象別）
+│   └── adr/
+│       └── 0001-tech-stack-supabase.md  技術スタック確定(ADR)
 ├── db/
 │   ├── schema.sql             PostgreSQL DDL（設計の実体）
 │   └── migrations/
-│       └── 0001_init.sql      初期マイグレーション
+│       ├── 0001_init.sql      初期マイグレーション（標準プログラム・検査カタログ）
+│       ├── 0002_review_refinements.sql  レビュー反映（RLS全テーブル・索引等）
+│       └── 0003_import_compat.sql       既存データ無損失のためのスキーマ補完
+├── tools/
+│   └── importer/              既存JSON → Supabase 取り込みツール（TypeScript）
 └── legacy/                    ← 現行 HTML 原本（設計の元データ・改変禁止）
     ├── gyneco-daily-record.master.html
     ├── athlete-record.master.html

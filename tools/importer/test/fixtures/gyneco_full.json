@@ -1,0 +1,66 @@
+{
+  "settings": {
+    "patientName": "テスト花子",
+    "patientId": "P-0001",
+    "height": 160,
+    "cover": {
+      "purpose": "月経周期の安定",
+      "goal": "PMS軽減",
+      "startdate": "2026/01/10",
+      "diagnosis": "月経前症候群",
+      "history": "20代から",
+      "treatment": "鍼灸+養生",
+      "therapist": "三木",
+      "doctor": "○○医師",
+      "nextvisit": "2026/02/14",
+      "caution": "妊娠希望あり"
+    }
+  },
+  "customMeds": [],
+  "records": {
+    "2026-01-10": {
+      "date": "2026-01-10",
+      "bbt": 36.45,
+      "menstrual": "period",
+      "flow": "multi",
+      "bloodState": ["sticky", "clot"],
+      "dischargeAmt": "",
+      "pain": 3,
+      "painLocation": ["lower_abdomen", "lower_back"],
+      "tongue": ["thin_white"],
+      "oriental": ["blood_stasis"],
+      "weight": 52.3,
+      "fat": 24.1,
+      "sbp": 110,
+      "dbp": 70,
+      "hr": 64,
+      "bodytemp": 36.5,
+      "sleep": 7,
+      "sleepQuality": "good",
+      "water": 1.5,
+      "exercise": "walk",
+      "memo": "だるさあり",
+      "selfcare": ["iap", "pelvic"],
+      "meds": ["葉酸", "鉄サプリ"],
+      "customMeds": [{ "name": "オリジナル漢方", "taken": true }],
+      "lab": {
+        "hb": 11.2,
+        "ferritin": 8,
+        "e2": 45,
+        "amh": 2.1,
+        "other": "貧血傾向"
+      }
+    },
+    "2026-01-11": {
+      "date": "2026-01-11",
+      "bbt": 36.5,
+      "menstrual": "none",
+      "weight": 52.1,
+      "pain": 0,
+      "selfcare": { "iap": true, "walk": false }
+    },
+    "bad-date": {
+      "bbt": 36.6
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "patient": { "name": "テスト次郎", "no": "P12345", "avatar": "🙂" },
+  "basicInfo": {
+    "name": "テスト次郎", "kana": "テストジロウ", "dob": "1990-05-05", "sex": "男性",
+    "blood": "O", "tel": "090-0000-0000", "tel2": "", "email": "test@example.com",
+    "address": "東京都", "job": "会社員", "firstvisit": "2026-02-01",
+    "referrer": "紹介", "route": "Web", "emname": "テスト花子", "emrel": "妻", "emtel": "080-0000-0000",
+    "hospital": "○○クリニック",
+    "chief": "腰痛", "onset": "1ヶ月前", "current": "デスクワークで悪化",
+    "history": "なし", "sleep": "良好", "appetite": "普通", "meds": "なし", "note": "妊娠中ではない"
+  },
+  "cover": {
+    "purpose": "腰痛改善", "goal": "再発予防", "therapist": "三木",
+    "diagnosis": "筋筋膜性腰痛", "history": "慢性", "treatment": "鍼+運動指導", "caution": "急性増悪に注意", "linkid": ""
+  },
+  "problems": [
+    { "id": "prob_1", "title": "慢性腰痛", "category": "運動器", "diagnosis": "筋筋膜性", "onset": "1ヶ月前", "status": "active", "note": "前屈で痛み", "createdAt": "2026-02-01T00:00:00Z", "updatedAt": "2026-02-01T00:00:00Z" }
+  ],
+  "soaps": [
+    { "id": "soap_1", "problemId": "prob_1", "date": "2026-02-08", "s": "痛み軽減", "o": "ROM改善", "a": "順調", "p": "継続", "savedAt": "2026-02-08T00:00:00Z" }
+  ],
+  "visits": {
+    "v_1": {
+      "id": "v_1", "date": "2026-02-01",
+      "treatments": ["鍼", "灸"],
+      "soap": { "s": "腰が痛い", "o": "L4/5圧痛", "a": "筋緊張", "p": "週1施術" },
+      "injury": { "injurypart": "腰部", "injuryname": "筋筋膜性腰痛", "disorderpart": "", "disordername": "" },
+      "points": "腎兪・大腸兪", "tech": "置鍼10分", "memo": "初回",
+      "weight": 68, "fat": 18, "bmi": 22.5, "sbp": 120, "dbp": 78, "hr": 70,
+      "hb": 15.1, "ferritin": 120, "tsh": 1.8, "vitd": 28
+    },
+    "v_2": {
+      "id": "v_2",
+      "treatments": ["鍼"],
+      "points": "委中", "memo": "日付なし"
+    }
+  },
+  "bodyMarks": { "front": [{ "x": 10, "y": 20, "color": "#e63946", "size": 8 }], "back": [] },
+  "bodyNote": "腰部に圧痛点",
+  "media": [
+    { "id": "m1", "cat": "姿勢", "date": "2026-02-01", "title": "立位写真", "memo": "骨盤前傾" }
+  ]
+}
