@@ -29,7 +29,7 @@ export function MediaForm() {
     <form onSubmit={onSubmit}>
       <div className="card">
         <h2>写真・メディアを追加</h2>
-        <div className="field"><label htmlFor="file">画像 *</label><input id="file" name="file" type="file" accept="image/*" required /></div>
+        <div className="field"><label htmlFor="file">画像 *</label><input id="file" name="file" type="file" accept="image/*" capture="environment" required /></div>
         <div className="grid cols-2">
           <div className="field"><label htmlFor="title">タイトル</label><input id="title" name="title" /></div>
           <div className="field"><label htmlFor="category">分類</label><input id="category" name="category" placeholder="例: 体調 / 患部" /></div>

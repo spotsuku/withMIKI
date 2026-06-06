@@ -39,7 +39,7 @@ export function MediaUploadForm({ patientId }: { patientId: string }) {
         <h2>メディアの追加</h2>
         <div className="field">
           <label htmlFor="file">画像 / ファイル *</label>
-          <input id="file" name="file" type="file" accept="image/*" required />
+          <input id="file" name="file" type="file" accept="image/*" capture="environment" required />
         </div>
         <div className="grid cols-2">
           <div className="field">

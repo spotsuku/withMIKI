@@ -66,7 +66,7 @@ export function FoodForm({ entryDate }: { entryDate: string }) {
         </div>
         <div className="field" style={{ marginTop: 10 }}>
           <label>写真からAI解析（任意）</label>
-          <input type="file" accept="image/*" disabled={ocr.loading} onChange={(e) => onPhoto(e.target.files?.[0])} />
+          <input type="file" accept="image/*" capture="environment" disabled={ocr.loading} onChange={(e) => onPhoto(e.target.files?.[0])} />
           {ocr.loading ? <p className="meta">解析中…</p> : null}
           {ocr.msg ? <p className="meta">✅ {ocr.msg}</p> : null}
           {ocr.error ? <p className="error">{ocr.error}</p> : null}

@@ -49,7 +49,7 @@ export function LabForm({ groups }: { groups: { category: string; items: CatItem
         </div>
         <div className="field">
           <label>採血結果の画像から読み取り（AI・任意）</label>
-          <input type="file" accept="image/*" disabled={ocr.loading} onChange={(e) => onOcr(e.target.files?.[0])} />
+          <input type="file" accept="image/*" capture="environment" disabled={ocr.loading} onChange={(e) => onOcr(e.target.files?.[0])} />
           {ocr.loading ? <p className="meta">読み取り中…</p> : null}
           {ocr.msg ? <p className="meta">✅ {ocr.msg}</p> : null}
           {ocr.error ? <p className="error">{ocr.error}</p> : null}

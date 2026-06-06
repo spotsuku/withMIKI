@@ -4,6 +4,7 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { Topbar } from '@/components/Topbar';
 import { KarteChat } from '@/components/KarteChat';
 import { TrendChart, type Series } from '@/components/TrendChart';
+import { ShareLinks, type ShareRow } from './share/ShareLinks';
 import {
   ageFromDob,
   type Patient,
@@ -86,6 +87,16 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
   const problems = (problemsRes.data ?? []) as Problem[];
   const labs = (labsRes.data ?? []) as LabResult[];
   const media = (mediaRes.data ?? []) as { id: string; title: string | null; category: string | null; taken_date: string | null }[];
+
+  // 有効な共有リンク
+  const { data: shareRows } = await supabase
+    .from('karte_share')
+    .select('id, token, label, expires_at, revoked_at')
+    .eq('patient_id', p.id)
+    .is('revoked_at', null)
+    .order('created_at', { ascending: false });
+  const shares = ((shareRows ?? []) as (ShareRow & { revoked_at: string | null })[])
+    .filter((s) => !s.expires_at || new Date(s.expires_at) > new Date());
 
   // ===== 推移グラフ用データ =====
   // 施術時バイタル（体重・血圧）
@@ -352,6 +363,9 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
             {ferritinSeries[0].points.length ? <TrendChart title="フェリチンの推移" unit="ng/mL" series={ferritinSeries} /> : null}
           </>
         ) : null}
+
+        {/* 共有リンク */}
+        <ShareLinks patientId={p.id} shares={shares} />
 
         {/* AI カルテ補助 */}
         <KarteChat patientId={p.id} />

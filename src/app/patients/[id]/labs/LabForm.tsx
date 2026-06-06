@@ -111,7 +111,7 @@ export function LabForm({
           <label>採血結果の画像から読み取り（AI・任意）</label>
           <input
             type="file"
-            accept="image/*"
+            accept="image/*" capture="environment"
             disabled={ocrState.loading}
             onChange={(e) => onOcr(e.target.files?.[0])}
           />
