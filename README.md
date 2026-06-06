@@ -25,6 +25,7 @@ WithMIKI（ウィズミキ）は、**患者さんが日々の体調を記録し�
 10. **移行インポータ（実装）**（[`tools/importer/`](tools/importer/)）— 既存 JSON → DB 取り込み
 11. **セットアップ手順**（[`docs/setup/`](docs/setup/)）— Supabase 構築・Vercel デプロイ
 12. **先生用カルテ Web（実装）**（[`apps/karte/`](apps/karte/)）— Next.js + Supabase
+13. **患者用デイリーレコード PWA（実装）**（[`apps/patient/`](apps/patient/)）— Next.js PWA + Supabase
 
 > ⚠️ 現時点ではコードの本実装はまだ着手していません。**まず設計を固める**フェーズです（ロードマップ Phase 0）。
 
@@ -126,9 +127,11 @@ withMIKI/
 │       ├── 0002_review_refinements.sql  レビュー反映（RLS全テーブル・索引等）
 │       ├── 0003_import_compat.sql       既存データ無損失のためのスキーマ補完
 │       └── supabase/
-│           └── 0004_supabase_auth_rls.sql  Supabase専用RLS（auth.uid()ベース）
+│           ├── 0004_supabase_auth_rls.sql  Supabase専用RLS（auth.uid()ベース）
+│           └── 0005_patient_portal.sql     患者ポータル（本人限定RLS）
 ├── apps/
-│   └── karte/                 先生用カルテ Web（Next.js + Supabase Auth）
+│   ├── karte/                 先生用カルテ Web（Next.js + Supabase Auth）
+│   └── patient/               患者用デイリーレコード（PWA + Supabase）
 ├── tools/
 │   └── importer/              既存JSON → Supabase 取り込みツール（TypeScript）
 └── legacy/                    ← 現行 HTML 原本（設計の元データ・改変禁止）

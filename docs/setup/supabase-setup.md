@@ -35,6 +35,7 @@ WithMIKI の DB（PostgreSQL）を Supabase 上に構築する手順。
 3) db/migrations/0002_review_refinements.sql … RLS（全業務テーブル）・索引・部分ユニーク
 4) db/migrations/0003_import_compat.sql  … 既存データ無損失のためのスキーマ補完
 5) db/migrations/supabase/0004_supabase_auth_rls.sql … ★Supabase 専用（後述§3）
+6) db/migrations/supabase/0005_patient_portal.sql     … ★患者ポータル（患者PWA用, 後述§9）
 ```
 
 > `0002` が RLS を一元定義する（`schema.sql` 側では RLS を定義しない＝名前衝突回避）。
@@ -144,6 +145,24 @@ values ('<TENANT_ID>', 'doctor@example.com', '三木裕昭', 'owner', '鍼灸師
 - [ ] サービスロールキーがクライアントバンドル（`NEXT_PUBLIC_*` 以外）に含まれていないこと。
 
 ---
+
+## 9. 患者ポータル（患者 PWA `apps/patient`）
+
+患者本人がデイリー記録を入力できるようにする手順（`0005_patient_portal.sql` 適用済み前提）。
+
+1. **Authentication → Users → Add user** で患者のメール/パスワードを作成。`User UID` を控える。
+2. SQL Editor で患者を `patient_user` にひも付け:
+
+```sql
+insert into patient_user (tenant_id, patient_id, auth_user_id)
+values ('<TENANT_ID>', '<PATIENT_ID>', '<患者の AUTH_USER_UID>');
+```
+
+3. 患者は `apps/patient`（PWA）にそのメール/パスワードでログイン → 当日のデイリーを記録。
+4. RLS により患者は**自分の記録だけ**読み書き可能（他患者・他院は不可。実機検証済み）。
+5. iOS は Safari で開き「ホーム画面に追加」（現行運用の体験を継承）。
+
+> 将来 LINE ログイン(LIFF)へ置換予定（docs/01-architecture.md §3.6）。
 
 ## 8. 次に
 
