@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { Topbar } from '@/components/Topbar';
 import { KarteChat } from '@/components/KarteChat';
+import { TrendChart, type Series } from '@/components/TrendChart';
 import {
   ageFromDob,
   type Patient,
@@ -73,6 +74,52 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
   const problems = (problemsRes.data ?? []) as Problem[];
   const labs = (labsRes.data ?? []) as LabResult[];
   const media = (mediaRes.data ?? []) as { id: string; title: string | null; category: string | null; taken_date: string | null }[];
+
+  // ===== 推移グラフ用データ =====
+  // 施術時バイタル（体重・血圧）
+  const { data: vitalTrendRaw } = await supabase
+    .from('visit_vital')
+    .select('weight, sbp, dbp, visit:visit_id(visit_date)')
+    .not('visit', 'is', null);
+  type VT = { weight: number | null; sbp: number | null; dbp: number | null; visit: { visit_date: string } | { visit_date: string }[] | null };
+  const vt = ((vitalTrendRaw ?? []) as VT[])
+    .map((r) => ({
+      date: (Array.isArray(r.visit) ? r.visit[0]?.visit_date : r.visit?.visit_date) ?? '',
+      weight: r.weight, sbp: r.sbp, dbp: r.dbp,
+    }))
+    .filter((r) => r.date)
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const weightSeries: Series[] = [
+    { name: '体重', color: '#8a6d3b', points: vt.filter((r) => r.weight != null).map((r) => ({ label: r.date.slice(5), value: r.weight as number })) },
+  ];
+  const bpSeries: Series[] = [
+    { name: '収縮期', color: '#c0392b', points: vt.filter((r) => r.sbp != null).map((r) => ({ label: r.date.slice(5), value: r.sbp as number })) },
+    { name: '拡張期', color: '#1d6fb8', points: vt.filter((r) => r.dbp != null).map((r) => ({ label: r.date.slice(5), value: r.dbp as number })) },
+  ];
+
+  // 採血の推移（Hb・フェリチン）
+  const { data: labTrendRaw } = await supabase
+    .from('lab_value')
+    .select('test_code, value, lab_result:lab_result_id(taken_date)')
+    .in('test_code', ['hb', 'ferritin']);
+  type LV = { test_code: string; value: number | null; lab_result: { taken_date: string } | { taken_date: string }[] | null };
+  const lv = ((labTrendRaw ?? []) as LV[])
+    .map((r) => ({
+      code: r.test_code,
+      date: (Array.isArray(r.lab_result) ? r.lab_result[0]?.taken_date : r.lab_result?.taken_date) ?? '',
+      value: r.value,
+    }))
+    .filter((r) => r.date && r.value != null)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const hbSeries: Series[] = [
+    { name: 'Hb', color: '#c0392b', points: lv.filter((r) => r.code === 'hb').map((r) => ({ label: r.date.slice(5), value: r.value as number })) },
+  ];
+  const ferritinSeries: Series[] = [
+    { name: 'フェリチン', color: '#8a6d3b', points: lv.filter((r) => r.code === 'ferritin').map((r) => ({ label: r.date.slice(5), value: r.value as number })) },
+  ];
+  const hasTrend =
+    weightSeries[0].points.length + bpSeries[0].points.length + hbSeries[0].points.length + ferritinSeries[0].points.length > 0;
   const age = ageFromDob(p.dob);
 
   return (
@@ -280,6 +327,16 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
             <div className="empty">メディアなし</div>
           )}
         </div>
+
+        {/* 推移グラフ */}
+        {hasTrend ? (
+          <>
+            {weightSeries[0].points.length ? <TrendChart title="体重の推移" unit="kg" series={weightSeries} /> : null}
+            {bpSeries[0].points.length || bpSeries[1].points.length ? <TrendChart title="血圧の推移" unit="mmHg" series={bpSeries} /> : null}
+            {hbSeries[0].points.length ? <TrendChart title="Hb の推移" unit="g/dL" series={hbSeries} /> : null}
+            {ferritinSeries[0].points.length ? <TrendChart title="フェリチンの推移" unit="ng/mL" series={ferritinSeries} /> : null}
+          </>
+        ) : null}
 
         {/* AI カルテ補助 */}
         <KarteChat patientId={p.id} />
