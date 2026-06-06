@@ -34,7 +34,7 @@ export async function bookSlot(_p: BookState, fd: FormData): Promise<BookState> 
   if (sl.is_blocked) return { error: 'この枠は既に埋まっています。別の枠をお選びください。' };
 
   const token = randomBytes(24).toString('hex');
-  const { error } = await admin.from('appointments').insert({
+  const { data: created, error } = await admin.from('appointments').insert({
     tenant_id: tenantId,
     title: 'オンライン予約',
     start_at: sl.start_at,
@@ -44,11 +44,14 @@ export async function bookSlot(_p: BookState, fd: FormData): Promise<BookState> 
     guest_email: email,
     booking_token: token,
     source: 'patient',
-  });
-  if (error) return { error: '予約に失敗しました：' + error.message };
+  }).select('id').single();
+  if (error || !created) return { error: '予約に失敗しました：' + (error?.message ?? '') };
 
   // 二重予約防止に枠をブロック
   await admin.from('appointment_slots').update({ is_blocked: true }).eq('id', slotId);
+
+  // 受付通知（メール等。未設定なら no-op）
+  try { const { notifyAppointment } = await import('@/lib/notify'); await notifyAppointment((created as { id: string }).id, 'booked'); } catch { /* ignore */ }
 
   redirect(`/appointment/${token}`);
 }

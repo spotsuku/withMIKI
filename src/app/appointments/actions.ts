@@ -55,6 +55,10 @@ export async function setAppointmentStatus(fd: FormData): Promise<void> {
   if (status === 'confirmed') {
     try { const { syncAppointmentToGoogle } = await import('@/lib/google'); await syncAppointmentToGoogle(ctx.appUser.tenant_id, id); } catch { /* 未設定なら無視 */ }
   }
+  // 通知（確定/キャンセル。未設定なら no-op）
+  if (status === 'confirmed' || status === 'cancelled') {
+    try { const { notifyAppointment } = await import('@/lib/notify'); await notifyAppointment(id, status); } catch { /* ignore */ }
+  }
   revalidatePath('/appointments');
 }
 

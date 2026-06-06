@@ -121,3 +121,12 @@
 1. 本設計のレビュー（特に DB の共通基盤＋対象別モジュール方針）。
 2. 技術スタック確定（Supabase ベースで素早く立ち上げ → 必要に応じ自前 API 拡張、が現実的）。
 3. Phase 1・2 のチケット化（インポータを最優先で着手）。
+
+## Phase 予約 — 予約システム（Phase P–S 実装済）
+- [x] DB（appointments / appointment_slots / tenant_settings, 0011）
+- [x] 先生：週次予約管理・空き枠設定・公開予約リンク発行（/appointments）
+- [x] 患者：公開予約 /book/[token]・確認/キャンセル /appointment/[token]（ログイン不要）
+- [x] Google Calendar OAuth連携（/api/google/*、確定→イベント自動作成、予定→空き枠ブロック）
+- [x] 通知：メール(Resend)・LINE(Messaging)・24時間前リマインダー(/api/cron/reminders)
+- [x] 患者詳細から予約リンク送付（LINE/URL）
+- [ ] 予約変更（リスケ）UI、複数施術者・営業時間テンプレ

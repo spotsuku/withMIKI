@@ -5,6 +5,7 @@ import { Topbar } from '@/components/Topbar';
 import { KarteChat } from '@/components/KarteChat';
 import { TrendChart, type Series } from '@/components/TrendChart';
 import { ShareLinks, type ShareRow } from './share/ShareLinks';
+import { BookingSend } from './share/BookingSend';
 import {
   ageFromDob,
   type Patient,
@@ -182,7 +183,11 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
             <Link className="btn secondary" href={`/patients/${p.id}/media/new`}>
               📷 メディア追加
             </Link>
+            <Link className="btn secondary" href={`/appointments/new?patientId=${p.id}`}>
+              📅 予約を追加
+            </Link>
           </div>
+          <BookingSend patientId={p.id} />
         </div>
 
         {/* ケアプラン（表紙） */}
