@@ -1,15 +1,10 @@
 -- =============================================================================
--- WithMIKI Supabase 一括適用SQL（自動生成・このファイルは直接編集しない）
--- 生成元を順に連結: schema.sql → 0001 → 0002 → 0003 → 0004(Supabase) → 0005(患者ポータル)
--- 使い方: Supabase ダッシュボード → SQL Editor → New query にこの全文を貼り付けて Run
--- 前提: pgcrypto/citext は schema.sql 内で作成。auth.uid()/authenticated は Supabase に既存。
--- 詳細: docs/setup/supabase-setup.md
+-- WithMIKI Supabase 一括適用SQL（自動生成・直接編集しない）
+-- 順: schema → 0001 → 0002 → 0003 → 0004 → 0005 → 0006
+-- 使い方: Supabase SQL Editor に貼り付けて Run
 -- =============================================================================
 
-
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  db/schema.sql                                                           ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+-- ===== db/schema.sql =====
 
 -- =============================================================================
 -- WithMIKI データベーススキーマ (PostgreSQL 15+)
@@ -555,9 +550,7 @@ CREATE INDEX idx_audit_entity ON audit_log(entity, entity_id);
 -- （RLS は db/migrations/0002_review_refinements.sql を参照）
 
 
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  db/migrations/0001_init.sql                                             ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+-- ===== db/migrations/0001_init.sql =====
 
 -- =============================================================================
 -- 0001_init.sql  — 初期マイグレーション
@@ -626,9 +619,7 @@ INSERT INTO lab_test_catalog (code, name, unit, category, applies_to, sort_order
 ON CONFLICT (code) DO NOTHING;
 
 
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  db/migrations/0002_review_refinements.sql                               ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+-- ===== db/migrations/0002_review_refinements.sql =====
 
 -- =============================================================================
 -- 0002_review_refinements.sql
@@ -751,9 +742,7 @@ CREATE POLICY parent_isolation_lab_value ON lab_value USING (
 -- 注: lab_test_catalog はテナント非依存の共有マスタのため RLS 対象外。
 
 
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  db/migrations/0003_import_compat.sql                                    ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+-- ===== db/migrations/0003_import_compat.sql =====
 
 -- =============================================================================
 -- 0003_import_compat.sql
@@ -779,9 +768,7 @@ ALTER TABLE soap_note ADD COLUMN IF NOT EXISTS source_ref jsonb;
 ALTER TABLE visit     ADD COLUMN IF NOT EXISTS source_ref jsonb;
 
 
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  db/migrations/supabase/0004_supabase_auth_rls.sql                       ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+-- ===== db/migrations/supabase/0004_supabase_auth_rls.sql =====
 
 -- =============================================================================
 -- 0004_supabase_auth_rls.sql  ★Supabase 専用（auth スキーマが必要）
@@ -868,9 +855,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
   GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO authenticated;
 
 
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║  db/migrations/supabase/0005_patient_portal.sql                          ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+-- ===== db/migrations/supabase/0005_patient_portal.sql =====
 
 -- =============================================================================
 -- 0005_patient_portal.sql  ★Supabase 専用（auth スキーマが必要）
@@ -942,4 +927,14 @@ DROP POLICY IF EXISTS selfcare_self ON selfcare_log;
 CREATE POLICY selfcare_self ON selfcare_log
   USING (EXISTS (SELECT 1 FROM daily_record d WHERE d.id = selfcare_log.daily_record_id AND d.patient_id = app_current_patient()))
   WITH CHECK (EXISTS (SELECT 1 FROM daily_record d WHERE d.id = selfcare_log.daily_record_id AND d.patient_id = app_current_patient()));
+
+
+-- ===== db/migrations/0006_intake_checks.sql =====
+
+-- =============================================================================
+-- 0006_intake_checks.sql
+-- 問診チェックリスト（現行 personal-karte の CHECK_ITEMS）を保存する列を追加。
+-- { "0": "はい", "1": "いいえ", ... } の形で patient_intake に保持する。
+-- =============================================================================
+ALTER TABLE patient_intake ADD COLUMN IF NOT EXISTS checks jsonb NOT NULL DEFAULT '{}'::jsonb;
 

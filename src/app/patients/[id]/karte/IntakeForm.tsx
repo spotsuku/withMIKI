@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useFormState, useFormStatus } from 'react-dom';
 import { saveIntake, type KarteFormState } from './actions';
+import { CHECK_ITEMS } from '@/lib/constants';
 
 export interface IntakeInitial {
   chief?: string | null;
@@ -13,7 +14,10 @@ export interface IntakeInitial {
   appetite?: string | null;
   meds?: string | null;
   note?: string | null;
+  checks?: Record<string, string> | null;
 }
+
+const CHECK_OPTIONS = ['', 'はい', 'いいえ', '不明'];
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -77,6 +81,18 @@ export function IntakeForm({
           <label htmlFor="note">禁忌・備考</label>
           <textarea id="note" name="note" rows={2} defaultValue={i.note ?? ''} />
         </div>
+
+        <h2 style={{ marginTop: 18 }}>問診チェック</h2>
+        {CHECK_ITEMS.map((item, idx) => (
+          <div className="field" key={idx}>
+            <label htmlFor={`check_${idx}`}>{item}</label>
+            <select id={`check_${idx}`} name={`check_${idx}`} defaultValue={i.checks?.[String(idx)] ?? ''}>
+              {CHECK_OPTIONS.map((o) => (
+                <option key={o} value={o}>{o === '' ? '—' : o}</option>
+              ))}
+            </select>
+          </div>
+        ))}
 
         {state?.error ? <p className="error">{state.error}</p> : null}
         <div style={{ display: 'flex', gap: 10 }}>

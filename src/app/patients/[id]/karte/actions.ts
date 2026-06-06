@@ -29,6 +29,15 @@ export async function saveIntake(
   if (!patientId) return { error: '患者IDがありません。' };
   const supabase = createClient();
 
+  // 問診チェックリスト（check_0.. → { "0": "はい", ... }）
+  const checks: Record<string, string> = {};
+  for (const [k, v] of formData.entries()) {
+    if (k.startsWith('check_')) {
+      const val = String(v).trim();
+      if (val) checks[k.slice('check_'.length)] = val;
+    }
+  }
+
   const payload = {
     patient_id: patientId,
     tenant_id: ctx.appUser.tenant_id,
@@ -40,6 +49,7 @@ export async function saveIntake(
     appetite: str(formData, 'appetite'),
     meds: str(formData, 'meds'),
     note: str(formData, 'note'),
+    checks,
     updated_by: ctx.appUser.id,
   };
 
