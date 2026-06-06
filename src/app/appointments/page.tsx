@@ -37,6 +37,8 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
     (byDay[d] ??= []).push(a);
   }
   const token = await ensureBookingToken();
+  const { data: gset } = await supabase.from('tenant_settings').select('google_token').maybeSingle();
+  const googleConnected = Boolean((gset as { google_token: unknown } | null)?.google_token);
   const wd = ['月', '火', '水', '木', '金', '土', '日'];
 
   return (
@@ -91,6 +93,24 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
         ))}
 
         <BookingLink token={token} />
+
+        <div className="card">
+          <h2>Google カレンダー連携</h2>
+          {googleConnected ? (
+            <>
+              <p className="meta">✅ 連携済み。確定予約は自動でカレンダーに登録され、Googleの予定は空き枠ブロックに反映できます。</p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <a className="btn secondary" href="/api/google/sync">Googleの予定を取り込む</a>
+                <a className="btn secondary" href="/api/google/auth">再連携</a>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="meta">連携すると、確定予約をGoogleカレンダーへ自動登録できます。</p>
+              <a className="btn" href="/api/google/auth">Googleカレンダーと連携</a>
+            </>
+          )}
+        </div>
       </div>
     </>
   );
