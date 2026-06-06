@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>WithMIKI アスリートレコード</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0c3a6e;--blue:#1a5fa8;--blue-pale:#e8f4ff;
+  --green:#2a8a5a;--green-pale:#e8f8ee;
+  --orange:#d06020;--orange-pale:#fff0e0;
+  --pink:#e84870;--pink-pale:#fee8ee;
+  --gold:#c8a84b;--gold-pale:#fff8e0;
+  --red:#c03030;--red-pale:#fee8e8;
+  --purple:#7a3a9a;--purple-pale:#f0e8ff;
+  --gray:#f5f7fa;--border:#d0e4f4;
+  --ink:#1a2a3a;--ink-light:#5a7090;
+  --washi:#f8fbff;
+  --athlete-primary:#003DA5;--athlete-dark:#002A7F;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans JP',sans-serif;background:#f0f4f8;color:var(--ink);font-size:14px;line-height:1.7;max-width:480px;margin:0 auto;}
+
+/* ヘッダー */
+.hd{background:linear-gradient(135deg,#002A7F,#003DA5,#1A6FE0);color:white;padding:0 14px;height:64px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(139,48,8,.4);}
+.hd-logo{font-family:'Noto Serif JP',serif;font-size:1.05rem;letter-spacing:.06em;}
+.hd-logo span{color:#ffe0b0;}
+.hd-sub{font-size:10px;color:rgba(255,255,255,.8);margin-top:2px;}
+.badge{background:rgba(255,200,100,.25);border:1px solid var(--gold);color:var(--gold);border-radius:10px;padding:2px 8px;font-size:10px;margin-left:6px;letter-spacing:.04em;}
+.today-btn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);color:white;border-radius:10px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;flex-shrink:0;}
+.hd-info{flex:1;min-width:0;}
+.patient-name{font-size:13px;font-weight:700;color:white;cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.patient-sub{font-size:10px;color:rgba(255,255,255,.7);}
+
+/* タブナビ */
+.tab-nav{display:flex;overflow-x:auto;background:white;border-bottom:3px solid var(--border);position:sticky;top:64px;z-index:99;scrollbar-width:none;}
+.tab-nav::-webkit-scrollbar{display:none;}
+.tab-btn{flex-shrink:0;padding:7px 4px;text-align:center;color:var(--ink-light);font-size:10px;cursor:pointer;border:none;background:transparent;font-family:'Noto Sans JP',sans-serif;border-bottom:3px solid transparent;margin-bottom:-3px;min-width:52px;}
+.tab-btn.active{color:var(--athlete-primary);border-bottom-color:var(--athlete-primary);}
+.tab-btn .ti{font-size:16px;display:block;margin-bottom:2px;}
+
+/* パネル */
+.panel{display:none;padding:12px;}
+.panel.active{display:block;}
+
+/* セクション */
+.sec{background:white;border-radius:14px;padding:16px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,.05);}
+.sec-hd{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1.5px solid var(--border);}
+.sec-hd .icon{font-size:18px;}
+.sec-hd .title{font-family:'Noto Serif JP',serif;font-size:13px;font-weight:600;color:var(--navy);}
+
+/* フォームグループ */
+.fg{margin-bottom:10px;}
+.fg label{font-size:11px;color:var(--ink-light);display:block;margin-bottom:4px;}
+.fg input,.fg select,.fg textarea{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:8px 12px;font-size:13px;font-family:'Noto Sans JP',sans-serif;background:var(--washi);color:var(--ink);-webkit-appearance:none;}
+.fg textarea{min-height:60px;resize:vertical;line-height:1.7;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--athlete-primary);}
+
+/* グリッド */
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+
+/* チップ */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
+.chip{padding:5px 10px;border-radius:16px;border:1.5px solid var(--border);background:var(--washi);color:var(--ink-light);font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .18s;}
+.chip.on{background:var(--athlete-primary);color:white;border-color:var(--athlete-dark);}
+.chip.on.green{background:var(--green);border-color:#1a6a3a;color:white;}
+.chip.on.orange{background:var(--orange);border-color:#a04010;color:white;}
+
+/* 保存ボタン */
+.save-btn{width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#002A7F,#003DA5);color:white;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;margin-top:8px;}
+
+/* 数値カード */
+.num-card{background:var(--gray);border-radius:12px;padding:10px 8px;text-align:center;}
+.num-val{font-size:20px;font-weight:700;color:var(--athlete-primary);}
+.num-unit{font-size:10px;color:var(--ink-light);}
+.num-label{font-size:11px;color:var(--ink-light);margin-top:2px;}
+
+/* 表紙カード */
+.cover-card{background:linear-gradient(135deg,#002A7F,#003DA5,#1A6FE0);border-radius:20px;padding:24px 20px;text-align:center;margin-bottom:14px;color:white;}
+.cover-avatar{width:80px;height:80px;border-radius:50%;border:3px solid rgba(255,255,255,.6);margin:0 auto 12px;overflow:hidden;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:32px;cursor:pointer;}
+.cover-name{font-family:'Noto Serif JP',serif;font-size:22px;font-weight:600;margin-bottom:4px;}
+.cover-sub{font-size:12px;opacity:.8;}
+.cover-edit-btn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:white;border-radius:20px;padding:6px 16px;font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;margin-top:12px;}
+
+/* トレーニングカード */
+.train-card{background:var(--orange-pale);border:1.5px solid #e0b080;border-radius:12px;padding:12px 14px;margin-bottom:8px;}
+.train-type{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--orange);color:white;display:inline-block;margin-bottom:6px;}
+.train-title{font-size:13px;font-weight:700;color:var(--ink);}
+.train-meta{font-size:11px;color:var(--ink-light);margin-top:3px;}
+
+/* グラフ */
+.chart{width:100%;border-radius:10px;}
+
+/* 通知 */
+.notice{border-radius:12px;padding:10px 14px;margin:6px 0;font-size:12px;line-height:1.8;}
+.notice.orange{background:var(--orange-pale);border-left:4px solid var(--orange);}
+.notice.blue{background:var(--blue-pale);border-left:4px solid var(--blue);}
+.notice.green{background:var(--green-pale);border-left:4px solid var(--green);}
+.notice-title{font-weight:700;margin-bottom:3px;}
+
+/* トースト */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:white;padding:10px 20px;border-radius:20px;font-size:13px;transition:transform .3s;z-index:1000;white-space:nowrap;pointer-events:none;}
+#toast.show{transform:translateX(-50%) translateY(0);}
+
+/* モーダル */
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:200;}
+.modal-overlay.open{display:flex;align-items:flex-end;}
+.modal-box{background:white;border-radius:20px 20px 0 0;padding:20px;width:100%;max-height:80vh;overflow-y:auto;}
+.modal-title{font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;color:var(--navy);margin-bottom:14px;}
+</style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<div class="hd">
+  <div class="cover-avatar" style="width:42px;height:42px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,.4);flex-shrink:0;font-size:20px;" onclick="openCoverModal()">🏃</div>
+  <div class="hd-info">
+    <div class="hd-logo">With<span>MIKI</span> アスリートレコード <span class="badge">MASTER</span></div>
+    <div id="patientNameHd" class="patient-sub">選手名未設定（タップして設定）</div>
+  </div>
+  <button class="today-btn" onclick="goToday()">今日</button>
+</div>
+
+<!-- タブナビ -->
+<div class="tab-nav" id="tabNav">
+  <button class="tab-btn active" onclick="switchTab('cover',this)"><span class="ti">🏠</span>表紙</button>
+  <button class="tab-btn" onclick="switchTab('record',this)"><span class="ti">📝</span>記録</button>
+  <button class="tab-btn" onclick="switchTab('training',this)"><span class="ti">💪</span>練習</button>
+  <button class="tab-btn" onclick="switchTab('graph',this)"><span class="ti">📊</span>グラフ</button>
+  <button class="tab-btn" onclick="switchTab('food',this)"><span class="ti">🍱</span>食事</button>
+  <button class="tab-btn" onclick="switchTab('blood',this)"><span class="ti">🩸</span>血液</button>
+  <button class="tab-btn" onclick="switchTab('media',this)"><span class="ti">📸</span>メディア</button>
+  <button class="tab-btn" onclick="switchTab('settings',this)"><span class="ti">⚙️</span>設定</button>
+  <button class="tab-btn" onclick="switchTab('share',this)"><span class="ti">💙</span>共有</button>
+</div>
+
+<!-- ===== 表紙パネル ===== -->
+<div class="panel active" id="panel-cover">
+  <div class="cover-card" id="coverCard">
+    <div class="cover-avatar" id="coverAvatar" onclick="openCoverModal()">🏃</div>
+    <div class="cover-name" id="coverName">名前未設定</div>
+    <div class="cover-sub" id="coverSport">競技・種目未設定</div>
+    <button class="cover-edit-btn" onclick="openCoverModal()">✏️ 編集</button>
+  </div>
+
+  <!-- 目標 -->
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">🎯</span><span class="title">目標・競技情報</span></div>
+    <div id="coverGoalDisplay">
+      <div style="color:#aaa;font-size:13px;text-align:center;padding:12px 0;">「編集」ボタンから設定してください</div>
+    </div>
+  </div>
+
+  <!-- 今日のサマリー -->
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">📋</span><span class="title">今日のサマリー</span></div>
+    <div id="todaySummary" class="grid2" style="gap:8px;"></div>
+  </div>
+
+  <!-- 来院予定 -->
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">🏥</span><span class="title">次回来院・大会予定</span></div>
+    <div class="grid2">
+      <div class="fg"><label>次回来院日</label><input type="date" id="nextVisit"></div>
+      <div class="fg"><label>次回大会日</label><input type="date" id="nextComp"></div>
+    </div>
+    <div class="fg"><label>大会名・メモ</label><input type="text" id="compName" placeholder="例：全国大会・関東予選"></div>
+    <button onclick="saveCoverInfo()" class="save-btn" style="background:linear-gradient(135deg,#002A7F,#003DA5);">💾 保存</button>
+  </div>
+</div>
+
+<!-- ===== 記録パネル ===== -->
+<div class="panel" id="panel-record">
+  <!-- 日付ナビ -->
+  <div style="display:flex;align-items:center;justify-content:space-between;background:white;border-radius:14px;padding:10px 14px;margin-bottom:10px;box-shadow:0 2px 10px rgba(0,0,0,.05);">
+    <button onclick="changeDate(-1)" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--athlete-primary);">‹</button>
+    <div style="text-align:center;">
+      <div style="font-weight:700;font-size:14px;" id="dateLabel"></div>
+      <div style="font-size:11px;color:var(--ink-light);" id="dayLabel"></div>
+    </div>
+    <button onclick="changeDate(1)" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--athlete-primary);">›</button>
+  </div>
+
+  <!-- バイタル -->
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">⚖️</span><span class="title">体重・バイタル</span></div>
+    <div class="grid2">
+      <div class="fg"><label>体重（kg）</label><input type="number" step="0.1" id="v-weight" placeholder="65.0" oninput="calcBMI()"></div>
+      <div class="fg"><label>体脂肪率（%）</label><input type="number" step="0.1" id="v-fat" placeholder="12.0"></div>
+      <div class="fg"><label>筋肉量（kg）</label><input type="number" step="0.1" id="v-muscle" placeholder="52.0"></div>
+      <div class="fg"><label>BMI</label><div id="bmiDisplay" style="background:var(--gray);border-radius:10px;padding:8px 12px;font-size:14px;font-weight:700;color:var(--athlete-primary);">---</div></div>
+    </div>
+    <div class="grid2">
+      <div class="fg"><label>安静時心拍数（bpm）</label><input type="number" id="v-hr" placeholder="48"></div>
+      <div class="fg"><label>睡眠時間（h）</label><input type="number" step="0.5" id="v-sleep" placeholder="7.5"></div>
+    </div>
+    <div class="fg"><label>身長（cm）</label><input type="number" step="0.1" id="v-height" placeholder="175.0" onchange="saveHeight()"></div>
+  </div>
+
+  <!-- コンディション -->
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">🌡️</span><span class="title">コンディション</span></div>
+    <div class="fg">
+      <label>疲労度（0〜10）</label>
+      <div id="fatiguePain" class="chips" style="flex-wrap:wrap;gap:4px;"></div>
+    </div>
+    <div class="fg">
+      <label>気分・モチベーション</label>
+      <div id="moodChips" class="chips"></div>
+    </div>
+    <div class="fg">
+      <label>睡眠の質</label>
+      <div id="sleepChips" class="chips"></div>
+    </div>
+    <div class="fg"><label>体の状態・メモ</label>
+      <textarea id="v-condition" placeholder="例：右膝に違和感あり。昨日の練習後から。"></textarea>
+    </div>
+  </div>
+
+  <!-- 痛み・怪我 -->
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">🩹</span><span class="title">痛み・怪我・違和感</span></div>
+    <div class="fg">
+      <label>部位</label>
+      <div id="injuryParts" class="chips" style="flex-wrap:wrap;"></div>
+    </div>
+    <div class="fg"><label>痛みの強さ（0〜10）</label>
+      <div id="painScale" class="chips" style="flex-wrap:wrap;gap:4px;"></div>
+    </div>
+    <div class="fg"><label>詳細・状況</label>
+      <textarea id="v-injury" placeholder="例：練習中に捻挫。アイシング済み。"></textarea>
+    </div>
+  </div>
+
+  <!-- 服薬・サプリ -->
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">💊</span><span class="title">服薬・サプリメント</span></div>
+    <div style="display:flex;flex-direction:column;gap:6px;" id="medList">
+    </div>
+  </div>
+
+  <!-- 先生へのメモ -->
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">💬</span><span class="title">先生へのメモ</span></div>
+    <textarea id="v-memo" placeholder="気になることや相談したいことを書いてください"></textarea>
+  </div>
+
+  <button onclick="saveRecord()" class="save-btn">💾 今日の記録を保存</button>
+</div>
+
+<!-- ===== トレーニングパネル ===== -->
+<div class="panel" id="panel-training">
+  <!-- 新規トレーニング記録 -->
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">💪</span><span class="title">トレーニングを記録</span></div>
+    <div class="fg"><label>日付</label><input type="date" id="trainDate"></div>
+    <div class="fg">
+      <label>種類</label>
+      <div id="trainTypeBtns" class="chips"></div>
+    </div>
+    <div class="grid2">
+      <div class="fg"><label>時間（分）</label><input type="number" id="trainDuration" placeholder="90"></div>
+      <div class="fg"><label>強度</label>
+        <select id="trainIntensity">
+          <option value="">選択</option>
+          <option value="low">低（ウォームアップ）</option>
+          <option value="mid">中（通常練習）</option>
+          <option value="high">高（本番・試合）</option>
+          <option value="max">最大（限界）</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>距離・重量・本数など</label><input type="text" id="trainVolume" placeholder="例：10km・100kg×5×3・200m×10"></div>
+    <div class="fg"><label>トレーニング内容・メモ</label><textarea id="trainMemo" placeholder="例：インターバル走。前半は快調だったが後半ペースダウン。"></textarea></div>
+    <button onclick="saveTraining()" class="save-btn">💾 トレーニングを保存</button>
+  </div>
+
+  <!-- トレーニング履歴 -->
+  <div class="sec">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-family:'Noto Serif JP',serif;font-size:13px;font-weight:600;color:var(--navy);">📋 トレーニング履歴</div>
+      <span id="trainCount" style="font-size:12px;color:#888;"></span>
+    </div>
+    <div id="trainList" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<!-- ===== グラフパネル ===== -->
+<div class="panel" id="panel-graph">
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">⚖️</span><span class="title">体重推移</span></div>
+    <canvas id="weightChart" class="chart" height="200"></canvas>
+  </div>
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">❤️</span><span class="title">安静時心拍数</span></div>
+    <canvas id="hrChart" class="chart" height="160"></canvas>
+  </div>
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">😴</span><span class="title">睡眠時間・疲労度</span></div>
+    <canvas id="sleepChart" class="chart" height="160"></canvas>
+  </div>
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">💪</span><span class="title">トレーニング時間（週別）</span></div>
+    <canvas id="trainChart" class="chart" height="160"></canvas>
+  </div>
+</div>
+
+<!-- ===== 食事パネル ===== -->
+<div class="panel" id="panel-food">
+  <div style="background:linear-gradient(135deg,#2a6a2a,#3a8a3a);border-radius:16px;padding:16px;margin-bottom:12px;color:white;text-align:center;">
+    <div style="font-family:'Noto Serif JP',serif;font-size:18px;margin-bottom:4px;">🍱 食事記録・栄養分析</div>
+    <div style="font-size:11px;opacity:0.8;">アスリート向け栄養管理・体重制限サポート</div>
+  </div>
+
+  <!-- 目標設定 -->
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">🎯</span><span class="title">目標設定</span></div>
+    <div class="grid2">
+      <div class="fg"><label>目標カロリー（kcal）</label><input type="number" id="goalCalories" placeholder="2500"></div>
+      <div class="fg"><label>目標体重（kg）</label><input type="number" step="0.1" id="goalWeight" placeholder="65.0"></div>
+      <div class="fg"><label>タンパク質目標（g）</label><input type="number" id="goalProtein" placeholder="120"></div>
+      <div class="fg"><label>カーボ目標（g）</label><input type="number" id="goalCarbs" placeholder="300"></div>
+    </div>
+    <button onclick="saveFoodGoals()" class="save-btn" style="background:linear-gradient(135deg,#2a6a2a,#3a8a3a);">💾 目標を保存</button>
+  </div>
+
+  <!-- 食事記録 -->
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">📷</span><span class="title">食事を記録する</span></div>
+    <div class="fg">
+      <label>食事の種類</label>
+      <div id="mealTypeBtns" class="chips"></div>
+    </div>
+    <div class="fg"><label>日付</label><input type="date" id="foodDate" style="-webkit-appearance:none;"></div>
+    <div class="fg">
+      <button onclick="document.getElementById('foodPhotoInput').click()" style="width:100%;padding:14px;border-radius:12px;border:2px dashed #3a8a3a;background:#f0f8f0;color:#2a6a2a;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">
+        📷 食事の写真でAI栄養分析
+      </button>
+      <input type="file" id="foodPhotoInput" accept="image/*" style="display:none" onchange="analyzeFoodPhoto(event)">
+      <div id="foodPhotoPreview" style="margin-top:8px;text-align:center;"></div>
+    </div>
+    <div id="foodAnalysisResult" style="display:none;background:#f0f8f0;border:1.5px solid #a0d0a0;border-radius:12px;padding:14px;margin-bottom:10px;">
+      <div style="font-weight:700;color:#2a6a2a;margin-bottom:8px;font-size:13px;">🤖 AI分析結果</div>
+      <div id="foodAnalysisText" style="font-size:13px;line-height:1.8;white-space:pre-wrap;"></div>
+      <div id="foodNutritionSummary" style="margin-top:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;"></div>
+    </div>
+    <div class="fg"><label>メモ</label><textarea id="foodMemo" placeholder="例：試合前日の食事。炭水化物多め。"></textarea></div>
+    <button onclick="saveFoodEntry()" class="save-btn" style="background:linear-gradient(135deg,#2a6a2a,#3a8a3a);">💾 食事を保存</button>
+  </div>
+
+  <!-- 今日の栄養サマリー -->
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">📊</span><span class="title">今日の栄養サマリー</span></div>
+    <div id="dailyNutrition" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;"></div>
+    <div id="nutritionBars" style="margin-top:12px;"></div>
+  </div>
+
+  <!-- 食事履歴 -->
+  <div class="sec">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-family:'Noto Serif JP',serif;font-size:13px;font-weight:600;color:var(--navy);">📋 食事履歴</div>
+      <span id="foodCount" style="font-size:12px;color:#888;"></span>
+    </div>
+    <div id="foodList" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<!-- ===== 血液検査パネル ===== -->
+<div class="panel" id="panel-blood">
+  <div style="background:linear-gradient(135deg,#8a1a2a,#c02040);border-radius:16px;padding:16px;margin-bottom:12px;color:white;text-align:center;">
+    <div style="font-family:'Noto Serif JP',serif;font-size:18px;margin-bottom:4px;">🩸 血液検査・スポーツ健診</div>
+    <div style="font-size:11px;opacity:0.8;">検査を受けた日だけ入力してください</div>
+  </div>
+
+  <!-- AIスキャン -->
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">📷</span><span class="title">検査結果を写メでスキャン</span></div>
+    <button onclick="document.getElementById('labScanInput').click()" style="width:100%;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#8a1a2a,#c02040);color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">📷 写メを選択してスキャン</button>
+    <input type="file" id="labScanInput" accept="image/*" style="display:none" onchange="scanLabResult(event)">
+    <div id="labScanResult" style="display:none;margin-top:10px;background:#f8e8e8;border-radius:10px;padding:10px;font-size:12px;line-height:1.8;white-space:pre-wrap;"></div>
+    <button id="labScanApplyBtn" onclick="applyLabScan()" style="display:none;width:100%;margin-top:8px;padding:10px;border-radius:10px;border:none;background:#2a8a5a;color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">✅ カルテに反映</button>
+  </div>
+
+  <!-- 血液検査値 -->
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">📋</span><span class="title">検査値を入力</span></div>
+    <div class="fg"><label>検査日</label><input type="date" id="labDate" style="-webkit-appearance:none;"></div>
+    <div style="font-size:12px;font-weight:700;color:var(--athlete-primary);margin:8px 0 6px;">🔴 貧血・鉄関連</div>
+    <div class="grid2">
+      <div class="fg"><label>Hb（g/dL）</label><input type="number" step="0.1" id="lab-hb" placeholder="14.0"></div>
+      <div class="fg"><label>フェリチン（ng/mL）</label><input type="number" step="0.1" id="lab-ferritin" placeholder="30.0"></div>
+      <div class="fg"><label>血清鉄（μg/dL）</label><input type="number" id="lab-fe" placeholder="80"></div>
+      <div class="fg"><label>MCV（fL）</label><input type="number" step="0.1" id="lab-mcv" placeholder="88.0"></div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--orange);margin:8px 0 6px;">🟠 筋肉・炎症</div>
+    <div class="grid2">
+      <div class="fg"><label>CK（U/L）</label><input type="number" id="lab-ck" placeholder="200"></div>
+      <div class="fg"><label>CRP（mg/dL）</label><input type="number" step="0.01" id="lab-crp" placeholder="0.1"></div>
+      <div class="fg"><label>LDH（U/L）</label><input type="number" id="lab-ldh" placeholder="180"></div>
+      <div class="fg"><label>尿酸（mg/dL）</label><input type="number" step="0.1" id="lab-ua" placeholder="5.0"></div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--green);margin:8px 0 6px;">🟢 ホルモン・代謝</div>
+    <div class="grid2">
+      <div class="fg"><label>テストステロン（ng/mL）</label><input type="number" step="0.01" id="lab-testosterone" placeholder="5.0"></div>
+      <div class="fg"><label>コルチゾール（μg/dL）</label><input type="number" step="0.1" id="lab-cortisol" placeholder="12.0"></div>
+      <div class="fg"><label>VitD（ng/mL）</label><input type="number" step="0.1" id="lab-vitd" placeholder="30.0"></div>
+      <div class="fg"><label>亜鉛（μg/dL）</label><input type="number" id="lab-zinc" placeholder="80"></div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--navy);margin:8px 0 6px;">🔵 一般検査</div>
+    <div class="grid2">
+      <div class="fg"><label>HbA1c（%）</label><input type="number" step="0.1" id="lab-hba1c" placeholder="5.2"></div>
+      <div class="fg"><label>血糖（mg/dL）</label><input type="number" id="lab-glucose" placeholder="90"></div>
+      <div class="fg"><label>LDL（mg/dL）</label><input type="number" id="lab-ldl" placeholder="100"></div>
+      <div class="fg"><label>HDL（mg/dL）</label><input type="number" id="lab-hdl" placeholder="60"></div>
+    </div>
+    <div class="fg"><label>コメント・医師の指示</label><textarea id="lab-comment" placeholder="例：フェリチン低値。鉄サプリ開始。"></textarea></div>
+    <button onclick="saveLabData()" class="save-btn" style="background:linear-gradient(135deg,#8a1a2a,#c02040);">💾 検査値を保存</button>
+  </div>
+
+  <!-- 検査履歴 -->
+  <div class="sec">
+    <div style="font-family:'Noto Serif JP',serif;font-size:13px;font-weight:600;color:var(--navy);margin-bottom:10px;">📋 検査履歴</div>
+    <div id="labHistory" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<!-- ===== メディアパネル ===== -->
+<div class="panel" id="panel-media">
+  <div style="background:linear-gradient(135deg,#1a3a6a,#0c3a6e);border-radius:16px;padding:16px;margin-bottom:12px;color:white;text-align:center;">
+    <div style="font-family:'Noto Serif JP',serif;font-size:18px;margin-bottom:4px;">📸 メディア記録</div>
+    <div style="font-size:11px;opacity:0.8;">フォーム動画・検査結果・大会写真を保存</div>
+  </div>
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">➕</span><span class="title">新しい記録を追加</span></div>
+    <div class="fg">
+      <label>カテゴリ</label>
+      <div id="mediaCatBtns" class="chips"></div>
+    </div>
+    <div class="fg"><label>日付</label><input type="date" id="mediaDate" style="-webkit-appearance:none;"></div>
+    <div class="fg"><label>タイトル</label><input type="text" id="mediaTitle" placeholder="例：スクワットフォーム確認・大会結果"></div>
+    <div class="fg"><label>メモ</label><textarea id="mediaMemo" placeholder="例：着地が左に流れている。膝のアライメント要確認。"></textarea></div>
+    <div class="fg">
+      <button onclick="document.getElementById('mediaFileInput').click()" style="width:100%;padding:14px;border-radius:12px;border:2px dashed var(--border);background:var(--washi);color:var(--blue);font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">
+        📷 写真・動画を選択（複数可）
+      </button>
+      <input type="file" id="mediaFileInput" accept="image/*,video/*" multiple style="display:none" onchange="previewMediaFiles(event)">
+      <div id="mediaPreview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"></div>
+    </div>
+    <button onclick="saveMediaEntry()" class="save-btn">💾 保存する</button>
+  </div>
+  <div class="sec">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-family:'Noto Serif JP',serif;font-size:13px;font-weight:600;color:var(--navy);">📂 保存済み</div>
+      <span id="mediaCount" style="font-size:12px;color:#888;"></span>
+    </div>
+    <div id="mediaList" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<!-- 画像モーダル -->
+<div id="mediaModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.92);z-index:9998;flex-direction:column;align-items:center;justify-content:center;">
+  <button onclick="closeMediaModal()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.2);border:none;color:white;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;">✕</button>
+  <img id="mediaModalImg" src="" style="max-width:95%;max-height:80vh;border-radius:12px;object-fit:contain;">
+  <div id="mediaModalCaption" style="color:white;font-size:13px;margin-top:12px;text-align:center;padding:0 20px;"></div>
+</div>
+
+<!-- ===== 設定パネル ===== -->
+<div class="panel" id="panel-settings">
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">🔒</span><span class="title">パスワード設定</span></div>
+    <div style="font-size:12px;color:var(--ink-light);margin-bottom:10px;">初期パスワード：<strong>1234</strong>（必ず変更してください）</div>
+    <button onclick="changePassword()" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid var(--blue);background:white;color:var(--blue);font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;margin-bottom:8px;">🔑 パスワードを変更する</button>
+    <button onclick="resetPassword()" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid #aaa;background:white;color:#888;font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">🆘 パスワードをリセット（コード要）</button>
+  </div>
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">📊</span><span class="title">表示モード</span></div>
+    <div class="fg"><label>競技カテゴリ</label>
+      <select id="sportCategory" onchange="saveSportCategory()">
+        <option value="">選択してください</option>
+        <option value="endurance">持久系（マラソン・水泳・自転車）</option>
+        <option value="power">パワー系（重量挙げ・投擲・短距離）</option>
+        <option value="team">球技・チームスポーツ</option>
+        <option value="combat">格闘技・体重制限あり</option>
+        <option value="aesthetic">体操・フィギュア・審美系</option>
+        <option value="other">その他</option>
+      </select>
+    </div>
+    <div class="fg"><label>体重制限の有無</label>
+      <select id="weightRestriction" onchange="saveWeightRestriction()">
+        <option value="none">なし</option>
+        <option value="yes">あり（減量・増量必要）</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 共有パネル ===== -->
+<div class="panel" id="panel-share">
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">💙</span><span class="title">先生にデータを送る</span></div>
+    <div class="notice blue"><div class="notice-title">📤 送信内容</div>記録・トレーニング・食事・血液検査データが含まれます。</div>
+    <button onclick="exportData()" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#0c3a6e,#1a5fa8);color:white;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;margin-top:8px;">📤 出力して先生に送る</button>
+  </div>
+  <div class="sec">
+    <div class="sec-hd"><span class="icon">💾</span><span class="title">バックアップ・引き継ぎ</span></div>
+    <button onclick="exportData()" style="width:100%;padding:12px;border-radius:12px;border:none;background:#2a8a5a;color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;margin-bottom:8px;">💾 全データをバックアップ</button>
+    <button onclick="document.getElementById('importFile').click()" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid var(--border);background:white;color:var(--ink);font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">📂 JSONを読み込む（引き継ぎ）</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+  <div class="sec">
+    <div style="text-align:center;padding:10px 0;">
+      <div style="font-size:11px;color:var(--ink-light);">WithMIKI アスリートレコード</div>
+      <div style="font-size:10px;color:#aaa;margin-top:4px;">三木裕昭（鍼灸師・アスレティックトレーナー）</div>
+    </div>
+  </div>
+</div>
+
+<!-- 表紙編集モーダル -->
+<div id="coverModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">✏️ 選手情報を編集</div>
+    <div class="fg"><label>選手名</label><input type="text" id="m-name" placeholder="例：山田太郎"></div>
+    <div class="fg"><label>競技・種目</label><input type="text" id="m-sport" placeholder="例：マラソン・100m走・柔道"></div>
+    <div class="fg"><label>所属チーム・学校</label><input type="text" id="m-team" placeholder="例：〇〇高校陸上部"></div>
+    <div class="fg"><label>生年月日</label><input type="date" id="m-dob"></div>
+    <div class="fg"><label>目標・今季の目標</label><textarea id="m-goal" placeholder="例：全国大会出場・自己ベスト更新"></textarea></div>
+    <button onclick="saveCoverModal()" class="save-btn">💾 保存</button>
+    <button onclick="closeCoverModal()" style="width:100%;padding:12px;border-radius:12px;border:1.5px solid var(--border);background:white;color:var(--ink);font-size:13px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;margin-top:8px;">キャンセル</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- パスワード画面 -->
+<div id="passwordScreen" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#002A7F,#003DA5);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+  <div style="background:white;border-radius:24px;padding:32px 24px;width:88%;max-width:360px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+    <div style="font-size:48px;margin-bottom:8px;">🔒</div>
+    <div style="font-family:'Noto Serif JP',serif;font-size:20px;color:#002A7F;font-weight:600;margin-bottom:4px;">WithMIKI</div>
+    <div style="font-size:12px;color:#888;margin-bottom:24px;">アスリートレコード</div>
+    <input type="password" id="pwInput" placeholder="パスワードを入力" style="width:100%;padding:14px;border:2px solid #b0d0ff;border-radius:12px;font-size:16px;text-align:center;margin-bottom:12px;outline:none;" onkeydown="if(event.key==='Enter')checkPassword()">
+    <div id="pwError" style="color:#e84870;font-size:12px;margin-bottom:8px;display:none;">パスワードが違います</div>
+    <button onclick="checkPassword()" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#002A7F,#003DA5);color:white;font-size:15px;font-weight:700;cursor:pointer;">ログイン</button>
+    <div style="margin-top:16px;font-size:11px;color:#aaa;">パスワードを忘れた場合は<br>三木先生にご連絡ください</div>
+  </div>
+</div>
+
+<script>
+var DB = 'withmiki_athlete_v1';
+var db = JSON.parse(localStorage.getItem(DB) || JSON.stringify({
+  records:{}, settings:{height:null, sport:'', category:'', weightRestriction:'none'},
+  trainings:[], foodEntries:[], weightEntries:[], labHistory:[], mediaEntries:[],
+  cover:{name:'', sport:'', team:'', dob:'', goal:''},
+  foodGoals:{calories:2500, protein:120, carbs:300, weight:null}
+}));
+
+var currentDate = new Date().toISOString().slice(0,10);
+var calYear = new Date().getFullYear();
+var calMonth = new Date().getMonth();
+
+// ===== ユーティリティ =====
+function save(){ localStorage.setItem(DB, JSON.stringify(db)); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function showToast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.className='show'; setTimeout(function(){t.className='';},2500); }
+function fmtDate(d){ var dt=new Date(d+'T00:00:00'); return (dt.getMonth()+1)+'月'+dt.getDate()+'日'; }
+
+// ===== パスワード =====
+var PW_KEY='athlete_pw';
+function initPassword(){
+  var pw=localStorage.getItem(PW_KEY);
+  if(!pw) localStorage.setItem(PW_KEY,'1234');
+  var unlocked=sessionStorage?sessionStorage.getItem('athlete_unlocked'):null;
+  if(!unlocked) showPasswordScreen();
+}
+function showPasswordScreen(){
+  var el=document.getElementById('passwordScreen');
+  if(el){el.style.display='flex'; setTimeout(function(){var inp=document.getElementById('pwInput');if(inp)inp.focus();},300);}
+}
+function checkPassword(){
+  var inp=document.getElementById('pwInput');
+  var errEl=document.getElementById('pwError');
+  var pw=localStorage.getItem(PW_KEY)||'1234';
+  if(inp.value===pw){
+    if(typeof sessionStorage!=='undefined') sessionStorage.setItem('athlete_unlocked','1');
+    var el=document.getElementById('passwordScreen'); if(el) el.style.display='none';
+    if(errEl) errEl.style.display='none';
+    inp.value='';
+  } else {
+    if(errEl) errEl.style.display='block';
+    inp.value=''; inp.focus();
+  }
+}
+function changePassword(){
+  var cur=prompt('現在のパスワードを入力してください：');
+  if(cur!==(localStorage.getItem(PW_KEY)||'1234')){alert('現在のパスワードが違います');return;}
+  var np=prompt('新しいパスワード（4文字以上）：');
+  if(!np||np.length<4){alert('4文字以上で設定してください');return;}
+  if(np!==prompt('新しいパスワードを再入力：')){alert('一致しません');return;}
+  localStorage.setItem(PW_KEY,np); alert('変更しました！');
+}
+function resetPassword(){
+  if(prompt('リセットコードを入力：')==='WITHMIKI2026'){
+    localStorage.setItem(PW_KEY,'1234'); alert('「1234」にリセットしました。すぐ変更してください。');
+  } else { alert('コードが違います。三木先生にご連絡ください。'); }
+}
+
+// ===== タブ切り替え =====
+function switchTab(name, el){
+  var panels=document.getElementsByClassName('panel');
+  var btns=document.getElementsByClassName('tab-btn');
+  for(var i=0;i<panels.length;i++) panels[i].className='panel';
+  for(var i=0;i<btns.length;i++) btns[i].className='tab-btn';
+  var p=document.getElementById('panel-'+name);
+  if(p) p.className='panel active';
+  if(el){el.className='tab-btn active'; el.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});}
+  if(name==='cover') loadCover();
+  if(name==='record') loadRecord(currentDate);
+  if(name==='training') renderTrainList();
+  if(name==='graph') setTimeout(renderAllGraphs, 50);
+  if(name==='food') initFood();
+  if(name==='blood') renderLabHistory();
+  if(name==='media') renderMediaList();
+}
+
+// ===== 日付ナビ =====
+var DAYS=['日','月','火','水','木','金','土'];
+function updateDateDisplay(){
+  var d=new Date(currentDate+'T00:00:00');
+  var el=document.getElementById('dateLabel');
+  var dl=document.getElementById('dayLabel');
+  if(el) el.textContent=d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
+  if(dl) dl.textContent=DAYS[d.getDay()]+'曜日';
+}
+function changeDate(n){
+  var d=new Date(currentDate+'T00:00:00'); d.setDate(d.getDate()+n);
+  currentDate=d.toISOString().slice(0,10);
+  updateDateDisplay(); loadRecord(currentDate);
+}
+function goToday(){ currentDate=todayStr(); updateDateDisplay(); loadRecord(currentDate); }
+
+// ===== 表紙 =====
+function loadCover(){
+  var c=db.cover||{};
+  var cn=document.getElementById('coverName'); if(cn) cn.textContent=c.name||'名前未設定';
+  var cs=document.getElementById('coverSport'); if(cs) cs.textContent=c.sport||(c.team?c.team:'競技・種目未設定');
+  var ph=document.getElementById('patientNameHd');
+  if(ph) ph.textContent=c.name?c.name+'選手（'+( c.sport||'競技未設定')+'）':'選手名未設定（タップして設定）';
+  var gd=document.getElementById('coverGoalDisplay');
+  if(gd && (c.goal||c.team||c.dob)){
+    gd.innerHTML=(c.team?'<div style="font-size:12px;color:var(--ink-light);">🏟 所属：<span style="color:var(--ink);">'+c.team+'</span></div>':'')
+      +(c.dob?'<div style="font-size:12px;color:var(--ink-light);margin-top:4px;">🎂 生年月日：<span style="color:var(--ink);">'+c.dob+'</span></div>':'')
+      +(c.goal?'<div style="font-size:13px;color:var(--ink);margin-top:8px;background:var(--orange-pale);border-radius:10px;padding:8px 12px;border-left:3px solid var(--orange);">🎯 '+c.goal+'</div>':'');
+  }
+  // 今日のサマリー
+  var ts=document.getElementById('todaySummary');
+  if(ts){
+    var rec=db.records[todayStr()]||{};
+    var trainToday=(db.trainings||[]).filter(function(t){return t.date===todayStr();});
+    var trainMin=trainToday.reduce(function(s,t){return s+(t.duration||0);},0);
+    ts.innerHTML=
+      '<div class="num-card"><div class="num-val">'+(rec.weight?rec.weight+'kg':'---')+'</div><div class="num-label">体重</div></div>'+
+      '<div class="num-card"><div class="num-val">'+(rec.hr?rec.hr+'bpm':'---')+'</div><div class="num-label">安静時心拍</div></div>'+
+      '<div class="num-card"><div class="num-val">'+(rec.sleep?rec.sleep+'h':'---')+'</div><div class="num-label">睡眠</div></div>'+
+      '<div class="num-card"><div class="num-val">'+(trainMin?trainMin+'分':'---')+'</div><div class="num-label">練習時間</div></div>';
+  }
+  // 来院・大会予定
+  var nv=document.getElementById('nextVisit'); var nc=document.getElementById('nextComp'); var nm=document.getElementById('compName');
+  if(nv&&db.cover.nextVisit) nv.value=db.cover.nextVisit;
+  if(nc&&db.cover.nextComp) nc.value=db.cover.nextComp;
+  if(nm&&db.cover.compName) nm.value=db.cover.compName;
+}
+function saveCoverInfo(){
+  var nv=document.getElementById('nextVisit'); var nc=document.getElementById('nextComp'); var nm=document.getElementById('compName');
+  if(!db.cover) db.cover={};
+  if(nv) db.cover.nextVisit=nv.value;
+  if(nc) db.cover.nextComp=nc.value;
+  if(nm) db.cover.compName=nm.value;
+  save(); loadCover(); showToast('保存しました！');
+}
+function openCoverModal(){
+  var c=db.cover||{};
+  var fields=['name','sport','team','dob','goal'];
+  fields.forEach(function(f){ var el=document.getElementById('m-'+f); if(el) el.value=c[f]||''; });
+  document.getElementById('coverModal').className='modal-overlay open';
+}
+function closeCoverModal(){ document.getElementById('coverModal').className='modal-overlay'; }
+function saveCoverModal(){
+  if(!db.cover) db.cover={};
+  ['name','sport','team','dob','goal'].forEach(function(f){
+    var el=document.getElementById('m-'+f); if(el) db.cover[f]=el.value.trim();
+  });
+  save(); closeCoverModal(); loadCover(); showToast('選手情報を保存しました！');
+}
+
+// ===== 記録 =====
+var INJURY_PARTS=['頭部','首','肩','肘','手首','腰','股関節','膝','足首','ふくらはぎ','その他'];
+var MOOD_OPTS=['😊 良好','😌 普通','😔 不調','😤 ストレス','🥱 眠い','💪 絶好調'];
+var SLEEP_OPTS=['😴 ぐっすり','💤 普通','😵 浅い','😫 不眠気味'];
+function buildChips(id, opts, key, multi){
+  var el=document.getElementById(id); if(!el) return;
+  var rec=db.records[currentDate]||{};
+  var cur=rec[key]||[];
+  el.innerHTML=opts.map(function(o,i){
+    var on=multi?cur.indexOf(o)>-1:cur===o;
+    return '<button class="chip'+(on?' on':'')+(key==='mood'?' on.green':'')+(key==='injury_parts'?' on.orange':'')+'" onclick="toggleChip(\''+id+'\',\''+o+'\',\''+key+'\','+multi+')">'+o+'</button>';
+  }).join('');
+}
+function buildPainScale(id, key){
+  var el=document.getElementById(id); if(!el) return;
+  var rec=db.records[currentDate]||{};
+  var cur=rec[key]||0;
+  var html='';
+  for(var i=0;i<=10;i++){
+    var col=i===0?'#888':i<=3?'#2a8a5a':i<=6?'#e07020':'#e84870';
+    html+='<button class="chip'+(cur===i?' on':'')+'" style="'+(cur===i?'background:'+col+';color:white;border-color:'+col+';':'')+'" onclick="setNum(\''+key+'\','+i+',\''+id+'\')">'+i+'</button>';
+  }
+  el.innerHTML=html;
+}
+function toggleChip(id, val, key, multi){
+  if(!db.records[currentDate]) db.records[currentDate]={};
+  var rec=db.records[currentDate];
+  if(multi){
+    rec[key]=rec[key]||[];
+    var idx=rec[key].indexOf(val);
+    if(idx>-1) rec[key].splice(idx,1); else rec[key].push(val);
+  } else { rec[key]=(rec[key]===val)?null:val; }
+  buildChips(id,[].map.call(document.getElementById(id).children,function(b){return b.textContent;}),key,multi);
+  // 全体を再ビルド
+  if(key==='mood') buildChips('moodChips',MOOD_OPTS,'mood',false);
+  if(key==='sleep_q') buildChips('sleepChips',SLEEP_OPTS,'sleep_q',false);
+  if(key==='injury_parts') buildChips('injuryParts',INJURY_PARTS,'injury_parts',true);
+}
+function setNum(key, val, id){
+  if(!db.records[currentDate]) db.records[currentDate]={};
+  db.records[currentDate][key]=val;
+  buildPainScale(id,key);
+}
+function saveHeight(){
+  var h=parseFloat(document.getElementById('v-height').value);
+  if(h){ db.settings.height=h; save(); }
+}
+function calcBMI(){
+  var w=parseFloat(document.getElementById('v-weight').value);
+  var h=parseFloat(db.settings.height);
+  var disp=document.getElementById('bmiDisplay');
+  if(!disp) return;
+  if(w&&h){
+    var hm=h/100; var bmi=(w/(hm*hm)).toFixed(1);
+    var cat=bmi<18.5?'低体重':bmi<25?'標準':bmi<30?'過体重':'肥満';
+    var col=bmi<18.5?'#3a80e0':bmi<25?'#2a8a5a':bmi<30?'#e07020':'#e84870';
+    disp.innerHTML='<span style="color:'+col+';font-size:18px;font-weight:700;">'+bmi+'</span><span style="font-size:10px;color:#888;"> ('+cat+')</span>';
+  } else { disp.textContent='---'; }
+}
+function buildMedList(){
+  var el=document.getElementById('medList'); if(!el) return;
+  var html='';
+  for(var i=1;i<=10;i++){
+    html+='<div style="display:flex;align-items:center;gap:6px;">';
+    html+='<span style="font-size:11px;color:var(--ink-light);width:16px;">'+('①②③④⑤⑥⑦⑧⑨⑩'[i-1])+'</span>';
+    html+='<input type="text" id="med'+i+'" placeholder="薬・サプリ名" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:7px 10px;font-size:12px;font-family:\'Noto Sans JP\',sans-serif;background:var(--washi);">';
+    html+='<div class="chip" id="med'+i+'check" onclick="this.classList.toggle(\'on\')" style="min-width:36px;text-align:center;">✓</div>';
+    html+='</div>';
+  }
+  el.innerHTML=html;
+}
+function loadRecord(d){
+  updateDateDisplay();
+  var rec=db.records[d]||{};
+  var fields=['weight','fat','muscle','hr','sleep','height','condition','injury','memo'];
+  var ids=['v-weight','v-fat','v-muscle','v-hr','v-sleep','v-height','v-condition','v-injury','v-memo'];
+  fields.forEach(function(f,i){
+    var el=document.getElementById(ids[i]); if(el) el.value=rec[f]||'';
+  });
+  if(db.settings.height) document.getElementById('v-height').value=db.settings.height;
+  calcBMI();
+  buildChips('moodChips',MOOD_OPTS,'mood',false);
+  buildChips('sleepChips',SLEEP_OPTS,'sleep_q',false);
+  buildChips('injuryParts',INJURY_PARTS,'injury_parts',true);
+  buildPainScale('fatiguePain','fatigue');
+  buildPainScale('painScale','pain');
+  var meds=rec.meds||[];
+  for(var i=1;i<=10;i++){
+    var mel=document.getElementById('med'+i); if(mel) mel.value=meds[i-1]?meds[i-1].name||'':'';
+    var mck=document.getElementById('med'+i+'check'); if(mck){ mck.className='chip'+(meds[i-1]&&meds[i-1].taken?' on':''); }
+  }
+}
+function saveRecord(){
+  var rec=db.records[currentDate]||{};
+  var fields=['weight','fat','muscle','hr','sleep','condition','injury','memo'];
+  var ids=['v-weight','v-fat','v-muscle','v-hr','v-sleep','v-condition','v-injury','v-memo'];
+  fields.forEach(function(f,i){ var el=document.getElementById(ids[i]); if(el) rec[f]=parseFloat(el.value)||el.value||null; });
+  // 体重を履歴に追加
+  if(rec.weight){
+    db.weightEntries=db.weightEntries||[];
+    db.weightEntries=db.weightEntries.filter(function(e){return e.date!==currentDate;});
+    var h=db.settings.height; var bmi=(h&&rec.weight)?parseFloat((rec.weight/((h/100)*(h/100))).toFixed(1)):null;
+    db.weightEntries.push({date:currentDate,weight:rec.weight,fat:rec.fat,muscle:rec.muscle,bmi:bmi});
+    db.weightEntries.sort(function(a,b){return a.date>b.date?1:-1;});
+  }
+  // サプリ
+  var meds=[];
+  for(var i=1;i<=10;i++){
+    var mel=document.getElementById('med'+i); var mck=document.getElementById('med'+i+'check');
+    meds.push({name:mel?mel.value||'':'',taken:mck?mck.classList.contains('on'):false});
+  }
+  rec.meds=meds;
+  db.records[currentDate]=rec; save();
+  showToast('記録を保存しました✅'); loadCover();
+}
+
+// ===== トレーニング =====
+var TRAIN_TYPES=['🏃 ランニング','🏊 スイム','🚴 バイク','🏋️ ウェイト','⚽ チーム練習','🤸 体操・柔軟','🎾 スポーツ練習','💆 リカバリー','その他'];
+function buildTrainTypes(){
+  var el=document.getElementById('trainTypeBtns'); if(!el) return;
+  el.innerHTML=TRAIN_TYPES.map(function(t){
+    return '<button class="chip" onclick="selectTrainType(this,\''+t+'\')" data-type="'+t+'">'+t+'</button>';
+  }).join('');
+}
+function selectTrainType(btn, type){
+  var btns=document.getElementsByClassName('chip');
+  var par=btn.parentElement;
+  var pbtns=par.getElementsByClassName('chip');
+  for(var i=0;i<pbtns.length;i++) pbtns[i].className='chip';
+  btn.className='chip on';
+}
+function getSelectedTrainType(){
+  var btns=document.getElementById('trainTypeBtns'); if(!btns) return '';
+  var on=btns.querySelector('.chip.on'); return on?on.getAttribute('data-type'):'';
+}
+function saveTraining(){
+  var type=getSelectedTrainType();
+  var dur=parseInt(document.getElementById('trainDuration').value)||0;
+  var memo=document.getElementById('trainMemo').value.trim();
+  if(!type&&!dur&&!memo){showToast('内容を入力してください');return;}
+  var entry={
+    id:'train_'+Date.now(),
+    date:document.getElementById('trainDate').value||todayStr(),
+    type:type||'練習',
+    duration:dur,
+    intensity:document.getElementById('trainIntensity').value,
+    volume:document.getElementById('trainVolume').value.trim(),
+    memo:memo
+  };
+  db.trainings=db.trainings||[];
+  db.trainings.unshift(entry); save();
+  document.getElementById('trainDuration').value='';
+  document.getElementById('trainMemo').value='';
+  document.getElementById('trainVolume').value='';
+  renderTrainList(); showToast('トレーニングを保存しました💪');
+}
+var INTENSITY_LABELS={low:'低',mid:'中',high:'高',max:'最大'};
+function renderTrainList(){
+  var list=document.getElementById('trainList'); var count=document.getElementById('trainCount');
+  if(!list) return;
+  var entries=db.trainings||[];
+  if(count) count.textContent=entries.length+'件';
+  if(!entries.length){list.innerHTML='<div style="text-align:center;color:#aaa;font-size:13px;padding:16px 0;">記録がありません</div>';return;}
+  list.innerHTML=entries.slice(0,20).map(function(e){
+    return '<div class="train-card">'+
+      '<span class="train-type">'+e.type+'</span>'+
+      '<div class="train-title">'+(e.duration?e.duration+'分':'')+(e.intensity?' / 強度：'+({'low':'低','mid':'中','high':'高','max':'最大'}[e.intensity]||''):'')+' '+e.volume+'</div>'+
+      '<div class="train-meta">📅 '+e.date+(e.memo?'　'+e.memo:'')+'</div>'+
+      '<button onclick="deleteTraining(\''+e.id+'\')" style="float:right;background:none;border:none;color:#aaa;font-size:14px;cursor:pointer;margin-top:4px;">🗑</button>'+
+    '</div>';
+  }).join('');
+}
+function deleteTraining(id){
+  if(!confirm('削除しますか？'))return;
+  db.trainings=(db.trainings||[]).filter(function(e){return e.id!==id;});
+  save(); renderTrainList(); showToast('削除しました');
+}
+
+// ===== グラフ =====
+function drawLineChart(canvasId, labels, data, color, title, unit, goal){
+  var canvas=document.getElementById(canvasId); if(!canvas) return;
+  var W=canvas.offsetWidth||320; canvas.width=W; var H=parseInt(canvas.height)||160;
+  var ctx=canvas.getContext('2d'); ctx.clearRect(0,0,W,H);
+  var valid=data.filter(function(v){return v!=null;});
+  if(!valid.length){
+    ctx.fillStyle='#aaa'; ctx.font='12px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('データがありません',W/2,H/2); return;
+  }
+  var PAD={top:24,right:12,bottom:28,left:44};
+  var gW=W-PAD.left-PAD.right, gH=H-PAD.top-PAD.bottom;
+  var minV=Math.min.apply(null,valid)-1, maxV=Math.max.apply(null,valid)+1;
+  if(goal) { minV=Math.min(minV,goal-1); maxV=Math.max(maxV,goal+1); }
+  var range=maxV-minV;
+  var n=data.length;
+  var toX=function(i){return PAD.left+(n>1?i/(n-1)*gW:gW/2);};
+  var toY=function(v){return PAD.top+gH-((v-minV)/range)*gH;};
+  // 目標ライン
+  if(goal){
+    var gy=toY(goal);
+    ctx.beginPath(); ctx.strokeStyle='rgba(42,138,90,0.5)'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
+    ctx.moveTo(PAD.left,gy); ctx.lineTo(PAD.left+gW,gy); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='rgba(42,138,90,0.7)'; ctx.font='9px sans-serif'; ctx.textAlign='left';
+    ctx.fillText('目標 '+goal+unit,PAD.left+2,gy-3);
+  }
+  // グリッド
+  var gridCount=3;
+  for(var gi=0;gi<=gridCount;gi++){
+    var gv=minV+(range/gridCount)*gi; var gy2=toY(gv);
+    ctx.beginPath(); ctx.strokeStyle='rgba(200,220,240,0.4)'; ctx.lineWidth=0.5;
+    ctx.moveTo(PAD.left,gy2); ctx.lineTo(PAD.left+gW,gy2); ctx.stroke();
+    ctx.fillStyle='#8aa8c0'; ctx.font='9px sans-serif'; ctx.textAlign='right';
+    ctx.fillText(gv.toFixed(1),PAD.left-3,gy2+3);
+  }
+  // 塗りつぶし
+  var firstI=0; while(firstI<data.length&&data[firstI]==null) firstI++;
+  var lastI=data.length-1; while(lastI>=0&&data[lastI]==null) lastI--;
+  ctx.beginPath(); ctx.moveTo(toX(firstI),PAD.top+gH);
+  data.forEach(function(v,i){if(v!=null) ctx.lineTo(toX(i),toY(v));});
+  ctx.lineTo(toX(lastI),PAD.top+gH); ctx.closePath();
+  var grad=ctx.createLinearGradient(0,PAD.top,0,PAD.top+gH);
+  grad.addColorStop(0,color+'33'); grad.addColorStop(1,color+'05');
+  ctx.fillStyle=grad; ctx.fill();
+  // 折れ線
+  ctx.beginPath(); ctx.strokeStyle=color; ctx.lineWidth=2.5; ctx.lineJoin='round';
+  var fm=true;
+  data.forEach(function(v,i){if(v==null)return; if(fm){ctx.moveTo(toX(i),toY(v));fm=false;}else ctx.lineTo(toX(i),toY(v));});
+  ctx.stroke();
+  // 点
+  data.forEach(function(v,i){
+    if(v==null)return;
+    ctx.beginPath(); ctx.arc(toX(i),toY(v),3.5,0,Math.PI*2); ctx.fillStyle=color; ctx.fill();
+    ctx.beginPath(); ctx.arc(toX(i),toY(v),2,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
+  });
+  // X軸
+  ctx.fillStyle='#8aa8c0'; ctx.font='9px sans-serif'; ctx.textAlign='center';
+  var step=Math.max(1,Math.floor(n/5));
+  for(var xi=0;xi<n;xi+=step){
+    if(labels[xi]) ctx.fillText(labels[xi].slice(5),toX(xi),PAD.top+gH+14);
+  }
+  if(labels[n-1]) ctx.fillText(labels[n-1].slice(5),toX(n-1),PAD.top+gH+14);
+  // タイトル
+  ctx.fillStyle='#0c3a6e'; ctx.font='bold 11px sans-serif'; ctx.textAlign='left';
+  ctx.fillText(title,PAD.left,14);
+}
+
+function renderAllGraphs(){
+  var dates=Object.keys(db.records).sort().slice(-30);
+  var weights=dates.map(function(d){return db.records[d]?db.records[d].weight||null:null;});
+  var hrs=dates.map(function(d){return db.records[d]?db.records[d].hr||null:null;});
+  var sleeps=dates.map(function(d){return db.records[d]?db.records[d].sleep||null:null;});
+  var goal=db.foodGoals&&db.foodGoals.weight?db.foodGoals.weight:null;
+  drawLineChart('weightChart',dates,weights,'#c05010','⚖️ 体重（kg）','kg',goal);
+  drawLineChart('hrChart',dates,hrs,'#e84870','❤️ 安静時心拍数（bpm）','bpm',null);
+  drawLineChart('sleepChart',dates,sleeps,'#1a5fa8','😴 睡眠時間（h）','h',null);
+  // トレーニング週別棒グラフ
+  renderTrainBarChart();
+}
+function renderTrainBarChart(){
+  var canvas=document.getElementById('trainChart'); if(!canvas) return;
+  var W=canvas.offsetWidth||320; canvas.width=W; canvas.height=160;
+  var ctx=canvas.getContext('2d'); ctx.clearRect(0,0,W,160);
+  if(!db.trainings||!db.trainings.length){
+    ctx.fillStyle='#aaa'; ctx.font='12px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('データがありません',W/2,80); return;
+  }
+  // 過去8週の集計
+  var weeks=[];
+  for(var w=7;w>=0;w--){
+    var wStart=new Date(); wStart.setDate(wStart.getDate()-w*7-6);
+    var wEnd=new Date(); wEnd.setDate(wEnd.getDate()-w*7);
+    var ws=wStart.toISOString().slice(0,10); var we=wEnd.toISOString().slice(0,10);
+    var mins=db.trainings.filter(function(t){return t.date>=ws&&t.date<=we;}).reduce(function(s,t){return s+(t.duration||0);},0);
+    weeks.push({label:(wStart.getMonth()+1)+'/'+(wStart.getDate()),mins:mins});
+  }
+  var maxM=Math.max.apply(null,weeks.map(function(w){return w.mins;}))||60;
+  var PAD={top:20,right:8,bottom:28,left:40};
+  var gW=W-PAD.left-PAD.right; var gH=160-PAD.top-PAD.bottom;
+  var bW=gW/weeks.length-4;
+  weeks.forEach(function(wk,i){
+    var x=PAD.left+i*(gW/weeks.length);
+    var bH=wk.mins?(wk.mins/maxM)*gH:2;
+    var y=PAD.top+gH-bH;
+    ctx.fillStyle='rgba(192,80,16,0.8)';
+    ctx.beginPath(); ctx.roundRect?ctx.roundRect(x+2,y,bW,bH,4):ctx.rect(x+2,y,bW,bH);
+    ctx.fill();
+    ctx.fillStyle='#8aa8c0'; ctx.font='9px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(wk.label,x+2+bW/2,PAD.top+gH+14);
+    if(wk.mins){
+      ctx.fillStyle='var(--athlete-primary)'; ctx.font='bold 9px sans-serif';
+      ctx.fillText(wk.mins+'分',x+2+bW/2,y-3);
+    }
+  });
+  // グリッド
+  [maxM/2,maxM].forEach(function(v){
+    var y=PAD.top+gH-v/maxM*gH;
+    ctx.beginPath(); ctx.strokeStyle='rgba(200,220,240,0.5)'; ctx.lineWidth=0.5;
+    ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+gW,y); ctx.stroke();
+    ctx.fillStyle='#8aa8c0'; ctx.font='9px sans-serif'; ctx.textAlign='right';
+    ctx.fillText(Math.round(v)+'分',PAD.left-3,y+3);
+  });
+  ctx.fillStyle='#0c3a6e'; ctx.font='bold 11px sans-serif'; ctx.textAlign='left';
+  ctx.fillText('💪 週別トレーニング時間（分）',PAD.left,13);
+}
+
+// ===== 食事 =====
+var selectedMealType='breakfast';
+var currentFoodPhoto=null;
+var currentFoodAnalysis=null;
+var MEAL_LABELS={breakfast:'🌅 朝食',lunch:'☀️ 昼食',dinner:'🌙 夕食',snack:'🍵 間食',pre:'⚡ 練習前',post:'🔄 練習後'};
+
+function initFood(){
+  if(!db.foodEntries) db.foodEntries=[];
+  var fd=document.getElementById('foodDate'); if(fd&&!fd.value) fd.value=todayStr();
+  var gc=document.getElementById('goalCalories'); if(gc&&db.foodGoals.calories) gc.value=db.foodGoals.calories;
+  var gw=document.getElementById('goalWeight'); if(gw&&db.foodGoals.weight) gw.value=db.foodGoals.weight;
+  var gp=document.getElementById('goalProtein'); if(gp&&db.foodGoals.protein) gp.value=db.foodGoals.protein;
+  var gca=document.getElementById('goalCarbs'); if(gca&&db.foodGoals.carbs) gca.value=db.foodGoals.carbs;
+  // 食事タイプボタン
+  var mbt=document.getElementById('mealTypeBtns'); if(mbt){
+    mbt.innerHTML=Object.keys(MEAL_LABELS).map(function(k){
+      return '<button class="chip'+(k===selectedMealType?' on':'')+'" onclick="selMeal(\''+k+'\')" data-type="'+k+'">'+MEAL_LABELS[k]+'</button>';
+    }).join('');
+  }
+  renderFoodList(); renderDailyNutrition();
+}
+function selMeal(type){
+  selectedMealType=type;
+  var btns=document.getElementById('mealTypeBtns').getElementsByClassName('chip');
+  for(var i=0;i<btns.length;i++) btns[i].className='chip'+(btns[i].getAttribute('data-type')===type?' on':'');
+}
+function saveFoodGoals(){
+  var gc=document.getElementById('goalCalories'); var gw=document.getElementById('goalWeight');
+  var gp=document.getElementById('goalProtein'); var gca=document.getElementById('goalCarbs');
+  if(!db.foodGoals) db.foodGoals={};
+  if(gc&&gc.value) db.foodGoals.calories=parseFloat(gc.value);
+  if(gw&&gw.value) db.foodGoals.weight=parseFloat(gw.value);
+  if(gp&&gp.value) db.foodGoals.protein=parseFloat(gp.value);
+  if(gca&&gca.value) db.foodGoals.carbs=parseFloat(gca.value);
+  save(); renderDailyNutrition(); showToast('目標を保存しました🎯');
+}
+function analyzeFoodPhoto(event){
+  var file=event.target.files[0]; if(!file) return;
+  var preview=document.getElementById('foodPhotoPreview');
+  var resultEl=document.getElementById('foodAnalysisResult');
+  var textEl=document.getElementById('foodAnalysisText');
+  var summaryEl=document.getElementById('foodNutritionSummary');
+  var reader=new FileReader();
+  reader.onload=function(e){
+    currentFoodPhoto=e.target.result;
+    preview.innerHTML='<img src="'+e.target.result+'" style="max-width:100%;max-height:200px;border-radius:12px;border:2px solid #a0d0a0;">';
+    if(resultEl){resultEl.style.display='block'; textEl.textContent='🤖 AIが分析中...'; summaryEl.innerHTML='';}
+    var base64=e.target.result.split(',')[1]; var mtype=file.type||'image/jpeg';
+    fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,
+        messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:mtype,data:base64}},
+        {type:'text',text:'食事画像を分析してJSONのみ返答。{"items":[{"name":"食品名","amount":"量","calories":数値,"protein":数値,"fat":数値,"carbs":数値}],"total":{"calories":数値,"protein":数値,"fat":数値,"carbs":数値,"iron":数値,"zinc":数値,"magnesium":数値},"comment":"アスリート向けコメント（日本語40字以内）"}'}]}]})
+    }).then(function(r){return r.json();}).then(function(data){
+      var text=''; if(data.content&&data.content[0]) text=data.content[0].text.trim();
+      try{
+        var clean=text.replace(/```json|```/g,'').trim();
+        currentFoodAnalysis=JSON.parse(clean);
+        var items=currentFoodAnalysis.items||[]; var total=currentFoodAnalysis.total||{};
+        textEl.textContent=items.map(function(it){return it.name+' '+it.amount+'：'+it.calories+'kcal';}).join('\n')+(currentFoodAnalysis.comment?'\n\n💡 '+currentFoodAnalysis.comment:'');
+        summaryEl.innerHTML=
+          '<div class="num-card"><div class="num-val">'+(total.calories||0)+'</div><div class="num-unit">kcal</div><div class="num-label">カロリー</div></div>'+
+          '<div class="num-card"><div class="num-val">'+(total.protein||0)+'</div><div class="num-unit">g</div><div class="num-label">タンパク質</div></div>'+
+          '<div class="num-card"><div class="num-val">'+(total.fat||0)+'</div><div class="num-unit">g</div><div class="num-label">脂質</div></div>'+
+          '<div class="num-card"><div class="num-val">'+(total.carbs||0)+'</div><div class="num-unit">g</div><div class="num-label">炭水化物</div></div>';
+      }catch(err){textEl.textContent='⚠️ 分析失敗。手動で入力してください。'; currentFoodAnalysis=null;}
+    }).catch(function(){textEl.textContent='⚠️ エラー。手動で入力してください。'; currentFoodAnalysis=null;});
+  };
+  reader.readAsDataURL(file);
+}
+function saveFoodEntry(){
+  var fd=document.getElementById('foodDate'); var memo=document.getElementById('foodMemo');
+  if(!db.foodEntries) db.foodEntries=[];
+  db.foodEntries.unshift({id:'food_'+Date.now(),date:fd?fd.value:todayStr(),type:selectedMealType,photo:currentFoodPhoto,analysis:currentFoodAnalysis,memo:memo?memo.value.trim():''});
+  save();
+  if(memo) memo.value='';
+  currentFoodPhoto=null; currentFoodAnalysis=null;
+  var pv=document.getElementById('foodPhotoPreview'); if(pv) pv.innerHTML='';
+  var re=document.getElementById('foodAnalysisResult'); if(re) re.style.display='none';
+  var fi=document.getElementById('foodPhotoInput'); if(fi) fi.value='';
+  renderFoodList(); renderDailyNutrition(); showToast('食事を保存しました🍱');
+}
+function renderDailyNutrition(){
+  var el=document.getElementById('dailyNutrition');
+  var barsEl=document.getElementById('nutritionBars');
+  if(!el) return;
+  var today=todayStr();
+  var todayE=(db.foodEntries||[]).filter(function(e){return e.date===today;});
+  if(!todayE.length){el.innerHTML='<div style="text-align:center;color:#aaa;font-size:13px;grid-column:span 2;padding:16px;">今日の食事記録がありません</div>'; if(barsEl) barsEl.innerHTML=''; return;}
+  var totals={calories:0,protein:0,fat:0,carbs:0};
+  todayE.forEach(function(e){if(e.analysis&&e.analysis.total){Object.keys(totals).forEach(function(k){totals[k]+=(e.analysis.total[k]||0);});}});
+  var goalCal=(db.foodGoals&&db.foodGoals.calories)||2500;
+  var goalProt=(db.foodGoals&&db.foodGoals.protein)||120;
+  var goalCarbs2=(db.foodGoals&&db.foodGoals.carbs)||300;
+  var calPct=Math.min(100,Math.round(totals.calories/goalCal*100));
+  var col=calPct>110?'#e84870':calPct>85?'#2a8a5a':'#c05010';
+  el.innerHTML=
+    '<div class="num-card" style="grid-column:span 2;background:#fff0e0;">'+
+    '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:11px;color:#888;">本日のカロリー</span><span style="font-size:10px;color:#888;">目標:'+goalCal+'kcal</span></div>'+
+    '<div style="font-size:22px;font-weight:700;color:'+col+';">'+Math.round(totals.calories)+'<span style="font-size:12px;font-weight:400;"> kcal</span></div>'+
+    '<div style="background:#e0e0e0;border-radius:6px;height:8px;margin-top:6px;"><div style="background:'+col+';border-radius:6px;height:8px;width:'+calPct+'%;"></div></div>'+
+    '<div style="font-size:10px;color:'+col+';margin-top:2px;text-align:right;">'+calPct+'%</div></div>'+
+    '<div class="num-card"><div class="num-val">'+Math.round(totals.protein)+'</div><div class="num-unit">g / 目標'+goalProt+'g</div><div class="num-label">タンパク質</div></div>'+
+    '<div class="num-card"><div class="num-val">'+Math.round(totals.carbs)+'</div><div class="num-unit">g / 目標'+goalCarbs2+'g</div><div class="num-label">炭水化物</div></div>'+
+    '<div class="num-card"><div class="num-val">'+Math.round(totals.fat)+'</div><div class="num-unit">g</div><div class="num-label">脂質</div></div>'+
+    '<div class="num-card"><div class="num-val">'+todayE.length+'</div><div class="num-unit">食</div><div class="num-label">本日の記録数</div></div>';
+  if(barsEl){
+    var bars=[{k:'protein',label:'タンパク質',goal:goalProt,unit:'g'},{k:'carbs',label:'炭水化物',goal:goalCarbs2,unit:'g'}];
+    barsEl.innerHTML=bars.map(function(b){
+      var v=Math.round(totals[b.k]); var pct=Math.min(100,Math.round(v/b.goal*100));
+      var bc=pct<50?'#e84870':pct<80?'#e07020':'#2a8a5a';
+      return '<div style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;"><span>'+b.label+'</span><span style="color:'+bc+';font-weight:700;">'+v+b.unit+' / '+b.goal+b.unit+'</span></div><div style="background:#e8e8e8;border-radius:6px;height:8px;"><div style="background:'+bc+';border-radius:6px;height:8px;width:'+pct+'%;"></div></div></div>';
+    }).join('');
+  }
+}
+function renderFoodList(){
+  var list=document.getElementById('foodList'); var count=document.getElementById('foodCount');
+  if(!list) return;
+  var entries=db.foodEntries||[];
+  if(count) count.textContent=entries.length+'件';
+  if(!entries.length){list.innerHTML='<div style="text-align:center;color:#aaa;font-size:13px;padding:16px;">記録がありません</div>';return;}
+  list.innerHTML=entries.slice(0,20).map(function(e){
+    var label=MEAL_LABELS[e.type]||'食事'; var cal=e.analysis&&e.analysis.total?e.analysis.total.calories:null;
+    return '<div class="train-card" style="background:var(--green-pale);border-color:#a0d0a0;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">'+
+      '<div><span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#2a8a5a;color:white;">'+label+'</span>'+
+      '<div style="font-size:11px;color:var(--ink-light);margin-top:4px;">📅 '+e.date+'</div>'+
+      (cal?'<div style="font-size:14px;font-weight:700;color:#2a6a2a;margin-top:2px;">'+Math.round(cal)+' kcal</div>':'')+
+      '</div><button onclick="deleteFoodEntry(\''+e.id+'\')" style="background:none;border:none;color:#aaa;font-size:14px;cursor:pointer;">🗑</button></div>'+
+      (e.photo?'<img src="'+e.photo+'" style="width:100%;max-height:140px;object-fit:cover;border-radius:8px;margin-bottom:6px;">':'')+
+      (e.memo?'<div style="font-size:12px;color:var(--ink-light);">'+e.memo+'</div>':'')+
+    '</div>';
+  }).join('');
+}
+function deleteFoodEntry(id){
+  if(!confirm('削除しますか？'))return;
+  db.foodEntries=(db.foodEntries||[]).filter(function(e){return e.id!==id;});
+  save(); renderFoodList(); renderDailyNutrition(); showToast('削除しました');
+}
+
+// ===== 血液検査 =====
+var labScanData={};
+function scanLabResult(event){
+  var file=event.target.files[0]; if(!file) return;
+  var resultEl=document.getElementById('labScanResult'); var applyBtn=document.getElementById('labScanApplyBtn');
+  if(resultEl){resultEl.style.display='block'; resultEl.textContent='📷 AIが読み取り中...';}
+  if(applyBtn) applyBtn.style.display='none';
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var base64=e.target.result.split(',')[1]; var mtype=file.type||'image/jpeg';
+    fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
+        messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:mtype,data:base64}},
+        {type:'text',text:'血液検査結果から数値をJSONのみで返答。{"hb":数値,"ferritin":数値,"fe":数値,"mcv":数値,"ck":数値,"crp":数値,"ldh":数値,"ua":数値,"testosterone":数値,"cortisol":数値,"vitd":数値,"zinc":数値,"hba1c":数値,"glucose":数値,"ldl":数値,"hdl":数値}見つかった項目のみ。JSONのみ返答。'}]}]})
+    }).then(function(r){return r.json();}).then(function(data){
+      var text=''; if(data.content&&data.content[0]) text=data.content[0].text.trim();
+      try{
+        labScanData=JSON.parse(text.replace(/```json|```/g,'').trim());
+        var labels={hb:'Hb',ferritin:'フェリチン',fe:'血清鉄',mcv:'MCV',ck:'CK',crp:'CRP',ldh:'LDH',ua:'尿酸',testosterone:'テストステロン',cortisol:'コルチゾール',vitd:'VitD',zinc:'亜鉛',hba1c:'HbA1c',glucose:'血糖',ldl:'LDL',hdl:'HDL'};
+        var lines=Object.keys(labScanData).map(function(k){return (labels[k]||k)+'：'+labScanData[k];});
+        if(resultEl) resultEl.textContent='✅ 読み取り完了！\n'+lines.join('\n');
+        if(applyBtn&&lines.length) applyBtn.style.display='block';
+      }catch(err){if(resultEl) resultEl.textContent='⚠️ 読み取りに失敗しました。手動で入力してください。';}
+    }).catch(function(){if(resultEl) resultEl.textContent='⚠️ エラー。手動で入力してください。';});
+  };
+  reader.readAsDataURL(file);
+}
+function applyLabScan(){
+  var map={hb:'lab-hb',ferritin:'lab-ferritin',fe:'lab-fe',mcv:'lab-mcv',ck:'lab-ck',crp:'lab-crp',ldh:'lab-ldh',ua:'lab-ua',testosterone:'lab-testosterone',cortisol:'lab-cortisol',vitd:'lab-vitd',zinc:'lab-zinc',hba1c:'lab-hba1c',glucose:'lab-glucose',ldl:'lab-ldl',hdl:'lab-hdl'};
+  Object.keys(labScanData).forEach(function(k){var el=document.getElementById(map[k]); if(el) el.value=labScanData[k];});
+  showToast('検査値を自動入力しました！');
+  document.getElementById('labScanApplyBtn').style.display='none';
+}
+function saveLabData(){
+  var date=document.getElementById('labDate').value||todayStr();
+  var fields=['hb','ferritin','fe','mcv','ck','crp','ldh','ua','testosterone','cortisol','vitd','zinc','hba1c','glucose','ldl','hdl'];
+  var entry={id:'lab_'+Date.now(),date:date,comment:document.getElementById('lab-comment').value.trim()};
+  fields.forEach(function(f){var el=document.getElementById('lab-'+f); if(el&&el.value) entry[f]=parseFloat(el.value);});
+  db.labHistory=db.labHistory||[]; db.labHistory.unshift(entry); save();
+  renderLabHistory(); showToast('検査値を保存しました🩸');
+}
+function renderLabHistory(){
+  var list=document.getElementById('labHistory'); if(!list) return;
+  var entries=db.labHistory||[];
+  if(!entries.length){list.innerHTML='<div style="text-align:center;color:#aaa;font-size:13px;padding:16px;">記録がありません</div>';return;}
+  list.innerHTML=entries.slice(0,5).map(function(e){
+    var vals=[];
+    if(e.hb) vals.push('Hb:'+e.hb);if(e.ferritin) vals.push('フェリチン:'+e.ferritin);if(e.ck) vals.push('CK:'+e.ck);if(e.vitd) vals.push('VitD:'+e.vitd);
+    return '<div style="background:#fee8e8;border:1.5px solid #f0b0b0;border-radius:12px;padding:12px;">'+
+      '<div style="display:flex;justify-content:space-between;"><div style="font-size:12px;font-weight:700;color:#8a1a2a;">📅 '+e.date+'</div>'+
+      '<button onclick="deleteLabEntry(\''+e.id+'\')" style="background:none;border:none;color:#aaa;font-size:14px;cursor:pointer;">🗑</button></div>'+
+      (vals.length?'<div style="font-size:12px;color:var(--ink-light);margin-top:4px;">'+vals.join('　')+'</div>':'')+
+      (e.comment?'<div style="font-size:12px;color:var(--ink);margin-top:4px;">'+e.comment+'</div>':'')+
+    '</div>';
+  }).join('');
+}
+function deleteLabEntry(id){
+  if(!confirm('削除しますか？'))return;
+  db.labHistory=(db.labHistory||[]).filter(function(e){return e.id!==id;});
+  save(); renderLabHistory(); showToast('削除しました');
+}
+
+// ===== メディア =====
+var selectedMediaCat='video';
+var pendingMediaFiles=[];
+var CAT_LABELS={video:{label:'🎬 フォーム動画',color:'#c05010',bg:'#fff0e0'},competition:{label:'🏆 大会',color:'#c8a84b',bg:'#fff8e0'},injury:{label:'🩹 怪我',color:'#e84870',bg:'#fee8ee'},blood:{label:'🩸 検査結果',color:'#8a1a2a',bg:'#fee8e8'},other:{label:'📄 その他',color:'#888',bg:'#f5f5f5'}};
+function initMedia(){
+  var btns=document.getElementById('mediaCatBtns');
+  if(btns){
+    btns.innerHTML=Object.keys(CAT_LABELS).map(function(k){
+      return '<button class="chip'+(k===selectedMediaCat?' on':'')+'" onclick="selMediaCat(\''+k+'\')" data-cat="'+k+'">'+CAT_LABELS[k].label+'</button>';
+    }).join('');
+  }
+  var md=document.getElementById('mediaDate'); if(md&&!md.value) md.value=todayStr();
+  renderMediaList();
+}
+function selMediaCat(cat){
+  selectedMediaCat=cat;
+  var btns=document.getElementById('mediaCatBtns').getElementsByClassName('chip');
+  for(var i=0;i<btns.length;i++) btns[i].className='chip'+(btns[i].getAttribute('data-cat')===cat?' on':'');
+}
+function previewMediaFiles(event){
+  var files=event.target.files; var preview=document.getElementById('mediaPreview');
+  if(!preview) return; pendingMediaFiles=[]; preview.innerHTML='';
+  for(var i=0;i<files.length;i++){(function(file){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      pendingMediaFiles.push({type:file.type,data:e.target.result,name:file.name});
+      var isVideo=file.type.indexOf('video')===0;
+      var el=document.createElement(isVideo?'video':'img');
+      el.src=e.target.result; el.style.cssText='width:80px;height:80px;object-fit:cover;border-radius:10px;border:2px solid var(--border);';
+      preview.appendChild(el);
+    };
+    reader.readAsDataURL(file);
+  })(files[i]);}
+}
+function saveMediaEntry(){
+  var title=document.getElementById('mediaTitle'); if(!title||!title.value.trim()){showToast('タイトルを入力してください');return;}
+  var memo=document.getElementById('mediaMemo');
+  db.mediaEntries=db.mediaEntries||[];
+  db.mediaEntries.unshift({id:'media_'+Date.now(),cat:selectedMediaCat,date:document.getElementById('mediaDate').value||todayStr(),title:title.value.trim(),memo:memo?memo.value.trim():'',files:pendingMediaFiles.slice()});
+  save(); title.value=''; if(memo) memo.value=''; pendingMediaFiles=[];
+  var pv=document.getElementById('mediaPreview'); if(pv) pv.innerHTML='';
+  renderMediaList(); showToast('メディアを保存しました📸');
+}
+function renderMediaList(){
+  var list=document.getElementById('mediaList'); var count=document.getElementById('mediaCount');
+  if(!list) return;
+  var entries=db.mediaEntries||[];
+  if(count) count.textContent=entries.length+'件';
+  if(!entries.length){list.innerHTML='<div style="text-align:center;color:#aaa;font-size:13px;padding:16px;">記録がありません</div>';return;}
+  list.innerHTML=entries.map(function(e){
+    var cat=CAT_LABELS[e.cat]||CAT_LABELS.other;
+    return '<div style="background:'+cat.bg+';border:1.5px solid '+cat.color+'33;border-radius:12px;padding:12px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">'+
+      '<div><span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:'+cat.color+';color:white;">'+cat.label+'</span>'+
+      '<div style="font-size:13px;font-weight:700;color:var(--ink);margin-top:4px;">'+e.title+'</div>'+
+      '<div style="font-size:11px;color:var(--ink-light);">📅 '+e.date+'</div></div>'+
+      '<button onclick="deleteMediaEntry(\''+e.id+'\')" style="background:none;border:none;color:#aaa;font-size:14px;cursor:pointer;">🗑</button></div>'+
+      (e.memo?'<div style="font-size:12px;color:var(--ink-light);margin-bottom:6px;">'+e.memo+'</div>':'')+
+      (e.files&&e.files.length?'<div style="display:flex;gap:6px;flex-wrap:wrap;">'+
+        e.files.map(function(f,fi){return '<img src="'+f.data+'" style="width:80px;height:80px;object-fit:cover;border-radius:8px;cursor:pointer;" onclick="openMediaModal(\''+e.id+'\','+fi+')">';}).join('')+
+      '</div>':'')+
+    '</div>';
+  }).join('');
+}
+function deleteMediaEntry(id){if(!confirm('削除しますか？'))return;db.mediaEntries=(db.mediaEntries||[]).filter(function(e){return e.id!==id;});save();renderMediaList();showToast('削除しました');}
+function openMediaModal(eid,fi){
+  var entry=(db.mediaEntries||[]).find(function(e){return e.id===eid;}); if(!entry||!entry.files[fi]) return;
+  var modal=document.getElementById('mediaModal'); var img=document.getElementById('mediaModalImg'); var cap=document.getElementById('mediaModalCaption');
+  if(modal) modal.style.display='flex'; if(img) img.src=entry.files[fi].data; if(cap) cap.textContent=entry.title+'　'+entry.date;
+}
+function closeMediaModal(){var m=document.getElementById('mediaModal');if(m) m.style.display='none';}
+
+// ===== 設定 =====
+function saveSportCategory(){
+  var el=document.getElementById('sportCategory'); if(el) db.settings.category=el.value; save();
+}
+function saveWeightRestriction(){
+  var el=document.getElementById('weightRestriction'); if(el) db.settings.weightRestriction=el.value; save();
+}
+
+// ===== データ出力・入力 =====
+function exportData(){
+  var name=(db.cover&&db.cover.name)||'athlete';
+  var fname='withmiki_athlete_'+name+'_'+todayStr()+'.json';
+  var blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a'); a.href=url; a.download=fname; a.click();
+  URL.revokeObjectURL(url); showToast('データを出力しました！');
+}
+function importData(event){
+  var file=event.target.files[0]; if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var imported=JSON.parse(e.target.result);
+      db=imported; save(); location.reload();
+    }catch(err){alert('ファイルの読み込みに失敗しました。');}
+  };
+  reader.readAsText(file);
+}
+
+// ===== 初期化 =====
+(function(){
+  if(!db.trainings) db.trainings=[];
+  if(!db.foodEntries) db.foodEntries=[];
+  if(!db.weightEntries) db.weightEntries=[];
+  if(!db.labHistory) db.labHistory=[];
+  if(!db.mediaEntries) db.mediaEntries=[];
+  if(!db.cover) db.cover={};
+  if(!db.foodGoals) db.foodGoals={calories:2500,protein:120,carbs:300,weight:null};
+  updateDateDisplay(); buildMedList(); buildTrainTypes();
+  loadCover(); loadRecord(currentDate);
+  document.getElementById('trainDate').value=todayStr();
+  if(db.settings.category){var el=document.getElementById('sportCategory');if(el) el.value=db.settings.category;}
+  if(db.settings.weightRestriction){var el=document.getElementById('weightRestriction');if(el) el.value=db.settings.weightRestriction;}
+  initPassword();
+})();
+</script>
+</body>
+</html>

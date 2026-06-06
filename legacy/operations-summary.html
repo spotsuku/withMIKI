@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WithMIKI 運用まとめシート</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Hiragino Sans','Noto Sans JP',sans-serif;background:#f0f5fb;color:#1a2a3a;font-size:13px;line-height:1.7;max-width:800px;margin:0 auto;padding:16px;}
+h1{background:linear-gradient(135deg,#0c3a6e,#1a5fa8);color:white;padding:18px 20px;border-radius:14px;font-size:18px;margin-bottom:16px;text-align:center;}
+h2{background:#1a5fa8;color:white;padding:8px 14px;border-radius:8px;font-size:13px;margin:12px 0 8px;}
+h3{color:#0c3a6e;font-size:12px;border-left:4px solid #1a5fa8;padding-left:8px;margin:8px 0 4px;}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.card{background:white;border-radius:12px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.07);border-top:4px solid #1a5fa8;}
+.card.green{border-top-color:#2a8a5a;}
+.card.orange{border-top-color:#c07020;}
+.card.pink{border-top-color:#e84870;}
+.card.purple{border-top-color:#7040a0;}
+.card.gray{border-top-color:#888;}
+.flow{display:flex;align-items:stretch;gap:0;margin:8px 0;flex-wrap:wrap;}
+.fbox{background:white;border:1.5px solid #d0e4f4;border-radius:10px;padding:10px 12px;font-size:12px;flex:1;min-width:120px;text-align:center;}
+.fbox.blue{background:#e8f4ff;border-color:#1a5fa8;}
+.fbox.green{background:#e8f8ee;border-color:#2a8a5a;}
+.fbox.orange{background:#fff0e0;border-color:#c07020;}
+.farrow{display:flex;align-items:center;padding:0 4px;color:#1a5fa8;font-size:18px;font-weight:700;}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:700;margin:1px;}
+.tag.blue{background:#e8f4ff;color:#1a5fa8;border:1px solid #1a5fa8;}
+.tag.green{background:#e8f8ee;color:#2a8a5a;border:1px solid #2a8a5a;}
+.tag.orange{background:#fff0e0;color:#c07020;border:1px solid #c07020;}
+.tag.pink{background:#fee8ee;color:#e84870;border:1px solid #e84870;}
+.tag.gray{background:#f0f0f0;color:#666;border:1px solid #aaa;}
+.folder{font-family:'Courier New',monospace;background:#1a2a3a;color:#a0d0a0;padding:12px;border-radius:8px;font-size:11px;line-height:1.8;}
+.note{background:#fff8e0;border-left:4px solid #c8a84b;padding:8px 12px;border-radius:0 8px 8px 0;font-size:12px;margin:6px 0;}
+.note.red{background:#fee8ee;border-left-color:#e84870;}
+.note.blue{background:#e8f4ff;border-left-color:#1a5fa8;}
+.note.green{background:#e8f8ee;border-left-color:#2a8a5a;}
+table{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0;}
+th{background:#1a5fa8;color:white;padding:7px 10px;text-align:left;}
+td{padding:7px 10px;border-bottom:1px solid #e0ecf8;vertical-align:top;}
+tr:nth-child(even) td{background:#f8fbff;}
+.num{width:20px;height:20px;border-radius:50%;background:#1a5fa8;color:white;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-right:4px;}
+@media print{body{background:white;padding:8px;}h1{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+</style>
+</head>
+<body>
+
+<h1>🔵 WithMIKI システム 運用まとめシート</h1>
+
+<!-- ===== 全体フロー ===== -->
+<h2>① 全体の流れ（先生 ⇔ 患者さん）</h2>
+<div class="flow">
+  <div class="fbox blue"><div style="font-size:18px;">💻</div><b>先生のMac</b><br>マスターHTMLを保管<br><span class="tag blue">全ファイルの原本</span></div>
+  <div class="farrow">→</div>
+  <div class="fbox orange"><div style="font-size:18px;">📋</div><b>コピーして患者名をつける</b><br>例：aachan_gyneco.html<br><span class="tag orange">患者ごとに1ファイル</span></div>
+  <div class="farrow">→</div>
+  <div class="fbox green"><div style="font-size:18px;">💬</div><b>LINEで送信</b><br>HTMLファイルをそのまま添付<br><span class="tag green">Netlify不要</span></div>
+</div>
+<div class="flow" style="margin-top:6px;">
+  <div class="fbox green"><div style="font-size:18px;">📱</div><b>患者さんのスマホ</b><br>①LINEでファイル受取<br>②Safariで開く<br>③ホーム画面に追加<br>④毎日記録する</div>
+  <div class="farrow">→</div>
+  <div class="fbox orange"><div style="font-size:18px;">📤</div><b>データを返す</b><br>共有タブ→JSON出力<br>→LINEで先生に送信<br><span class="tag orange">週1〜月1回</span></div>
+  <div class="farrow">→</div>
+  <div class="fbox blue"><div style="font-size:18px;">🩺</div><b>先生が確認</b><br>総合マスターカルテで<br>JSONを読み込む<br><span class="tag blue">Safari で開く</span></div>
+</div>
+<div class="note green" style="margin-top:8px;">✅ サーバー・Netlify・URLは一切不要！　HTMLファイルとLINEだけで完結</div>
+
+<!-- ===== ブラウザ使い分け ===== -->
+<h2>② ブラウザの使い分け</h2>
+<div class="grid2">
+  <div class="card">
+    <h3>🔵 Claude.ai（AI作業用）</h3>
+    <div style="font-size:12px;">
+    <b>使う場面：</b><br>
+    ・HTMLファイルの新規作成・改良<br>
+    ・マニュアルの更新<br>
+    ・機能追加・バグ修正<br><br>
+    <b>ブラウザ：</b><span class="tag blue">Chrome推奨</span><br>
+    ・chrome://bookmarks にURL保存<br>
+    ・作業後にHTMLをダウンロード保存
+    </div>
+  </div>
+  <div class="card green">
+    <h3>🟢 患者さん向け（日常使用）</h3>
+    <div style="font-size:12px;">
+    <b>使う場面：</b><br>
+    ・患者さんへのファイル送信<br>
+    ・総合マスターカルテの閲覧<br>
+    ・JSONデータの確認<br><br>
+    <b>ブラウザ：</b><span class="tag green">Safari推奨</span><br>
+    ・ホーム画面追加機能が使える<br>
+    ・iOSとの相性が最良
+    </div>
+  </div>
+</div>
+
+<!-- ===== ファイル一覧 ===== -->
+<h2>③ Macに保存するファイル一覧</h2>
+<table>
+  <tr><th>ファイル名</th><th>種類</th><th>用途</th><th>渡す相手</th></tr>
+  <tr><td><b>総合カルテ_master.html</b></td><td><span class="tag blue">先生専用</span></td><td>全患者のJSONを読み込んで確認・施術記録管理</td><td>先生のみ</td></tr>
+  <tr><td><b>婦人科レコード_master.html</b></td><td><span class="tag pink">患者用原本</span></td><td>婦人科患者さんに渡すファイルの原本</td><td>コピーして渡す</td></tr>
+  <tr><td><b>アスリートレコード_master.html</b></td><td><span class="tag orange">患者用原本</span></td><td>アスリート・スポーツ選手に渡すファイルの原本</td><td>コピーして渡す</td></tr>
+  <tr><td><b>マニュアル_シンプル.html</b></td><td><span class="tag gray">マニュアル</span></td><td>みっきー先生版 使い方ガイド</td><td>患者さんに渡す</td></tr>
+  <tr><td><b>マニュアル_対話版.html</b></td><td><span class="tag gray">マニュアル</span></td><td>みっきー×あーちゃん 対話形式ガイド</td><td>患者さんに渡す</td></tr>
+  <tr><td><b>あーちゃん_gyneco.html</b></td><td><span class="tag pink">患者個別</span></td><td>婦人科レコードのあーちゃん専用版（コピー済み）</td><td>あーちゃんのみ</td></tr>
+</table>
+
+<!-- ===== フォルダ構成 ===== -->
+<h2>④ Macのフォルダ構成（推奨）</h2>
+<div class="folder">
+WithMIKI/
+├── 📁 マスター/　　　　　←原本。絶対に上書きしない
+│   ├── 総合カルテ_master.html
+│   ├── 婦人科レコード_master.html
+│   └── アスリートレコード_master.html
+│
+├── 📁 患者別/　　　　　　←マスターをコピーして名前をつける
+│   ├── あーちゃん_gyneco.html
+│   ├── ○○さん_gyneco.html
+│   └── △△選手_athlete.html
+│
+├── 📁 マニュアル/
+│   ├── マニュアル_シンプル.html
+│   └── マニュアル_対話版.html
+│
+├── 📁 受信JSON/　　　　　←患者さんから届いたデータを保存
+│   ├── aachan_2026-06.json
+│   └── ○○さん_2026-06.json
+│
+└── 📁 Googleドライブ同期/ ←息子さんとの共有フォルダ
+    └── ※上記フォルダをGoogleドライブに置くだけでOK
+</div>
+
+<!-- ===== Googleドライブ連携 ===== -->
+<h2>⑤ Googleドライブ・息子さんとの連携</h2>
+<div class="grid2">
+  <div class="card green">
+    <h3>📂 今すぐできること</h3>
+    <div style="font-size:12px;">
+    <span class="num">1</span>MacにGoogleドライブアプリをインストール<br>
+    <span class="num">2</span>WithMIKIフォルダをGoogleドライブに移動<br>
+    <span class="num">3</span>息子さんの Gmail アドレスで共有設定<br>
+    <span class="num">4</span>Macで保存→自動でクラウドにバックアップ<br>
+    <span class="num">5</span>どこからでもアクセス可能
+    </div>
+  </div>
+  <div class="card purple">
+    <h3>🗄️ 将来のデータベース化</h3>
+    <div style="font-size:12px;">
+    <span class="num">1</span>患者さんが送ってくるJSONが原データ<br>
+    <span class="num">2</span>JSONはそのままDBに取り込める形式<br>
+    <span class="num">3</span>息子さんのシステムと連携可能<br>
+    <span class="num">4</span>LINEのAPIと連携すれば自動受信も可能<br>
+    <span class="num">5</span>WithMIKI独自のプラットフォーム化へ
+    </div>
+  </div>
+</div>
+
+<!-- ===== 患者さんへの送り方 ===== -->
+<h2>⑥ 患者さんへのファイルの渡し方（手順）</h2>
+<div class="card">
+<div style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
+<div><span class="num">1</span><b>マスターフォルダ</b>から婦人科or アスリートのHTMLをコピー</div>
+<div><span class="num">2</span><b>ファイル名を変更</b>：例 → <code style="background:#f0f0f0;padding:1px 4px;border-radius:3px;">aachan_gyneco.html</code></div>
+<div><span class="num">3</span><b>患者別フォルダ</b>に保存</div>
+<div><span class="num">4</span><b>LINEで送信</b>：📎 → ファイル → 該当HTMLを選択して送信</div>
+<div><span class="num">5</span>患者さんに伝える：<b>「Safariで開いて→ホーム画面に追加してください」</b></div>
+<div><span class="num">6</span>マニュアルも一緒に送ると親切：<code style="background:#f0f0f0;padding:1px 4px;border-radius:3px;">マニュアル_対話版.html</code></div>
+</div>
+</div>
+<div class="note red" style="margin-top:8px;">⚠️ 患者さんが「LINEのブラウザで開く」とタブが動きません。必ず「Safariで開く」を伝えてください。</div>
+
+<!-- ===== 更新方法 ===== -->
+<h2>⑦ ファイルを更新するとき</h2>
+<table>
+  <tr><th>状況</th><th>対応</th></tr>
+  <tr><td>機能追加・バグ修正</td><td>Claudeで修正 → Macにダウンロード → マスターフォルダを上書き → 患者さんにLINEで再送信</td></tr>
+  <tr><td>患者さんのデータを引き継ぐ</td><td>旧ファイルで「共有→JSONバックアップ」 → 新ファイルで「JSONを読み込む」</td></tr>
+  <tr><td>新しい患者さんへ渡す</td><td>マスターをコピー → 名前変更 → LINE送信（データは最初ゼロ）</td></tr>
+</table>
+
+<!-- ===== まとめ ===== -->
+<h2>⑧ ひとことまとめ</h2>
+<div class="grid3">
+  <div class="card green" style="text-align:center;padding:16px;">
+    <div style="font-size:28px;">📱</div>
+    <b>患者さんへ</b><br>
+    <span style="font-size:12px;">HTMLをLINEで送るだけ<br>Safari→ホーム画面に追加</span>
+  </div>
+  <div class="card blue" style="text-align:center;padding:16px;">
+    <div style="font-size:28px;">💻</div>
+    <b>先生のMac</b><br>
+    <span style="font-size:12px;">Googleドライブで管理<br>息子さんと共有</span>
+  </div>
+  <div class="card purple" style="text-align:center;padding:16px;">
+    <div style="font-size:28px;">🗄️</div>
+    <b>将来のDB化</b><br>
+    <span style="font-size:12px;">JSONがそのままDB入力<br>息子さんのシステムへ</span>
+  </div>
+</div>
+
+<div style="text-align:center;margin-top:16px;font-size:11px;color:#888;">
+WithMIKI システム運用まとめシート　© 三木裕昭（鍼灸師・AT）
+</div>
+
+</body>
+</html>
