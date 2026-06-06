@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { saveLab, type LabFormState } from './actions';
 import type { LabCategoryGroup } from '@/lib/types';
@@ -21,6 +22,19 @@ function SubmitButton({ isEdit }: { isEdit: boolean }) {
   );
 }
 
+function fileToBase64(file: File): Promise<{ data: string; mediaType: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const res = String(reader.result);
+      const comma = res.indexOf(',');
+      resolve({ data: res.slice(comma + 1), mediaType: file.type || 'image/jpeg' });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export function LabForm({
   patientId,
   patientName,
@@ -34,7 +48,39 @@ export function LabForm({
 }) {
   const [state, formAction] = useFormState<LabFormState, FormData>(saveLab, {});
   const isEdit = Boolean(initial?.id);
-  const values = initial?.values ?? {};
+  const [values, setValues] = useState<Record<string, string>>(initial?.values ?? {});
+  const [ocrState, setOcrState] = useState<{ loading: boolean; msg?: string; error?: string }>({
+    loading: false,
+  });
+
+  function setVal(code: string, v: string) {
+    setValues((prev) => ({ ...prev, [code]: v }));
+  }
+
+  async function onOcr(file: File | undefined) {
+    if (!file) return;
+    setOcrState({ loading: true });
+    try {
+      const { data, mediaType } = await fileToBase64(file);
+      const res = await fetch('/api/ai/lab-ocr', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ imageBase64: data, mediaType, patientId }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || '読み取りに失敗しました');
+      const got = (json.values ?? {}) as Record<string, number>;
+      const n = Object.keys(got).length;
+      setValues((prev) => {
+        const next = { ...prev };
+        for (const [k, v] of Object.entries(got)) next[k] = String(v);
+        return next;
+      });
+      setOcrState({ loading: false, msg: `${n} 項目を読み取りました。内容を確認して保存してください。` });
+    } catch (e) {
+      setOcrState({ loading: false, error: (e as Error).message });
+    }
+  }
 
   return (
     <form action={formAction}>
@@ -59,6 +105,20 @@ export function LabForm({
           <label htmlFor="comment">コメント</label>
           <textarea id="comment" name="comment" rows={2} defaultValue={initial?.comment ?? ''} />
         </div>
+
+        {/* AI OCR */}
+        <div className="field">
+          <label>採血結果の画像から読み取り（AI・任意）</label>
+          <input
+            type="file"
+            accept="image/*"
+            disabled={ocrState.loading}
+            onChange={(e) => onOcr(e.target.files?.[0])}
+          />
+          {ocrState.loading ? <p className="meta">読み取り中…</p> : null}
+          {ocrState.msg ? <p className="meta">✅ {ocrState.msg}</p> : null}
+          {ocrState.error ? <p className="error">{ocrState.error}</p> : null}
+        </div>
       </div>
 
       {groups.map((g) => (
@@ -82,7 +142,8 @@ export function LabForm({
                     type="text"
                     inputMode="decimal"
                     placeholder={ref}
-                    defaultValue={values[it.code] ?? ''}
+                    value={values[it.code] ?? ''}
+                    onChange={(e) => setVal(it.code, e.target.value)}
                   />
                 </div>
               );

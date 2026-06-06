@@ -14,7 +14,7 @@
 | Phase 2 | データ移行 | 既存 JSON インポータ（データを失わない）| 🟡 変換ロジック実装・テスト済 |
 | Phase 3 | 先生用カルテ | カルテ Web（基本情報/SOAP/施術/人体図）| 🟡 患者一覧/詳細(閲覧)実装 |
 | Phase 4 | 患者アプリ | PWA デイリーレコード（婦人科/アスリート）| ⬜ |
-| Phase 5 | AI サーバー化 | OCR/食事解析/カルテ補助のプロキシ | ⬜ |
+| Phase 5 | AI サーバー化 | OCR/食事解析/カルテ補助のプロキシ | 🟡 API実装・採血OCR/チャット連携 |
 | Phase 6 | LINE 連携 | LIFF・自動受信・通知 | ⬜ |
 | Phase 7 | 外販準備 | マルチテナント運用・課金・コンプラ仕上げ | ⬜ |
 
@@ -73,9 +73,12 @@
 - **完了条件**: 患者が現行 HTML 相当をクラウド同期付きで使える。
 
 ## Phase 5 — AI サーバー化
-- [ ] AI プロキシ（`/ai/lab-ocr`, `/ai/food-analysis`, `/ai/intake-scan`, `/ai/karte-chat`）
-- [ ] `ai_job` 記録・コスト上限・レート制限・同意チェック
-- [ ] 最新 Claude モデルへの更新（現行 `claude-sonnet-4` 系から）
+- [x] AI プロキシ（`/api/ai/lab-ocr`, `/api/ai/food-analysis`, `/api/ai/karte-chat`）— キーはサーバー専用
+- [x] 採血 OCR を採血入力フォームに連携（画像→値プレフィル）
+- [x] カルテ補助チャット（患者文脈はサーバー側で構築）
+- [x] `ai_job` 記録（モデル・トークン・成否）
+- [ ] コスト上限・レート制限・同意（consent.ai_analysis）チェック
+- [ ] intake-scan（問診票OCR）
 - **完了条件**: クライアントに API キーが一切存在しない。
 
 ## Phase 6 — LINE 連携

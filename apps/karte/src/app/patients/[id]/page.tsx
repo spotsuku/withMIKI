@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { Topbar } from '@/components/Topbar';
+import { KarteChat } from '@/components/KarteChat';
 import {
   ageFromDob,
   type Patient,
@@ -235,6 +236,9 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
             <div className="empty">採血記録なし</div>
           )}
         </div>
+
+        {/* AI カルテ補助 */}
+        <KarteChat patientId={p.id} />
       </div>
     </>
   );

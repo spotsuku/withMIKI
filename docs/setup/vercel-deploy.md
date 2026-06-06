@@ -49,6 +49,8 @@
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase Project URL | Production / Preview / Development | 公開値 |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon public key | Production / Preview / Development | 公開値（RLS 前提） |
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role key | Production のみ（必要時） | **NEXT_PUBLIC を付けない**。サーバー専用 |
+| `ANTHROPIC_API_KEY` | Claude API キー | Production（AI 機能を使う場合） | **NEXT_PUBLIC を付けない**。`/api/ai/*` 用 |
+| `ANTHROPIC_MODEL` | `claude-sonnet-4-6` | 任意 | 未設定なら既定値 |
 
 > ⚠️ `SUPABASE_SERVICE_ROLE_KEY` に **`NEXT_PUBLIC_` を付けないこと**。付けるとクライアントバンドルに含まれ漏洩する。
 > 変数変更後は **Redeploy** が必要。
