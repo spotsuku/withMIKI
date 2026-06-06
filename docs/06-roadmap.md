@@ -77,9 +77,13 @@
 - [x] アスリートデイリー（体組成・コンディション・傷害）＋トレーニング記録
 - [x] 食事記録＋食事写真OCR（/api/ai/food-analysis）
 - [x] 推移グラフ（基礎体温・体重・体脂肪・痛み・心拍）
-- [ ] セルフケア・服薬チェック、栄養目標、周期予測・カレンダー、患者側の採血/メディア
-- [ ] オフライン保存（IndexedDB）＋ 冪等同期、LINE ログイン(LIFF) への置換
-- **完了条件**: 患者が現行 HTML 相当をクラウド同期付きで使える。
+- [x] セルフケア・服薬チェック（Phase I）
+- [x] 栄養目標（Phase J）
+- [x] 周期予測・カレンダー（Phase K）
+- [x] 患者側の採血（OCR含む）・メディア（Phase L）
+- [x] LINE ログイン(LIFF)（Phase M, docs/setup/line-liff.md）
+- [ ] オフライン保存（IndexedDB）＋ 冪等同期
+- **完了条件**: 患者が現行 HTML 相当をクラウド同期付きで使える。→ ほぼ達成
 
 ## Phase 5 — AI サーバー化
 - [x] AI プロキシ（`/api/ai/lab-ocr`, `/api/ai/food-analysis`, `/api/ai/karte-chat`）— キーはサーバー専用
