@@ -15,14 +15,19 @@
 -- 標準ケアプログラム（master を親にした対象別ツリー）
 --   tenant_id = NULL のシステム標準。各テナントはこれを複製/上書きして利用する。
 -- -----------------------------------------------------------------------------
-INSERT INTO care_program (id, tenant_id, code, name, parent_id, record_kind, is_active) VALUES
-  ('00000000-0000-0000-0000-000000000001', NULL, 'master',  '総合カルテ（共通基盤）', NULL, 'none', true)
-ON CONFLICT (tenant_id, code) DO NOTHING;
+-- tenant_id が NULL の標準プログラムは UNIQUE(tenant_id,code) で重複検知できないため
+-- WHERE NOT EXISTS で冪等化する（何度実行しても重複しない）。
+INSERT INTO care_program (id, tenant_id, code, name, parent_id, record_kind, is_active)
+SELECT '00000000-0000-0000-0000-000000000001', NULL, 'master', '総合カルテ（共通基盤）', NULL, 'none', true
+WHERE NOT EXISTS (SELECT 1 FROM care_program WHERE tenant_id IS NULL AND code = 'master');
 
-INSERT INTO care_program (tenant_id, code, name, parent_id, record_kind, is_active) VALUES
-  (NULL, 'gyneco',  '婦人科デイリーレコード',   '00000000-0000-0000-0000-000000000001', 'gyneco',  true),
-  (NULL, 'athlete', 'アスリートレコード',       '00000000-0000-0000-0000-000000000001', 'athlete', true)
-ON CONFLICT (tenant_id, code) DO NOTHING;
+INSERT INTO care_program (tenant_id, code, name, parent_id, record_kind, is_active)
+SELECT NULL, 'gyneco', '婦人科デイリーレコード', '00000000-0000-0000-0000-000000000001', 'gyneco', true
+WHERE NOT EXISTS (SELECT 1 FROM care_program WHERE tenant_id IS NULL AND code = 'gyneco');
+
+INSERT INTO care_program (tenant_id, code, name, parent_id, record_kind, is_active)
+SELECT NULL, 'athlete', 'アスリートレコード', '00000000-0000-0000-0000-000000000001', 'athlete', true
+WHERE NOT EXISTS (SELECT 1 FROM care_program WHERE tenant_id IS NULL AND code = 'athlete');
 
 -- -----------------------------------------------------------------------------
 -- 検査項目カタログ（現行 HTML の lab-* フィールドを網羅）

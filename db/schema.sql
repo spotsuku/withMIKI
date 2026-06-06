@@ -16,7 +16,7 @@ $$ LANGUAGE plpgsql;
 -- -----------------------------------------------------------------------------
 -- 1. テナント / ユーザー（外販の土台）
 -- -----------------------------------------------------------------------------
-CREATE TABLE tenant (
+CREATE TABLE IF NOT EXISTS tenant (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name        text NOT NULL,
   plan        text NOT NULL DEFAULT 'free',
@@ -25,10 +25,11 @@ CREATE TABLE tenant (
   created_at  timestamptz NOT NULL DEFAULT now(),
   updated_at  timestamptz NOT NULL DEFAULT now()
 );
+DROP TRIGGER IF EXISTS trg_tenant_updated ON tenant;
 CREATE TRIGGER trg_tenant_updated BEFORE UPDATE ON tenant
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-CREATE TABLE app_user (
+CREATE TABLE IF NOT EXISTS app_user (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id     uuid NOT NULL REFERENCES tenant(id),
   email         citext NOT NULL,
@@ -42,13 +43,14 @@ CREATE TABLE app_user (
   updated_at    timestamptz NOT NULL DEFAULT now(),
   UNIQUE (tenant_id, email)
 );
+DROP TRIGGER IF EXISTS trg_user_updated ON app_user;
 CREATE TRIGGER trg_user_updated BEFORE UPDATE ON app_user
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- -----------------------------------------------------------------------------
 -- 2. ケアプログラム（対象別カルテの定義：master を親とするツリー）
 -- -----------------------------------------------------------------------------
-CREATE TABLE care_program (
+CREATE TABLE IF NOT EXISTS care_program (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id    uuid REFERENCES tenant(id),         -- NULL = システム標準
   code         text NOT NULL,                      -- master / gyneco / athlete / 任意
@@ -61,13 +63,14 @@ CREATE TABLE care_program (
   updated_at   timestamptz NOT NULL DEFAULT now(),
   UNIQUE (tenant_id, code)
 );
+DROP TRIGGER IF EXISTS trg_program_updated ON care_program;
 CREATE TRIGGER trg_program_updated BEFORE UPDATE ON care_program
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- -----------------------------------------------------------------------------
 -- 3. 患者・カルテ基盤（共通コア）
 -- -----------------------------------------------------------------------------
-CREATE TABLE patient (
+CREATE TABLE IF NOT EXISTS patient (
   id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id        uuid NOT NULL REFERENCES tenant(id),
   code             text,                       -- 院内患者番号
@@ -96,12 +99,13 @@ CREATE TABLE patient (
   updated_by       uuid REFERENCES app_user(id),
   deleted_at       timestamptz
 );
-CREATE INDEX idx_patient_tenant_code ON patient(tenant_id, code);
-CREATE INDEX idx_patient_tenant_name ON patient(tenant_id, name);
+CREATE INDEX IF NOT EXISTS idx_patient_tenant_code ON patient(tenant_id, code);
+CREATE INDEX IF NOT EXISTS idx_patient_tenant_name ON patient(tenant_id, name);
+DROP TRIGGER IF EXISTS trg_patient_updated ON patient;
 CREATE TRIGGER trg_patient_updated BEFORE UPDATE ON patient
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-CREATE TABLE patient_program (
+CREATE TABLE IF NOT EXISTS patient_program (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id       uuid NOT NULL REFERENCES tenant(id),
   patient_id      uuid NOT NULL REFERENCES patient(id),
@@ -111,9 +115,9 @@ CREATE TABLE patient_program (
   is_primary      boolean NOT NULL DEFAULT false,
   created_at      timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_patient_program_patient ON patient_program(patient_id);
+CREATE INDEX IF NOT EXISTS idx_patient_program_patient ON patient_program(patient_id);
 
-CREATE TABLE patient_intake (
+CREATE TABLE IF NOT EXISTS patient_intake (
   patient_id uuid PRIMARY KEY REFERENCES patient(id),
   tenant_id  uuid NOT NULL REFERENCES tenant(id),
   chief      text,   -- 主訴
@@ -127,10 +131,11 @@ CREATE TABLE patient_intake (
   updated_at timestamptz NOT NULL DEFAULT now(),
   updated_by uuid REFERENCES app_user(id)
 );
+DROP TRIGGER IF EXISTS trg_intake_updated ON patient_intake;
 CREATE TRIGGER trg_intake_updated BEFORE UPDATE ON patient_intake
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-CREATE TABLE karte_cover (
+CREATE TABLE IF NOT EXISTS karte_cover (
   patient_id uuid PRIMARY KEY REFERENCES patient(id),
   tenant_id  uuid NOT NULL REFERENCES tenant(id),
   purpose    text,
@@ -145,10 +150,11 @@ CREATE TABLE karte_cover (
   next_visit date,
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+DROP TRIGGER IF EXISTS trg_cover_updated ON karte_cover;
 CREATE TRIGGER trg_cover_updated BEFORE UPDATE ON karte_cover
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-CREATE TABLE problem (
+CREATE TABLE IF NOT EXISTS problem (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id  uuid NOT NULL REFERENCES tenant(id),
   patient_id uuid NOT NULL REFERENCES patient(id),
@@ -160,11 +166,12 @@ CREATE TABLE problem (
   updated_at timestamptz NOT NULL DEFAULT now(),
   deleted_at timestamptz
 );
-CREATE INDEX idx_problem_patient ON problem(patient_id);
+CREATE INDEX IF NOT EXISTS idx_problem_patient ON problem(patient_id);
+DROP TRIGGER IF EXISTS trg_problem_updated ON problem;
 CREATE TRIGGER trg_problem_updated BEFORE UPDATE ON problem
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-CREATE TABLE visit (
+CREATE TABLE IF NOT EXISTS visit (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id       uuid NOT NULL REFERENCES tenant(id),
   patient_id      uuid NOT NULL REFERENCES patient(id),
@@ -182,11 +189,12 @@ CREATE TABLE visit (
   created_by      uuid REFERENCES app_user(id),
   deleted_at      timestamptz
 );
-CREATE INDEX idx_visit_patient_date ON visit(patient_id, visit_date DESC);
+CREATE INDEX IF NOT EXISTS idx_visit_patient_date ON visit(patient_id, visit_date DESC);
+DROP TRIGGER IF EXISTS trg_visit_updated ON visit;
 CREATE TRIGGER trg_visit_updated BEFORE UPDATE ON visit
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-CREATE TABLE visit_vital (
+CREATE TABLE IF NOT EXISTS visit_vital (
   visit_id  uuid PRIMARY KEY REFERENCES visit(id) ON DELETE CASCADE,
   tenant_id uuid NOT NULL REFERENCES tenant(id),
   weight numeric, fat numeric, bmi numeric, temp numeric,
@@ -196,7 +204,7 @@ CREATE TABLE visit_vital (
   extra jsonb NOT NULL DEFAULT '{}'::jsonb
 );
 
-CREATE TABLE soap_note (
+CREATE TABLE IF NOT EXISTS soap_note (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id  uuid NOT NULL REFERENCES tenant(id),
   patient_id uuid NOT NULL REFERENCES patient(id),
@@ -207,9 +215,9 @@ CREATE TABLE soap_note (
   created_by uuid REFERENCES app_user(id),
   deleted_at timestamptz
 );
-CREATE INDEX idx_soap_patient_date ON soap_note(patient_id, note_date DESC);
+CREATE INDEX IF NOT EXISTS idx_soap_patient_date ON soap_note(patient_id, note_date DESC);
 
-CREATE TABLE body_diagram (
+CREATE TABLE IF NOT EXISTS body_diagram (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id  uuid NOT NULL REFERENCES tenant(id),
   patient_id uuid NOT NULL REFERENCES patient(id),
@@ -220,12 +228,12 @@ CREATE TABLE body_diagram (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_body_patient ON body_diagram(patient_id);
+CREATE INDEX IF NOT EXISTS idx_body_patient ON body_diagram(patient_id);
 
 -- -----------------------------------------------------------------------------
 -- 4. デイリーレコード（共通 + 対象別拡張）
 -- -----------------------------------------------------------------------------
-CREATE TABLE daily_record (
+CREATE TABLE IF NOT EXISTS daily_record (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id       uuid NOT NULL REFERENCES tenant(id),
   patient_id      uuid NOT NULL REFERENCES patient(id),
@@ -243,11 +251,12 @@ CREATE TABLE daily_record (
   source text NOT NULL DEFAULT 'patient',         -- patient / import / line
   UNIQUE (patient_id, record_date)
 );
-CREATE INDEX idx_daily_patient_date ON daily_record(patient_id, record_date DESC);
+CREATE INDEX IF NOT EXISTS idx_daily_patient_date ON daily_record(patient_id, record_date DESC);
+DROP TRIGGER IF EXISTS trg_daily_updated ON daily_record;
 CREATE TRIGGER trg_daily_updated BEFORE UPDATE ON daily_record
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-CREATE TABLE gyneco_daily (
+CREATE TABLE IF NOT EXISTS gyneco_daily (
   daily_record_id uuid PRIMARY KEY REFERENCES daily_record(id) ON DELETE CASCADE,
   bbt numeric,
   cycle_day int,
@@ -272,14 +281,14 @@ CREATE TABLE gyneco_daily (
   oriental text[] NOT NULL DEFAULT '{}'
 );
 
-CREATE TABLE athlete_daily (
+CREATE TABLE IF NOT EXISTS athlete_daily (
   daily_record_id uuid PRIMARY KEY REFERENCES daily_record(id) ON DELETE CASCADE,
   injury text,
   condition_score int,
   extra jsonb NOT NULL DEFAULT '{}'::jsonb
 );
 
-CREATE TABLE selfcare_log (
+CREATE TABLE IF NOT EXISTS selfcare_log (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   daily_record_id uuid NOT NULL REFERENCES daily_record(id) ON DELETE CASCADE,
   selfcare_code   text NOT NULL,   -- iap/pelvic/autonomic/stretch/lymph/walk ...
@@ -287,7 +296,7 @@ CREATE TABLE selfcare_log (
   UNIQUE (daily_record_id, selfcare_code)
 );
 
-CREATE TABLE medication (
+CREATE TABLE IF NOT EXISTS medication (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id  uuid NOT NULL REFERENCES tenant(id),
   patient_id uuid NOT NULL REFERENCES patient(id),
@@ -296,9 +305,9 @@ CREATE TABLE medication (
   is_active  boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_medication_patient ON medication(patient_id);
+CREATE INDEX IF NOT EXISTS idx_medication_patient ON medication(patient_id);
 
-CREATE TABLE medication_log (
+CREATE TABLE IF NOT EXISTS medication_log (
   daily_record_id uuid NOT NULL REFERENCES daily_record(id) ON DELETE CASCADE,
   medication_id   uuid NOT NULL REFERENCES medication(id),
   taken           boolean NOT NULL DEFAULT false,
@@ -308,7 +317,7 @@ CREATE TABLE medication_log (
 -- -----------------------------------------------------------------------------
 -- 5. トレーニング・栄養
 -- -----------------------------------------------------------------------------
-CREATE TABLE training_session (
+CREATE TABLE IF NOT EXISTS training_session (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id    uuid NOT NULL REFERENCES tenant(id),
   patient_id   uuid NOT NULL REFERENCES patient(id),
@@ -321,9 +330,9 @@ CREATE TABLE training_session (
   created_at   timestamptz NOT NULL DEFAULT now(),
   deleted_at   timestamptz
 );
-CREATE INDEX idx_training_patient_date ON training_session(patient_id, session_date DESC);
+CREATE INDEX IF NOT EXISTS idx_training_patient_date ON training_session(patient_id, session_date DESC);
 
-CREATE TABLE nutrition_goal (
+CREATE TABLE IF NOT EXISTS nutrition_goal (
   patient_id    uuid PRIMARY KEY REFERENCES patient(id),
   tenant_id     uuid NOT NULL REFERENCES tenant(id),
   calories      numeric,
@@ -333,11 +342,12 @@ CREATE TABLE nutrition_goal (
   target_weight numeric,
   updated_at    timestamptz NOT NULL DEFAULT now()
 );
+DROP TRIGGER IF EXISTS trg_nutrition_updated ON nutrition_goal;
 CREATE TRIGGER trg_nutrition_updated BEFORE UPDATE ON nutrition_goal
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- attachment は §7 で定義するが food_entry/media/lab から参照するため先に定義
-CREATE TABLE attachment (
+CREATE TABLE IF NOT EXISTS attachment (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id    uuid NOT NULL REFERENCES tenant(id),
   patient_id   uuid REFERENCES patient(id),
@@ -349,9 +359,9 @@ CREATE TABLE attachment (
   is_encrypted boolean NOT NULL DEFAULT true,
   created_at   timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_attachment_patient ON attachment(patient_id);
+CREATE INDEX IF NOT EXISTS idx_attachment_patient ON attachment(patient_id);
 
-CREATE TABLE food_entry (
+CREATE TABLE IF NOT EXISTS food_entry (
   id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id           uuid NOT NULL REFERENCES tenant(id),
   patient_id          uuid NOT NULL REFERENCES patient(id),
@@ -364,12 +374,12 @@ CREATE TABLE food_entry (
   created_at timestamptz NOT NULL DEFAULT now(),
   deleted_at timestamptz
 );
-CREATE INDEX idx_food_patient_date ON food_entry(patient_id, entry_date DESC);
+CREATE INDEX IF NOT EXISTS idx_food_patient_date ON food_entry(patient_id, entry_date DESC);
 
 -- -----------------------------------------------------------------------------
 -- 6. 採血（拡張可能な検査モデル）
 -- -----------------------------------------------------------------------------
-CREATE TABLE lab_test_catalog (
+CREATE TABLE IF NOT EXISTS lab_test_catalog (
   code       text PRIMARY KEY,    -- hb/ferritin/e2/p4/fsh/lh/amh/ck/testosterone ...
   name       text NOT NULL,
   unit       text,
@@ -380,7 +390,7 @@ CREATE TABLE lab_test_catalog (
   sort_order int NOT NULL DEFAULT 0
 );
 
-CREATE TABLE lab_result (
+CREATE TABLE IF NOT EXISTS lab_result (
   id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id           uuid NOT NULL REFERENCES tenant(id),
   patient_id          uuid NOT NULL REFERENCES patient(id),
@@ -391,21 +401,21 @@ CREATE TABLE lab_result (
   created_at          timestamptz NOT NULL DEFAULT now(),
   deleted_at          timestamptz
 );
-CREATE INDEX idx_lab_patient_date ON lab_result(patient_id, taken_date DESC);
+CREATE INDEX IF NOT EXISTS idx_lab_patient_date ON lab_result(patient_id, taken_date DESC);
 
-CREATE TABLE lab_value (
+CREATE TABLE IF NOT EXISTS lab_value (
   lab_result_id uuid NOT NULL REFERENCES lab_result(id) ON DELETE CASCADE,
   test_code     text NOT NULL REFERENCES lab_test_catalog(code),
   value         numeric,
   value_text    text,
   PRIMARY KEY (lab_result_id, test_code)
 );
-CREATE INDEX idx_lab_value_code ON lab_value(test_code);
+CREATE INDEX IF NOT EXISTS idx_lab_value_code ON lab_value(test_code);
 
 -- -----------------------------------------------------------------------------
 -- 7. メディア
 -- -----------------------------------------------------------------------------
-CREATE TABLE media (
+CREATE TABLE IF NOT EXISTS media (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id     uuid NOT NULL REFERENCES tenant(id),
   patient_id    uuid NOT NULL REFERENCES patient(id),
@@ -418,12 +428,12 @@ CREATE TABLE media (
   created_at    timestamptz NOT NULL DEFAULT now(),
   deleted_at    timestamptz
 );
-CREATE INDEX idx_media_patient ON media(patient_id);
+CREATE INDEX IF NOT EXISTS idx_media_patient ON media(patient_id);
 
 -- -----------------------------------------------------------------------------
 -- 8. 汎用観測モデル（将来対象を“設定”で追加：スキーマ変更不要）
 -- -----------------------------------------------------------------------------
-CREATE TABLE observation_definition (
+CREATE TABLE IF NOT EXISTS observation_definition (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id       uuid REFERENCES tenant(id),     -- NULL = 標準
   care_program_id uuid REFERENCES care_program(id),
@@ -435,9 +445,9 @@ CREATE TABLE observation_definition (
   sort_order      int NOT NULL DEFAULT 0,
   is_active       boolean NOT NULL DEFAULT true
 );
-CREATE INDEX idx_obsdef_program ON observation_definition(care_program_id);
+CREATE INDEX IF NOT EXISTS idx_obsdef_program ON observation_definition(care_program_id);
 
-CREATE TABLE observation (
+CREATE TABLE IF NOT EXISTS observation (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id       uuid NOT NULL REFERENCES tenant(id),
   definition_id   uuid NOT NULL REFERENCES observation_definition(id),
@@ -450,12 +460,12 @@ CREATE TABLE observation (
   bool_value      boolean,
   array_value     text[]
 );
-CREATE INDEX idx_observation_trend ON observation(patient_id, definition_id, observed_at);
+CREATE INDEX IF NOT EXISTS idx_observation_trend ON observation(patient_id, definition_id, observed_at);
 
 -- -----------------------------------------------------------------------------
 -- 9. 連携・運用（LINE / 移行 / AI / 同意 / 監査）
 -- -----------------------------------------------------------------------------
-CREATE TABLE line_account (
+CREATE TABLE IF NOT EXISTS line_account (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id    uuid NOT NULL REFERENCES tenant(id),
   patient_id   uuid NOT NULL REFERENCES patient(id),
@@ -463,7 +473,7 @@ CREATE TABLE line_account (
   linked_at    timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE line_inbound_message (
+CREATE TABLE IF NOT EXISTS line_inbound_message (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   line_user_id text NOT NULL,
   patient_id   uuid REFERENCES patient(id),
@@ -472,10 +482,10 @@ CREATE TABLE line_inbound_message (
   received_at  timestamptz NOT NULL DEFAULT now(),
   processed_at timestamptz
 );
-CREATE INDEX idx_line_inbound_user ON line_inbound_message(line_user_id);
-CREATE INDEX idx_line_inbound_unprocessed ON line_inbound_message(processed_at) WHERE processed_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_line_inbound_user ON line_inbound_message(line_user_id);
+CREATE INDEX IF NOT EXISTS idx_line_inbound_unprocessed ON line_inbound_message(processed_at) WHERE processed_at IS NULL;
 
-CREATE TABLE import_job (
+CREATE TABLE IF NOT EXISTS import_job (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id       uuid NOT NULL REFERENCES tenant(id),
   patient_id      uuid REFERENCES patient(id),
@@ -488,7 +498,7 @@ CREATE TABLE import_job (
   created_by      uuid REFERENCES app_user(id)
 );
 
-CREATE TABLE ai_job (
+CREATE TABLE IF NOT EXISTS ai_job (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id     uuid NOT NULL REFERENCES tenant(id),
   patient_id    uuid REFERENCES patient(id),
@@ -503,9 +513,9 @@ CREATE TABLE ai_job (
   created_at    timestamptz NOT NULL DEFAULT now(),
   created_by    uuid REFERENCES app_user(id)
 );
-CREATE INDEX idx_ai_job_tenant ON ai_job(tenant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_job_tenant ON ai_job(tenant_id, created_at DESC);
 
-CREATE TABLE consent (
+CREATE TABLE IF NOT EXISTS consent (
   id                     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id              uuid NOT NULL REFERENCES tenant(id),
   patient_id             uuid NOT NULL REFERENCES patient(id),
@@ -515,9 +525,9 @@ CREATE TABLE consent (
   document_attachment_id uuid REFERENCES attachment(id),
   version                text
 );
-CREATE INDEX idx_consent_patient ON consent(patient_id);
+CREATE INDEX IF NOT EXISTS idx_consent_patient ON consent(patient_id);
 
-CREATE TABLE audit_log (
+CREATE TABLE IF NOT EXISTS audit_log (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id     uuid NOT NULL REFERENCES tenant(id),
   actor_user_id uuid REFERENCES app_user(id),
@@ -529,8 +539,8 @@ CREATE TABLE audit_log (
   user_agent    text,
   at            timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_audit_tenant_at ON audit_log(tenant_id, at DESC);
-CREATE INDEX idx_audit_entity ON audit_log(entity, entity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_tenant_at ON audit_log(tenant_id, at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity, entity_id);
 
 -- =============================================================================
 -- 10. Row-Level Security（テナント分離）
