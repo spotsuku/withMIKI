@@ -74,6 +74,32 @@ export interface LabResult {
   comment: string | null;
 }
 
+export interface LabTestCatalog {
+  code: string;
+  name: string;
+  unit: string | null;
+  ref_low: number | null;
+  ref_high: number | null;
+  category: string | null;
+  sort_order: number;
+}
+
+export interface LabCategoryGroup {
+  category: string;
+  items: LabTestCatalog[];
+}
+
+/** カタログ配列をカテゴリ別にグループ化（sort_order 順を維持） */
+export function groupLabCatalog(items: LabTestCatalog[]): LabCategoryGroup[] {
+  const map = new Map<string, LabTestCatalog[]>();
+  for (const it of items) {
+    const cat = it.category ?? 'その他';
+    if (!map.has(cat)) map.set(cat, []);
+    map.get(cat)!.push(it);
+  }
+  return Array.from(map.entries()).map(([category, items]) => ({ category, items }));
+}
+
 /** 年齢計算（dob から） */
 export function ageFromDob(dob: string | null): number | null {
   if (!dob) return null;

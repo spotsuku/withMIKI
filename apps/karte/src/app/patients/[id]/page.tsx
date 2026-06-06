@@ -210,16 +210,24 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
 
         {/* 採血 */}
         <div className="card">
-          <h2>採血（最近5件）</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ margin: 0 }}>採血（最近5件）</h2>
+            <Link className="btn" href={`/patients/${p.id}/labs/new`}>
+              ＋ 採血を入力
+            </Link>
+          </div>
           {labs.length ? (
-            <ul className="patient-list">
+            <ul className="patient-list" style={{ marginTop: 12 }}>
               {labs.map((l) => (
                 <li key={l.id}>
-                  <div style={{ padding: '8px 4px' }}>
-                    <strong>{l.taken_date}</strong>
-                    <span className="meta">　{l.source === 'ocr' ? '画像OCR' : '手入力'}</span>
-                    {l.comment ? <div className="meta">{l.comment}</div> : null}
-                  </div>
+                  <Link href={`/patients/${p.id}/labs/${l.id}/edit`}>
+                    <span style={{ flex: 1 }}>
+                      <strong>{l.taken_date}</strong>
+                      <span className="meta">　{l.source === 'ocr' ? '画像OCR' : '手入力'}</span>
+                      {l.comment ? <div className="meta">{l.comment}</div> : null}
+                    </span>
+                    <span className="meta">編集 ›</span>
+                  </Link>
                 </li>
               ))}
             </ul>
