@@ -29,44 +29,76 @@ function loadLiffSdk(): Promise<void> {
   });
 }
 
+/**
+ * LINE 処理の集約ページ（LIFFエンドポイントURLはここに設定）。
+ * mode=login（既存ログイン）/ link（先生がLINE連携）/ invite（招待から患者登録）
+ */
 export default function LiffPage() {
   const router = useRouter();
-  const [status, setStatus] = useState('LINE ログインを準備中…');
+  const [status, setStatus] = useState('LINE を準備中…');
   const [notlinked, setNotlinked] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
+        const params = new URLSearchParams(window.location.search);
+        const mode = params.get('mode') || 'login';
+        const inviteToken = params.get('token') || '';
         const supabase = createClient();
 
-        // 1) 既にログイン済みなら LINE を介さず即ロール振り分け（毎回ログインの高速化）
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) { router.replace('/'); return; }
+        // ログイン目的で既にセッションがあれば即ロール振り分け（高速化）
+        if (mode === 'login') {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) { router.replace('/'); return; }
+        }
 
-        // 2) LIFF でログイン
         if (!LIFF_ID) { setStatus('LIFF が未設定です（NEXT_PUBLIC_LIFF_ID）。'); return; }
         await loadLiffSdk();
         if (cancelled) return;
         const liff = window.liff!;
         await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) { liff.login(); return; } // LINEへ遷移→戻ると再実行
+        if (!liff.isLoggedIn()) { liff.login(); return; } // LINEへ→戻ると再実行
         const idToken = liff.getIDToken();
         if (!idToken) { setStatus('IDトークンを取得できませんでした。'); return; }
 
+        // ---- 連携（先生がLINEをひも付け）----
+        if (mode === 'link') {
+          setStatus('連携中…');
+          const res = await fetch('/api/auth/line/link', {
+            method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ idToken }),
+          });
+          const j = await res.json();
+          if (!res.ok) { setStatus(j.error || '連携に失敗しました'); return; }
+          router.replace('/settings?line=linked'); router.refresh();
+          return;
+        }
+
+        // ---- 招待からの患者登録 ----
+        if (mode === 'invite') {
+          setStatus('登録中…');
+          const res = await fetch('/api/invite/line', {
+            method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: inviteToken, idToken }),
+          });
+          const j = await res.json();
+          if (!res.ok) { setStatus(j.error || '登録に失敗しました'); return; }
+          const { error } = await supabase.auth.verifyOtp({ email: j.email, token: j.otp, type: 'magiclink' });
+          if (error) { setStatus('セッション確立に失敗しました：' + error.message); return; }
+          router.replace('/today'); router.refresh();
+          return;
+        }
+
+        // ---- 通常ログイン ----
         setStatus('ログイン中…');
         const res = await fetch('/api/auth/line', {
-          method: 'POST', headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ idToken }),
+          method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ idToken }),
         });
-        const json = await res.json();
-        if (res.status === 404) { setNotlinked(true); setStatus(''); return; } // 未登録のLINE
-        if (!res.ok) { setStatus(json.error || 'ログインに失敗しました'); return; }
-
-        const { error } = await supabase.auth.verifyOtp({ email: json.email, token: json.otp, type: 'magiclink' });
+        const j = await res.json();
+        if (res.status === 404) { setNotlinked(true); setStatus(''); return; }
+        if (!res.ok) { setStatus(j.error || 'ログインに失敗しました'); return; }
+        const { error } = await supabase.auth.verifyOtp({ email: j.email, token: j.otp, type: 'magiclink' });
         if (error) { setStatus('セッション確立に失敗しました：' + error.message); return; }
-        router.replace(json.role === 'staff' ? '/patients' : '/today');
-        router.refresh();
+        router.replace(j.role === 'staff' ? '/patients' : '/today'); router.refresh();
       } catch (e) {
         if (!cancelled) setStatus('エラー：' + (e as Error).message);
       }
@@ -77,11 +109,11 @@ export default function LiffPage() {
   return (
     <div className="container login-wrap">
       <div className="card">
-        <h2>WithMIKI（LINE ログイン）</h2>
+        <h2>WithMIKI（LINE）</h2>
         {notlinked ? (
           <>
             <p className="meta">このLINEアカウントはまだ登録されていません。</p>
-            <p className="meta">初めての方は、先生から届いた<strong>招待URL</strong>から登録してください。登録済みの方は別のLINEでお試しください。</p>
+            <p className="meta">初めての方は、先生から届いた<strong>招待URL</strong>から登録してください。</p>
             <a className="btn secondary" href="/login" style={{ width: '100%', textAlign: 'center', display: 'block' }}>ログイン画面へ</a>
           </>
         ) : (
