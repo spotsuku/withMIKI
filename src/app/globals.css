@@ -125,3 +125,18 @@ a:hover { text-decoration: underline; }
   background: rgba(255,255,255,.18); color: #fff; padding: 3px 10px; border-radius: 999px;
   font-size: .82rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* ヘッダー：1行・高さ揃え */
+.topbar { align-items: center; }
+.topnav form { display: inline-flex; margin: 0; }
+.topnav .btn.secondary { padding: 6px 12px; font-size: .85rem; line-height: 1.2; height: 34px; display: inline-flex; align-items: center; }
+.topnav a { display: inline-flex; align-items: center; height: 34px; }
+
+/* 曜日チェック（崩れ防止：均一なピル） */
+.wd-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.wd-list label {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; min-width: 56px;
+  color: var(--ink); cursor: pointer; user-select: none;
+}
+.wd-list input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }

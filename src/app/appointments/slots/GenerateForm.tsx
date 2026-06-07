@@ -30,10 +30,10 @@ export function GenerateForm() {
         </div>
         <div className="field">
           <label>対象曜日</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px' }}>
+          <div className="wd-list">
             {WD.map(([v, l]) => (
-              <label key={v} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--ink)' }}>
-                <input type="checkbox" name="wd" value={v} defaultChecked={v !== '0'} /> {l}
+              <label key={v}>
+                <input type="checkbox" name="wd" value={v} defaultChecked={v !== '0'} />{l}
               </label>
             ))}
           </div>
