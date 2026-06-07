@@ -29,11 +29,13 @@ export async function createInviteLink(_p: InviteState, fd: FormData): Promise<I
   const h = headers();
   const reqHost = h.get('x-forwarded-host') || h.get('host');
   const reqProto = h.get('x-forwarded-proto') || 'https';
+  // 本番ドメインを最優先（プレビュー用デプロイURLで開いていても本番URLにする）
+  const prodHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
   const base = (
     process.env.PATIENT_APP_URL ||
     process.env.NEXT_PUBLIC_SITE_URL ||
-    (reqHost ? `${reqProto}://${reqHost}` : '') ||
-    (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '')
+    (prodHost ? `https://${prodHost}` : '') ||
+    (reqHost ? `${reqProto}://${reqHost}` : '')
   ).replace(/\/$/, '');
   if (!base) return { error: 'サイトURLを特定できませんでした。' };
 

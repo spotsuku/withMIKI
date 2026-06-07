@@ -11,6 +11,7 @@ declare global {
       init: (c: { liffId: string }) => Promise<void>;
       isLoggedIn: () => boolean;
       login: () => void;
+      logout: () => void;
       getIDToken: () => string | null;
     };
   }
