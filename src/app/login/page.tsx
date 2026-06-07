@@ -1,12 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { login, devLogin } from './actions';
 
 const initialState: { error?: string } = {};
 
 // 開発用ログインボタンの表示フラグ（ビルド時に埋め込み）。
-// 実際の認可はサーバー側の DEV_LOGIN_EMAIL / DEV_LOGIN_PASSWORD で制御する。
 const DEV_LOGIN_VISIBLE = process.env.NEXT_PUBLIC_DEV_LOGIN === '1';
 
 function SubmitButton() {
@@ -30,54 +30,57 @@ function DevButton() {
 export default function LoginPage() {
   const [state, formAction] = useFormState(login, initialState);
   const [devState, devAction] = useFormState(devLogin, initialState);
+  const [showAdmin, setShowAdmin] = useState(false);
+
+  function startLineLogin() {
+    try { sessionStorage.setItem('liff_mode', 'login'); sessionStorage.removeItem('liff_token'); } catch { /* noop */ }
+    window.location.href = '/liff';
+  }
 
   return (
     <div className="container login-wrap">
       <div className="card">
-        <h2>WithMIKI カルテ ログイン</h2>
-        <form action={formAction}>
-          <div className="field">
-            <label htmlFor="email">メールアドレス</label>
-            <input id="email" name="email" type="email" autoComplete="email" required />
-          </div>
-          <div className="field">
-            <label htmlFor="password">パスワード</label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-            />
-          </div>
-          <SubmitButton />
-          {state?.error ? <p className="error">{state.error}</p> : null}
-        </form>
+        <h2>WithMIKI ログイン</h2>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '14px 0' }}>
-          <span style={{ flex: 1, height: 1, background: 'var(--line)' }} />
-          <span className="meta">または</span>
-          <span style={{ flex: 1, height: 1, background: 'var(--line)' }} />
-        </div>
-        <a className="btn" href="/liff" style={{ width: '100%', background: '#06c755', textAlign: 'center', display: 'block' }}>
+        {/* 患者さんは LINE ログインのみ */}
+        <button className="btn" onClick={startLineLogin} style={{ width: '100%', background: '#06c755' }}>
           LINEでログイン
-        </a>
+        </button>
+        <p className="meta" style={{ marginTop: 10 }}>
+          患者さんは <strong>LINEでログイン</strong> してください。
+          初めての方は、先生から届く「招待URL」から登録できます。
+        </p>
 
-        {DEV_LOGIN_VISIBLE ? (
-          <form action={devAction} style={{ marginTop: 12, borderTop: '1px dashed var(--line)', paddingTop: 12 }}>
-            <DevButton />
-            {devState?.error ? <p className="error">{devState.error}</p> : null}
-            <p className="meta" style={{ marginTop: 6 }}>
-              開発用の固定アカウントへ自動ログインします（本番では無効）。
-            </p>
-          </form>
-        ) : null}
+        {/* 管理者（先生）のみ：メール・パスワード */}
+        <div style={{ borderTop: '1px dashed var(--line)', marginTop: 16, paddingTop: 12 }}>
+          {!showAdmin ? (
+            <button className="btn secondary" style={{ width: '100%' }} onClick={() => setShowAdmin(true)}>
+              管理者の方（メールでログイン）
+            </button>
+          ) : (
+            <form action={formAction}>
+              <div className="field">
+                <label htmlFor="email">メールアドレス</label>
+                <input id="email" name="email" type="email" autoComplete="email" required />
+              </div>
+              <div className="field">
+                <label htmlFor="password">パスワード</label>
+                <input id="password" name="password" type="password" autoComplete="current-password" required />
+              </div>
+              <SubmitButton />
+              {state?.error ? <p className="error">{state.error}</p> : null}
+              <p className="meta" style={{ marginTop: 8 }}>※ メール・パスワードでのログインは管理者（先生）専用です。</p>
+            </form>
+          )}
+
+          {DEV_LOGIN_VISIBLE ? (
+            <form action={devAction} style={{ marginTop: 12 }}>
+              <DevButton />
+              {devState?.error ? <p className="error">{devState.error}</p> : null}
+            </form>
+          ) : null}
+        </div>
       </div>
-      <p className="meta">
-        患者さんは先生から届く「招待URL」からアカウントを作成します。
-        先生アカウントは Supabase の Authentication で作成し、app_user にひも付けてください
-        （docs/setup/supabase-setup.md §4）。LINEでログインするには、先生は「設定」から事前にLINE連携が必要です。
-      </p>
     </div>
   );
 }
