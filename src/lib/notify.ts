@@ -1,13 +1,18 @@
 /**
  * 通知（メール=Resend / LINE=Messaging API push）。サーバー専用。
- * env: RESEND_API_KEY, RESEND_FROM / LINE_CHANNEL_ACCESS_TOKEN / APP_BASE_URL
+ * env: RESEND_API_KEY, RESEND_FROM / LINE_CHANNEL_ACCESS_TOKEN（別名 LINE_MESSAGING_ACCESS_TOKEN 可）/ APP_BASE_URL
  * いずれも未設定なら no-op（本処理を止めない）。
  */
 import { createAdminClient } from '@/lib/supabase/admin';
 import { fmtJst, fmtTimeJst } from '@/lib/datetime';
 
+/** Messaging API のチャネルアクセストークン（どちらの環境変数名でも可） */
+function lineToken(): string | undefined {
+  return process.env.LINE_CHANNEL_ACCESS_TOKEN || process.env.LINE_MESSAGING_ACCESS_TOKEN;
+}
+
 export function emailEnabled(): boolean { return Boolean(process.env.RESEND_API_KEY); }
-export function lineEnabled(): boolean { return Boolean(process.env.LINE_CHANNEL_ACCESS_TOKEN); }
+export function lineEnabled(): boolean { return Boolean(lineToken()); }
 
 export function appBaseUrl(): string {
   return (process.env.APP_BASE_URL || '').replace(/\/$/, '');
@@ -29,7 +34,7 @@ export async function linePush(to: string, text: string): Promise<void> {
   try {
     await fetch('https://api.line.me/v2/bot/message/push', {
       method: 'POST',
-      headers: { authorization: `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`, 'content-type': 'application/json' },
+      headers: { authorization: `Bearer ${lineToken()}`, 'content-type': 'application/json' },
       body: JSON.stringify({ to, messages: [{ type: 'text', text }] }),
     });
   } catch { /* ignore */ }
