@@ -150,12 +150,17 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
   }
   function onDown(date: string, e: React.PointerEvent<HTMLDivElement>) {
     if (e.button && e.button !== 0) return;
-    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ }
+    // マウス/ペンのみポインタを捕捉（タッチで捕捉すると縦スクロールできなくなるため）
+    if (e.pointerType !== 'touch') {
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ }
+    }
     const m = yToMin(e.currentTarget.getBoundingClientRect().top, e.clientY);
     setDrag({ date, a: m, b: m });
   }
   function onMove(date: string, e: React.PointerEvent<HTMLDivElement>) {
     if (!drag || drag.date !== date) return;
+    // タッチでドラッグ幅を更新するとスクロールと競合するため、マウス/ペンのみドラッグ作成
+    if (e.pointerType === 'touch') return;
     const m = yToMin(e.currentTarget.getBoundingClientRect().top, e.clientY);
     setDrag((d) => (d && d.b !== m ? { ...d, b: m } : d));
   }
@@ -248,7 +253,7 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
             {Array.from({ length: END_HOUR - START_HOUR }, (_, i) => (<div key={i} className="cal-hourlabel">{START_HOUR + i}:00</div>))}
           </div>
           {week.map((d) => (
-            <div key={d} className="cal-day" style={{ height: dayHeight, touchAction: 'none' }}
+            <div key={d} className="cal-day" style={{ height: dayHeight, touchAction: 'pan-y' }}
               onPointerDown={(e) => onDown(d, e)} onPointerMove={(e) => onMove(d, e)}
               onPointerUp={() => openModal(d)} onPointerCancel={() => setDrag(null)} onLostPointerCapture={() => setDrag(null)}>
               {Array.from({ length: END_HOUR - START_HOUR }, (_, i) => <div key={i} className="cal-hourline" />)}

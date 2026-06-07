@@ -30,6 +30,8 @@ html, body {
   font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN",
     "Noto Sans JP", "Segoe UI", Meiryo, sans-serif;
   line-height: 1.6;
+  /* LINE等の内蔵ブラウザで、最上部の下スワイプ＝ブラウザを閉じる動作を防ぐ */
+  overscroll-behavior: none;
 }
 
 a { color: var(--accent); text-decoration: none; }
@@ -116,7 +118,7 @@ a:hover { text-decoration: underline; }
 .login-wrap { max-width: 380px; margin: 8vh auto; }
 
 /* 週カレンダー（予約・空き枠） */
-.cal-wrap { overflow-x: auto; }
+.cal-wrap { overflow: auto; max-height: 72vh; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .cal { display: grid; grid-template-columns: 44px repeat(7, minmax(64px, 1fr)); min-width: 560px; }
 .cal-head { position: sticky; top: 0; background: var(--card); border-bottom: 1px solid var(--line); padding: 6px 2px; text-align: center; font-size: 12px; }
 .cal-head.today { color: var(--accent); font-weight: 700; }
