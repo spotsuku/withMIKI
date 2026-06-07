@@ -89,6 +89,35 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
   const labs = (labsRes.data ?? []) as LabResult[];
   const media = (mediaRes.data ?? []) as { id: string; title: string | null; category: string | null; taken_date: string | null }[];
 
+  // ===== 患者の共有設定＋本人記録 =====
+  const { data: shareSetRows } = await supabase
+    .from('patient_share_settings')
+    .select('section, is_shared')
+    .eq('patient_id', p.id);
+  const shareMap: Record<string, boolean> = {};
+  for (const r of (shareSetRows ?? []) as { section: string; is_shared: boolean }[]) shareMap[r.section] = r.is_shared;
+  const isShared = (k: string) => shareMap[k] ?? true; // 既定は公開
+
+  interface SelfDailyRow {
+    record_date: string; weight: number | null; body_temp: number | null; sleep_hours: number | null;
+    gyneco_daily: { bbt: number | null; pain: number | null; menstrual: string | null } | { bbt: number | null; pain: number | null; menstrual: string | null }[] | null;
+  }
+  const { data: selfDailyRaw } = await supabase
+    .from('daily_record')
+    .select('record_date, weight, body_temp, sleep_hours, gyneco_daily(bbt, pain, menstrual)')
+    .eq('patient_id', p.id)
+    .eq('source', 'patient')
+    .is('deleted_at', null)
+    .order('record_date', { ascending: false })
+    .limit(14);
+  const selfDaily = ((selfDailyRaw ?? []) as SelfDailyRow[]).map((r) => {
+    const g = Array.isArray(r.gyneco_daily) ? r.gyneco_daily[0] : r.gyneco_daily;
+    return { date: r.record_date, weight: r.weight, body_temp: r.body_temp, sleep_hours: r.sleep_hours, bbt: g?.bbt ?? null, pain: g?.pain ?? null, menstrual: g?.menstrual ?? null };
+  });
+  const showBody = isShared('body');
+  const showMenst = isShared('menstrual');
+  const showPms = isShared('pms');
+
   // 有効な共有リンク
   const { data: shareRows } = await supabase
     .from('karte_share')
@@ -356,6 +385,48 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
             </ul>
           ) : (
             <div className="empty">メディアなし</div>
+          )}
+        </div>
+
+        {/* 患者本人の記録（共有設定を尊重） */}
+        <div className="card">
+          <h2>本人の記録（最近）</h2>
+          <p className="meta">
+            患者本人が公開設定した項目のみ表示されます。
+            {' '}非公開: {['menstrual', 'pms', 'oriental', 'body', 'selfcare', 'meds', 'food', 'labs', 'media'].filter((k) => !isShared(k)).length
+              ? ['menstrual:月経', 'pms:症状', 'oriental:東洋', 'body:体組成', 'selfcare:セルフケア', 'meds:服薬', 'food:食事', 'labs:採血', 'media:写真']
+                  .filter((s) => !isShared(s.split(':')[0])).map((s) => s.split(':')[1]).join('・')
+              : 'なし'}
+          </p>
+          {selfDaily.length && (showBody || showMenst || showPms) ? (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.85rem' }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', color: 'var(--muted)' }}>
+                    <th style={{ padding: '4px 8px' }}>日付</th>
+                    {showMenst ? <th style={{ padding: '4px 8px' }}>基礎体温</th> : null}
+                    {showMenst ? <th style={{ padding: '4px 8px' }}>月経</th> : null}
+                    {showPms ? <th style={{ padding: '4px 8px' }}>痛み</th> : null}
+                    {showBody ? <th style={{ padding: '4px 8px' }}>体重</th> : null}
+                    {showBody ? <th style={{ padding: '4px 8px' }}>睡眠</th> : null}
+                  </tr>
+                </thead>
+                <tbody>
+                  {selfDaily.map((r) => (
+                    <tr key={r.date} style={{ borderTop: '1px solid var(--line)' }}>
+                      <td style={{ padding: '4px 8px' }}>{r.date.slice(5)}</td>
+                      {showMenst ? <td style={{ padding: '4px 8px' }}>{r.bbt ?? '-'}</td> : null}
+                      {showMenst ? <td style={{ padding: '4px 8px' }}>{r.menstrual ?? '-'}</td> : null}
+                      {showPms ? <td style={{ padding: '4px 8px' }}>{r.pain ?? '-'}</td> : null}
+                      {showBody ? <td style={{ padding: '4px 8px' }}>{r.weight ?? '-'}</td> : null}
+                      {showBody ? <td style={{ padding: '4px 8px' }}>{r.sleep_hours ?? '-'}</td> : null}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="empty">本人の公開記録はありません</div>
           )}
         </div>
 
