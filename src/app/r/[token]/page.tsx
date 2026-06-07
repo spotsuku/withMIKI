@@ -31,15 +31,25 @@ export default async function RecordTokenPage({ params }: { params: { token: str
   const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' });
   const initial = await loadDailyInitial(admin, row.patient_id, today);
 
-  // 基本カルテ（先生が記入済み）＝表紙・問診・問題リスト
-  const [coverRes, intakeRes, problemsRes] = await Promise.all([
-    admin.from('karte_cover').select('purpose, goal, diagnosis, treatment, caution, therapist, next_visit').eq('patient_id', row.patient_id).maybeSingle(),
-    admin.from('patient_intake').select('chief, onset, current, history, meds, note').eq('patient_id', row.patient_id).maybeSingle(),
-    admin.from('problem').select('title, category, status, detail').eq('patient_id', row.patient_id).is('deleted_at', null).order('sort_order'),
+  // 先生→患者の公開設定（既定は全公開）
+  const { data: visRows } = await admin.from('karte_visibility').select('section, visible').eq('patient_id', row.patient_id);
+  const visible: Record<string, boolean> = {};
+  for (const r of (visRows ?? []) as { section: string; visible: boolean }[]) visible[r.section] = r.visible;
+  const vis = (k: string) => visible[k] ?? true;
+
+  // 基本カルテ（先生が記入済み）。公開された部分のみ取得。
+  const [coverRes, intakeRes, problemsRes, visitsRes, labsRes] = await Promise.all([
+    vis('careplan') ? admin.from('karte_cover').select('*').eq('patient_id', row.patient_id).maybeSingle() : Promise.resolve({ data: null }),
+    vis('intake') ? admin.from('patient_intake').select('*').eq('patient_id', row.patient_id).maybeSingle() : Promise.resolve({ data: null }),
+    vis('problems') ? admin.from('problem').select('title, category, status, detail').eq('patient_id', row.patient_id).is('deleted_at', null).order('sort_order') : Promise.resolve({ data: [] }),
+    vis('visits') ? admin.from('visit').select('visit_date, injury_part, injury_name, treatments, memo').eq('patient_id', row.patient_id).is('deleted_at', null).order('visit_date', { ascending: false }).limit(10) : Promise.resolve({ data: [] }),
+    vis('labs') ? admin.from('lab_result').select('taken_date, comment').eq('patient_id', row.patient_id).is('deleted_at', null).order('taken_date', { ascending: false }).limit(5) : Promise.resolve({ data: [] }),
   ]);
   const cover = (coverRes.data as Record<string, string | null> | null) ?? null;
   const intake = (intakeRes.data as Record<string, string | null> | null) ?? null;
   const problems = (problemsRes.data ?? []) as { title: string; category: string | null; status: string; detail: string | null }[];
+  const visits = (visitsRes.data ?? []) as { visit_date: string; injury_part: string | null; injury_name: string | null; treatments: string[] | null; memo: string | null }[];
+  const labs = (labsRes.data ?? []) as { taken_date: string; comment: string | null }[];
 
   // 現在の共有設定
   const { data: shareRows } = await admin
@@ -56,7 +66,8 @@ export default async function RecordTokenPage({ params }: { params: { token: str
       patientName={pat?.name ?? 'あなた'}
       hasPin={Boolean(row.pin_hash)}
       initial={initial}
-      basicKarte={{ patient: pat ?? { name: 'あなた' }, cover, intake, problems }}
+      basicKarte={{ patient: pat ?? { name: 'あなた' }, cover, intake, problems, visits, labs }}
+      karteVisible={visible}
       shared={shared}
       diary={diary}
     />

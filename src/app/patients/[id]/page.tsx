@@ -8,6 +8,7 @@ import { ShareLinks, type ShareRow } from './share/ShareLinks';
 import { BookingSend } from './share/BookingSend';
 import { InviteButton } from './InviteButton';
 import { KarteTabs } from './KarteTabs';
+import { KarteVisibility } from './KarteVisibility';
 import {
   ageFromDob,
   type Patient,
@@ -99,6 +100,12 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
   const shareMap: Record<string, boolean> = {};
   for (const r of (shareSetRows ?? []) as { section: string; is_shared: boolean }[]) shareMap[r.section] = r.is_shared;
   const isShared = (k: string) => shareMap[k] ?? true; // 既定は公開
+
+  // 先生→患者の公開設定（基本カルテのどこを患者に見せるか・既定は全公開）
+  const { data: visRows } = await supabase
+    .from('karte_visibility').select('section, visible').eq('patient_id', p.id);
+  const karteVisible: Record<string, boolean> = {};
+  for (const r of (visRows ?? []) as { section: string; visible: boolean }[]) karteVisible[r.section] = r.visible;
 
   interface SelfDailyRow {
     record_date: string; weight: number | null; body_temp: number | null; sleep_hours: number | null;
@@ -400,6 +407,9 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
             <div className="empty">メディアなし</div>
           )}
         </div>
+
+        {/* 患者への公開設定（先生→患者） */}
+        <KarteVisibility patientId={p.id} visible={karteVisible} />
 
         {/* AI カルテ補助 */}
         <KarteChat patientId={p.id} />

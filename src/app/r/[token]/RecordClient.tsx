@@ -9,10 +9,11 @@ import { SHARE_SECTIONS } from '@/lib/sections';
 import { setRecordPin, verifyRecordPin, saveRecordByToken, linkLineFromRecord, saveShareByToken, addDiaryByToken, toggleDiaryByToken, deleteDiaryByToken } from './actions';
 
 export function RecordClient({
-  token, patientName, hasPin, initial, basicKarte, shared, diary,
+  token, patientName, hasPin, initial, basicKarte, karteVisible, shared, diary,
 }: {
   token: string; patientName: string; hasPin: boolean; initial: DailyInitial;
   basicKarte: BasicKarteData;
+  karteVisible: Record<string, boolean>;
   shared: Record<string, boolean>;
   diary: DiaryRow[];
 }) {
@@ -116,9 +117,9 @@ export function RecordClient({
         <>
           {/* 基本カルテ（先生が記入・閲覧のみ） */}
           <p className="meta">先生が記入したあなたの基本カルテです（閲覧のみ）。</p>
-          <BasicKarte data={basicKarte} showHeader={false} />
-          {!basicKarte.cover && !basicKarte.intake && !(basicKarte.problems && basicKarte.problems.length) ? (
-            <div className="card"><div className="empty">まだ先生の記入はありません</div></div>
+          <BasicKarte data={basicKarte} visible={karteVisible} showHeader={false} />
+          {!basicKarte.cover && !basicKarte.intake && !(basicKarte.problems && basicKarte.problems.length) && !(basicKarte.visits && basicKarte.visits.length) && !(basicKarte.labs && basicKarte.labs.length) ? (
+            <div className="card"><div className="empty">公開されている内容はまだありません</div></div>
           ) : null}
         </>
       ) : null}

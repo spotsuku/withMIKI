@@ -5,11 +5,17 @@ export interface BasicKarteData {
   cover?: Record<string, string | null> | null;
   intake?: Record<string, string | null> | null;
   problems?: { title: string; category: string | null; status: string; detail: string | null }[];
+  visits?: { visit_date: string; injury_part?: string | null; injury_name?: string | null; treatments?: string[] | null; memo?: string | null }[];
+  labs?: { taken_date: string; comment?: string | null }[];
 }
 
-/** 基本カルテ（基本情報・ケアプラン・問診・問題リスト）の読み取り表示。先生が記入した内容。 */
-export function BasicKarte({ data, showHeader = true }: { data: BasicKarteData; showHeader?: boolean }) {
-  const { patient: p, cover, intake, problems = [] } = data;
+/**
+ * 基本カルテ（ケアプラン・問診・問題リスト・施術記録・採血）の読み取り表示。先生が記入した内容。
+ * visible で先生が公開した部分のみ表示（既定はすべて公開）。
+ */
+export function BasicKarte({ data, visible, showHeader = true }: { data: BasicKarteData; visible?: Record<string, boolean>; showHeader?: boolean }) {
+  const { patient: p, cover, intake, problems = [], visits = [], labs = [] } = data;
+  const vis = (k: string) => visible?.[k] ?? true;
   const age = ageFromDob(p.dob ?? null);
   return (
     <>
@@ -21,7 +27,7 @@ export function BasicKarte({ data, showHeader = true }: { data: BasicKarteData; 
         </div>
       ) : null}
 
-      {cover && Object.values(cover).some(Boolean) ? (
+      {vis('careplan') && cover && Object.values(cover).some(Boolean) ? (
         <div className="card">
           <h2>ケアプラン（先生記入）</h2>
           <dl className="kv">
@@ -31,13 +37,12 @@ export function BasicKarte({ data, showHeader = true }: { data: BasicKarteData; 
             {cover.treatment ? (<><dt>治療方針</dt><dd>{cover.treatment}</dd></>) : null}
             {cover.caution ? (<><dt>注意</dt><dd>{cover.caution}</dd></>) : null}
             {cover.therapist ? (<><dt>担当</dt><dd>{cover.therapist}</dd></>) : null}
-            {cover.doctor ? (<><dt>医師</dt><dd>{cover.doctor}</dd></>) : null}
             {cover.next_visit ? (<><dt>次回</dt><dd>{cover.next_visit}</dd></>) : null}
           </dl>
         </div>
       ) : null}
 
-      {intake && Object.values(intake).some(Boolean) ? (
+      {vis('intake') && intake && Object.values(intake).some(Boolean) ? (
         <div className="card">
           <h2>問診（先生記入）</h2>
           <dl className="kv">
@@ -51,12 +56,41 @@ export function BasicKarte({ data, showHeader = true }: { data: BasicKarteData; 
         </div>
       ) : null}
 
-      {problems.length ? (
+      {vis('problems') && problems.length ? (
         <div className="card">
           <h2>問題リスト</h2>
           <ul style={{ paddingLeft: 18, margin: 0 }}>
             {problems.map((pr, i) => (
               <li key={i}>{pr.category ? <span className="tag">{pr.category}</span> : null}<strong>{pr.title}</strong>{pr.status === 'resolved' ? '（解決）' : ''}{pr.detail ? ` — ${pr.detail}` : ''}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {vis('visits') && visits.length ? (
+        <div className="card">
+          <h2>施術記録</h2>
+          <ul className="patient-list" style={{ marginTop: 8 }}>
+            {visits.map((v, i) => (
+              <li key={i}>
+                <span style={{ flex: 1 }}>
+                  <strong>{v.visit_date}</strong>
+                  {v.treatments?.length ? v.treatments.map((t) => <span className="tag" key={t} style={{ marginLeft: 6 }}>{t}</span>) : null}
+                  {(v.injury_part || v.injury_name) ? <div className="meta">{[v.injury_part, v.injury_name].filter(Boolean).join(' ')}</div> : null}
+                  {v.memo ? <div className="meta">{v.memo}</div> : null}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {vis('labs') && labs.length ? (
+        <div className="card">
+          <h2>採血</h2>
+          <ul className="patient-list" style={{ marginTop: 8 }}>
+            {labs.map((l, i) => (
+              <li key={i}><span style={{ flex: 1 }}><strong>{l.taken_date}</strong>{l.comment ? <div className="meta">{l.comment}</div> : null}</span></li>
             ))}
           </ul>
         </div>
