@@ -6,6 +6,7 @@ import { KarteChat } from '@/components/KarteChat';
 import { TrendChart, type Series } from '@/components/TrendChart';
 import { ShareLinks, type ShareRow } from './share/ShareLinks';
 import { BookingSend } from './share/BookingSend';
+import { InviteButton } from './InviteButton';
 import {
   ageFromDob,
   type Patient,
@@ -217,6 +218,7 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
             </Link>
           </div>
           <BookingSend patientId={p.id} />
+          <InviteButton patientId={p.id} />
         </div>
 
         {/* ケアプラン（表紙） */}
