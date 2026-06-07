@@ -1,11 +1,11 @@
 {
-  "name": "WithMIKI デイリーレコード",
+  "name": "WithMIKI",
   "short_name": "WithMIKI",
-  "description": "毎日の体調を記録する患者用アプリ",
-  "start_url": "/today",
+  "description": "WithMIKI カルテ / 患者デイリーレコード",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#f7f7f5",
-  "theme_color": "#8a6d3b",
+  "background_color": "#f5f7fb",
+  "theme_color": "#0b3da6",
   "lang": "ja",
   "icons": [
     {

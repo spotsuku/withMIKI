@@ -23,8 +23,10 @@ export async function createInviteLink(_p: InviteState, fd: FormData): Promise<I
   const patientId = String(fd.get('patientId') ?? '');
   if (!patientId) return { error: '患者IDがありません。' };
 
-  const base = (process.env.PATIENT_APP_URL || '').replace(/\/$/, '');
-  if (!base) return { error: '患者アプリURL（PATIENT_APP_URL）が未設定です。' };
+  // 統合アプリでは同一オリジン。PATIENT_APP_URL があれば優先、無ければ自オリジン。
+  const base = (process.env.PATIENT_APP_URL || process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')).replace(/\/$/, '');
+  if (!base) return { error: 'サイトURL（NEXT_PUBLIC_SITE_URL）が未設定です。' };
 
   const supabase = createClient();
   const { data: pat } = await supabase.from('patient').select('tenant_id').eq('id', patientId).maybeSingle();

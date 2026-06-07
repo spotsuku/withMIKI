@@ -175,3 +175,12 @@ a:hover { text-decoration: underline; }
 /* モーダル（枠作成確認） */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
 .modal { background: var(--card); border-radius: 12px; padding: 18px; width: 100%; max-width: 360px; box-shadow: 0 10px 40px rgba(0,0,0,.25); }
+
+/* チップ選択 UI（患者デイリー） */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  padding: 7px 13px; border-radius: 20px; font-size: 13px;
+  border: 1.5px solid var(--line); background: #f5f5f3; color: var(--ink);
+  cursor: pointer; font-family: inherit; transition: all .15s;
+}
+.chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }

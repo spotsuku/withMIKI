@@ -32,3 +32,23 @@ export async function getUserContext(): Promise<UserContext | null> {
 
   return { user, appUser: (data as AppUser | null) ?? null };
 }
+
+/**
+ * ログイン後の遷移先を、ロール（先生 or 患者）で判定する。
+ * - app_user にひも付く → 先生 → /patients
+ * - patient_user にひも付く → 患者 → /today
+ * - どちらでもない → /login（連携待ち）
+ */
+export async function resolveHomePath(): Promise<string> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return '/login';
+
+  const { data: staff } = await supabase.from('app_user').select('id').eq('auth_user_id', user.id).maybeSingle();
+  if (staff) return '/patients';
+
+  const { data: patient } = await supabase.from('patient_user').select('id').eq('auth_user_id', user.id).maybeSingle();
+  if (patient) return '/today';
+
+  return '/login';
+}

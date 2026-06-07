@@ -1,17 +1,16 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { getUserContext } from '@/lib/auth';
 import { createAdminClient, MEDIA_BUCKET } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 
-/** メディアの短命署名URLへリダイレクト（テナントは RLS で検証） */
+/** メディアの短命署名URLへリダイレクト（先生・患者どちらも。所有は RLS で検証）。 */
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const ctx = await getUserContext();
-  if (!ctx?.appUser) return NextResponse.json({ error: '権限がありません' }, { status: 401 });
-
-  // RLS が効くユーザークライアントで所有確認（attachment 取得）
+  // RLS が効くユーザークライアントで所有確認（先生＝テナント、患者＝本人）
   const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: '権限がありません' }, { status: 401 });
+
   const { data: media } = await supabase
     .from('media')
     .select('attachment_id')

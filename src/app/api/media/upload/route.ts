@@ -1,13 +1,29 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getUserContext } from '@/lib/auth';
+import { getPatientContext } from '@/lib/patient';
 import { createAdminClient, MEDIA_BUCKET } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 
-/** メディア画像のアップロード（Storage）＋ attachment/media の登録 */
+/** メディア画像のアップロード（先生＝患者ID指定 / 患者本人＝自分）。 */
 export async function POST(req: NextRequest) {
-  const ctx = await getUserContext();
-  if (!ctx?.appUser) return NextResponse.json({ error: '権限がありません' }, { status: 401 });
+  const form = await req.formData();
+  const file = form.get('file');
+  if (!(file instanceof File)) return NextResponse.json({ error: 'ファイルが必要です' }, { status: 400 });
+
+  // 先生（患者ID指定）か、患者本人（自分）かを判定
+  let tenant: string; let patientId: string;
+  const staff = await getUserContext();
+  if (staff?.appUser) {
+    tenant = staff.appUser.tenant_id;
+    patientId = String(form.get('patientId') ?? '');
+    if (!patientId) return NextResponse.json({ error: '患者IDが必要です' }, { status: 400 });
+  } else {
+    const pc = await getPatientContext();
+    if (!pc?.patient) return NextResponse.json({ error: '権限がありません' }, { status: 401 });
+    tenant = pc.patient.tenant_id;
+    patientId = pc.patient.id;
+  }
 
   const admin = createAdminClient();
   if (!admin) {
@@ -17,14 +33,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const form = await req.formData();
-  const file = form.get('file');
-  const patientId = String(form.get('patientId') ?? '');
-  if (!(file instanceof File) || !patientId) {
-    return NextResponse.json({ error: 'ファイルと患者IDが必要です' }, { status: 400 });
-  }
-
-  const tenant = ctx.appUser.tenant_id;
   const safeName = (file.name || 'upload').replace(/[^\w.\-]/g, '_');
   const key = `${tenant}/${patientId}/${crypto.randomUUID()}_${safeName}`;
   const buffer = Buffer.from(await file.arrayBuffer());

@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { resolveHomePath } from '@/lib/auth';
 
 export async function login(_prev: unknown, formData: FormData) {
   const email = String(formData.get('email') ?? '');
@@ -15,7 +16,7 @@ export async function login(_prev: unknown, formData: FormData) {
   if (error) {
     return { error: 'ログインに失敗しました：' + error.message };
   }
-  redirect('/patients');
+  redirect(await resolveHomePath());
 }
 
 /**
@@ -34,5 +35,5 @@ export async function devLogin(_prev: unknown, _formData: FormData) {
   if (error) {
     return { error: '開発用ログインに失敗しました：' + error.message };
   }
-  redirect('/patients');
+  redirect(await resolveHomePath());
 }
