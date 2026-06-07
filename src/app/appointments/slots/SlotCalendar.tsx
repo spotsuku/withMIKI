@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { addSlotAt, removeSlotById, setSlotBlocked } from '../actions';
 
 export interface SlotItem { id: string; start_at: string; end_at: string; is_blocked: boolean }
+export interface ApptBlock { id: string; start_at: string; end_at: string; status: string; name: string }
 
 const START_HOUR = 8;
 const END_HOUR = 21;
@@ -22,19 +23,27 @@ function jstParts(iso: string): { date: string; minutes: number } {
 function hhmm(min: number) { return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`; }
 
 /** 空き枠カレンダー（Googleカレンダー風：縦ドラッグで作成・タップで既定長作成） */
-export function SlotCalendar({ week, slots }: { week: string[]; slots: SlotItem[] }) {
+export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: SlotItem[]; appts?: ApptBlock[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [duration, setDuration] = useState(60);
   const [msg, setMsg] = useState<string | null>(null);
   const [drag, setDrag] = useState<{ date: string; a: number; b: number } | null>(null);
 
+  const combined = !!appts;
   const byDate: Record<string, SlotItem[]> = {};
   for (const s of slots) {
     const { date } = jstParts(s.start_at);
     (byDate[date] ??= []).push(s);
   }
+  const apptByDate: Record<string, ApptBlock[]> = {};
+  for (const a of appts ?? []) {
+    if (a.status === 'cancelled') continue;
+    const { date } = jstParts(a.start_at);
+    (apptByDate[date] ??= []).push(a);
+  }
   const dayHeight = (END_HOUR - START_HOUR) * ROW;
+  const slotRight = combined ? '52%' : '2px';
 
   function run(fn: () => Promise<{ error?: string }>) {
     setMsg(null);
@@ -115,7 +124,7 @@ export function SlotCalendar({ week, slots }: { week: string[]; slots: SlotItem[
                 const s = Math.min(drag.a, drag.b); const en = Math.max(drag.a, drag.b);
                 const top = ((s - START_HOUR * 60) / 60) * ROW;
                 const height = Math.max(10, ((en - s) / 60) * ROW);
-                return <div className="cal-slot preview" style={{ top, height }}>{hhmm(s)}–{hhmm(en === s ? s + duration : en)}</div>;
+                return <div className="cal-slot preview" style={{ top, height, right: slotRight }}>{hhmm(s)}–{hhmm(en === s ? s + duration : en)}</div>;
               })() : null}
 
               {(byDate[d] ?? []).map((slot) => {
@@ -126,13 +135,31 @@ export function SlotCalendar({ week, slots }: { week: string[]; slots: SlotItem[
                 return (
                   <div key={slot.id}
                     className={'cal-slot ' + (slot.is_blocked ? 'blocked' : 'open')}
-                    style={{ top, height }}
+                    style={{ top, height, right: slotRight }}
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); run(() => setSlotBlocked(slot.id, !slot.is_blocked)); }}
                   >
                     <span className="x" onClick={(e) => { e.stopPropagation(); run(() => removeSlotById(slot.id)); }}>×</span>
                     {hhmm(st)}
                   </div>
+                );
+              })}
+
+              {/* 予約（重ね表示・クリックで編集） */}
+              {(apptByDate[d] ?? []).map((a) => {
+                const st = jstParts(a.start_at).minutes;
+                const en = jstParts(a.end_at).minutes;
+                const top = ((st - START_HOUR * 60) / 60) * ROW;
+                const height = Math.max(16, ((en - st) / 60) * ROW - 2);
+                return (
+                  <a key={a.id} href={`/appointments/${a.id}/edit`}
+                    className="cal-slot appt"
+                    style={{ top, height, left: '50%', right: '2px' }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {hhmm(st)} {a.name}
+                  </a>
                 );
               })}
             </div>

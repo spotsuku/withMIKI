@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { Topbar } from '@/components/Topbar';
 import { BookingLink } from './BookingLink';
-import { AppointmentCalendar, type CalAppt } from './AppointmentCalendar';
+import { type CalAppt } from './AppointmentCalendar';
+import { SlotCalendar, type SlotItem } from './slots/SlotCalendar';
 import { ensureBookingToken, setAppointmentStatus } from './actions';
 import { jstToIso, fmtTimeJst, isoDateJst, weekDatesJst, STATUS_LABEL } from '@/lib/datetime';
 
@@ -38,6 +39,15 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
     const d = isoDateJst(a.start_at);
     (byDay[d] ??= []).push(a);
   }
+
+  // 空き枠（カレンダーで直接追加できるように同ページで取得）
+  const { data: slotData } = await supabase
+    .from('appointment_slots')
+    .select('id, start_at, end_at, is_blocked')
+    .gte('start_at', rangeStart)
+    .lte('start_at', rangeEnd)
+    .order('start_at', { ascending: true });
+  const slots = (slotData ?? []) as SlotItem[];
   const token = await ensureBookingToken();
   const { data: gset } = await supabase.from('tenant_settings').select('google_token').maybeSingle();
   const googleConnected = Boolean((gset as { google_token: unknown } | null)?.google_token);
@@ -70,7 +80,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
           <Link className="btn secondary" href={`/appointments?w=${offset + 1}&view=${view}`}>翌週 ›</Link>
         </div>
 
-        {view === 'calendar' ? <AppointmentCalendar week={week} appts={calAppts} /> : week.map((d, i) => (
+        {view === 'calendar' ? <SlotCalendar week={week} slots={slots} appts={calAppts} /> : week.map((d, i) => (
           <div className="card" key={d} style={{ padding: '12px 14px' }}>
             <h2 style={{ margin: 0, fontSize: '1rem' }}>{d}（{wd[i]}）</h2>
             {byDay[d]?.length ? (
