@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     body: new URLSearchParams({ id_token: body.idToken, client_id: channelId }),
   });
   if (!verifyRes.ok) return NextResponse.json({ error: 'LINE認証に失敗しました' }, { status: 401 });
-  const profile = (await verifyRes.json()) as { sub?: string };
+  const profile = (await verifyRes.json()) as { sub?: string; picture?: string };
   const lineUserId = profile.sub;
   if (!lineUserId) return NextResponse.json({ error: 'LINEユーザーを特定できません' }, { status: 401 });
 
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   const { data: usedPatient } = await admin.from('line_account').select('id').eq('line_user_id', lineUserId).maybeSingle();
   if (usedStaff || usedPatient) return NextResponse.json({ error: 'このLINEアカウントは既に別の利用者に連携されています。' }, { status: 409 });
 
-  const { error } = await admin.from('app_user').update({ line_user_id: lineUserId }).eq('id', ctx.appUser.id);
+  const { error } = await admin.from('app_user').update({ line_user_id: lineUserId, avatar_url: profile.picture || null }).eq('id', ctx.appUser.id);
   if (error) return NextResponse.json({ error: '連携に失敗しました：' + error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

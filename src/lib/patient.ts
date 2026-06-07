@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 
 export interface PatientContext {
   user: { id: string; email?: string | null };
-  patient: { id: string; tenant_id: string; name: string } | null;
+  patient: { id: string; tenant_id: string; name: string; avatar_url?: string | null } | null;
 }
 
 /**
@@ -27,14 +27,15 @@ export async function getPatientContext(): Promise<PatientContext | null> {
   const l = link as { patient_id: string; tenant_id: string };
   const { data: pat } = await supabase
     .from('patient')
-    .select('id, name')
+    .select('id, name, avatar_url')
     .eq('id', l.patient_id)
     .maybeSingle();
 
+  const p = pat as { id: string; name: string; avatar_url: string | null } | null;
   return {
     user,
-    patient: pat
-      ? { id: (pat as { id: string }).id, tenant_id: l.tenant_id, name: (pat as { name: string }).name }
+    patient: p
+      ? { id: p.id, tenant_id: l.tenant_id, name: p.name, avatar_url: p.avatar_url }
       : { id: l.patient_id, tenant_id: l.tenant_id, name: '' },
   };
 }

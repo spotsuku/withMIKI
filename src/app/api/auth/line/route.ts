@@ -29,15 +29,17 @@ export async function POST(req: NextRequest) {
   if (!verifyRes.ok) {
     return NextResponse.json({ error: 'LINE認証に失敗しました' }, { status: 401 });
   }
-  const profile = (await verifyRes.json()) as { sub?: string };
+  const profile = (await verifyRes.json()) as { sub?: string; picture?: string };
   const lineUserId = profile.sub;
   if (!lineUserId) return NextResponse.json({ error: 'LINEユーザーを特定できません' }, { status: 401 });
+  const picture = profile.picture || null;
 
   // 2) 先生（app_user）に LINE がひも付いていれば、そのアカウントでログイン
-  const { data: staff } = await admin.from('app_user').select('auth_user_id').eq('line_user_id', lineUserId).maybeSingle();
-  const staffAuthId = (staff as { auth_user_id: string | null } | null)?.auth_user_id;
-  if (staffAuthId) {
-    const otpRes = await issueOtp(admin, staffAuthId);
+  const { data: staff } = await admin.from('app_user').select('id, auth_user_id').eq('line_user_id', lineUserId).maybeSingle();
+  const staffRow = staff as { id: string; auth_user_id: string | null } | null;
+  if (staffRow?.auth_user_id) {
+    if (picture) await admin.from('app_user').update({ avatar_url: picture }).eq('id', staffRow.id);
+    const otpRes = await issueOtp(admin, staffRow.auth_user_id);
     if ('error' in otpRes) return NextResponse.json({ error: otpRes.error }, { status: 500 });
     return NextResponse.json({ email: otpRes.email, otp: otpRes.otp, role: 'staff' });
   }
@@ -46,6 +48,7 @@ export async function POST(req: NextRequest) {
   const { data: la } = await admin.from('line_account').select('patient_id').eq('line_user_id', lineUserId).maybeSingle();
   const patientId = (la as { patient_id: string } | null)?.patient_id;
   if (!patientId) return NextResponse.json({ error: 'この LINE はまだアカウントにひも付いていません。招待URLから登録するか、先生にご連絡ください。' }, { status: 404 });
+  if (picture) await admin.from('patient').update({ avatar_url: picture }).eq('id', patientId);
 
   const { data: pu } = await admin.from('patient_user').select('auth_user_id').eq('patient_id', patientId).maybeSingle();
   const authUserId = (pu as { auth_user_id: string } | null)?.auth_user_id;

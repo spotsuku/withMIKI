@@ -1242,3 +1242,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON patient_invite TO authenticated;
 -- =============================================================================
 ALTER TABLE app_user ADD COLUMN IF NOT EXISTS line_user_id text;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_app_user_line ON app_user(line_user_id) WHERE line_user_id IS NOT NULL;
+
+-- =============================================================================
+-- 0016_avatar_url.sql  LINEプロフィール画像URL
+-- =============================================================================
+ALTER TABLE app_user ADD COLUMN IF NOT EXISTS avatar_url text;
+ALTER TABLE patient  ADD COLUMN IF NOT EXISTS avatar_url text;

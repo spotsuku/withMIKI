@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     body: new URLSearchParams({ id_token: body.idToken, client_id: channelId }),
   });
   if (!verifyRes.ok) return NextResponse.json({ error: 'LINE認証に失敗しました' }, { status: 401 });
-  const profile = (await verifyRes.json()) as { sub?: string; email?: string };
+  const profile = (await verifyRes.json()) as { sub?: string; email?: string; picture?: string };
   const lineUserId = profile.sub;
   if (!lineUserId) return NextResponse.json({ error: 'LINEユーザーを特定できません' }, { status: 401 });
 
@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
   await admin.from('line_account').upsert({ tenant_id: inv.tenant_id, patient_id: inv.patient_id, line_user_id: lineUserId }, { onConflict: 'line_user_id' });
   const { error: linkErr } = await admin.from('patient_user').insert({ tenant_id: inv.tenant_id, patient_id: inv.patient_id, auth_user_id: authId });
   if (linkErr) return NextResponse.json({ error: '連携に失敗しました：' + linkErr.message }, { status: 500 });
+  if (profile.picture) await admin.from('patient').update({ avatar_url: profile.picture }).eq('id', inv.patient_id);
   await admin.from('patient_invite').update({ used_at: new Date().toISOString() }).eq('token', token);
 
   // 6) ログイン用 OTP

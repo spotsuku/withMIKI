@@ -5,6 +5,7 @@ export interface AppUser {
   tenant_id: string;
   name: string;
   role: string;
+  avatar_url?: string | null;
 }
 
 export interface UserContext {
@@ -26,7 +27,7 @@ export async function getUserContext(): Promise<UserContext | null> {
 
   const { data } = await supabase
     .from('app_user')
-    .select('id, tenant_id, name, role')
+    .select('id, tenant_id, name, role, avatar_url')
     .eq('auth_user_id', user.id)
     .maybeSingle();
 

@@ -27,8 +27,12 @@ export default async function MyPage() {
         <form action="/auth/signout" method="post"><button className="btn secondary" type="submit">ログアウト</button></form>
       </div>
       <div className="container">
-        <h1 style={{ fontSize: '1.3rem' }}>
-          マイページ {ctx.patient?.name ? <span className="meta">{ctx.patient.name} さん</span> : null}
+        <h1 style={{ fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: 10 }}>
+          {ctx.patient?.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={ctx.patient.avatar_url} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+          ) : null}
+          <span>マイページ {ctx.patient?.name ? <span className="meta">{ctx.patient.name} さん</span> : null}</span>
         </h1>
         {!ctx.patient ? (
           <div className="notice">このアカウントはまだ患者情報にひも付いていません。担当の先生にご連絡ください。</div>
