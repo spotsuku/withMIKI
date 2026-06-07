@@ -1,5 +1,12 @@
-/** 先生のLINE連携ボタン。LINE処理は /liff に集約（mode=link）。 */
+'use client';
+
+/** 先生のLINE連携ボタン。LINE処理は /liff に集約（mode は sessionStorage 経由）。 */
 export function LineLinkButton({ linked }: { linked: boolean }) {
+  function go() {
+    sessionStorage.setItem('liff_mode', 'link');
+    sessionStorage.removeItem('liff_token');
+    window.location.href = '/liff';
+  }
   return (
     <div>
       {linked ? (
@@ -7,9 +14,9 @@ export function LineLinkButton({ linked }: { linked: boolean }) {
       ) : (
         <p className="meta">連携すると、メール・パスワードの代わりにLINEでログインできます。</p>
       )}
-      <a className="btn" style={{ background: '#06c755' }} href="/liff?mode=link">
+      <button className="btn" style={{ background: '#06c755' }} onClick={go}>
         {linked ? 'LINEを再連携' : 'LINEと連携する'}
-      </a>
+      </button>
     </div>
   );
 }

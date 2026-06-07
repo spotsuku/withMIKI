@@ -42,9 +42,8 @@ export default function LiffPage() {
     let cancelled = false;
     (async () => {
       try {
-        const params = new URLSearchParams(window.location.search);
-        const mode = params.get('mode') || 'login';
-        const inviteToken = params.get('token') || '';
+        const mode = sessionStorage.getItem('liff_mode') || 'login';
+        const inviteToken = sessionStorage.getItem('liff_token') || '';
         const supabase = createClient();
 
         // ログイン目的で既にセッションがあれば即ロール振り分け（高速化）
@@ -58,9 +57,12 @@ export default function LiffPage() {
         if (cancelled) return;
         const liff = window.liff!;
         await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) { liff.login(); return; } // LINEへ→戻ると再実行
+        if (!liff.isLoggedIn()) { liff.login(); return; } // LINEへ→戻ると再実行（sessionStorageは保持）
         const idToken = liff.getIDToken();
         if (!idToken) { setStatus('IDトークンを取得できませんでした。'); return; }
+        // ここまで来たら消費完了として消す（次回のlogin既定に影響させない）
+        sessionStorage.removeItem('liff_mode');
+        sessionStorage.removeItem('liff_token');
 
         // ---- 連携（先生がLINEをひも付け）----
         if (mode === 'link') {
