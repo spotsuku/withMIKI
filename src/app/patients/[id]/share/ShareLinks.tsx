@@ -35,8 +35,8 @@ export function ShareLinks({ patientId, shares }: { patientId: string; shares: S
 
   return (
     <div className="card">
-      <h2>基本カルテの共有リンク</h2>
-      <p className="meta">発行したURLを送ると、相手はログイン不要で基本カルテ（基本情報・問診・ケアプラン・問題リスト）を閲覧できます。</p>
+      <h2>他院への紹介リンク（閲覧専用）</h2>
+      <p className="meta">他院・他の先生に送る紹介用です。相手はログイン不要・<strong>閲覧のみ</strong>で基本カルテ（基本情報・問診・ケアプラン・問題リスト）を確認できます。<strong>有効期限つき</strong>でいつでも失効できます。<br />※ 患者本人に渡すURLは下の「ログイン不要の記録URL」をご利用ください。</p>
 
       <form action={formAction} style={{ marginTop: 8 }}>
         <input type="hidden" name="patientId" value={patientId} />

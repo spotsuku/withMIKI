@@ -57,7 +57,7 @@ export function InviteButton({ patientId }: { patientId: string }) {
       {recState.ok && recState.url ? (
         <div className="card" style={{ marginTop: 0, background: 'var(--accent-soft)' }}>
           <p className="meta" style={{ marginTop: 0 }}>
-            ログイン不要の記録URLを発行しました。患者さんはこのURLを開き、<strong>初回にPINを設定</strong>するだけで記録できます（アカウント作成不要）。途中で「LINEに切り替える」も可能です。
+            <strong>患者本人用</strong>のログイン不要URLを発行しました。患者さんはこのURLを開き、<strong>初回にPINを設定</strong>するだけで、基本カルテの閲覧・記録・公開設定ができます（アカウント作成不要）。途中で「LINEに切り替える」も可能です。
           </p>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <code style={{ wordBreak: 'break-all', flex: 1, minWidth: 0 }}>{recState.url}</code>
