@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { Topbar } from '@/components/Topbar';
 import { BookingLink } from './BookingLink';
+import { AppointmentCalendar, type CalAppt } from './AppointmentCalendar';
 import { ensureBookingToken, setAppointmentStatus } from './actions';
 import { jstToIso, fmtTimeJst, isoDateJst, weekDatesJst, STATUS_LABEL } from '@/lib/datetime';
 
@@ -13,12 +14,13 @@ interface Appt {
   guest_name: string | null; patient: { name: string } | { name: string }[] | null;
 }
 
-export default async function AppointmentsPage({ searchParams }: { searchParams: { w?: string } }) {
+export default async function AppointmentsPage({ searchParams }: { searchParams: { w?: string; view?: string } }) {
   if (!isSupabaseConfigured()) redirect('/patients');
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
+  const view = searchParams.view === 'calendar' ? 'calendar' : 'list';
   const offset = parseInt(searchParams.w ?? '0', 10) || 0;
   const week = weekDatesJst(offset);
   const rangeStart = jstToIso(week[0], '00:00');
@@ -40,6 +42,10 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
   const { data: gset } = await supabase.from('tenant_settings').select('google_token').maybeSingle();
   const googleConnected = Boolean((gset as { google_token: unknown } | null)?.google_token);
   const wd = ['月', '火', '水', '木', '金', '土', '日'];
+  const calAppts: CalAppt[] = appts.map((a) => {
+    const pat = Array.isArray(a.patient) ? a.patient[0] : a.patient;
+    return { id: a.id, start_at: a.start_at, end_at: a.end_at, status: a.status, title: a.title, name: pat?.name ?? a.guest_name ?? '（未設定）' };
+  });
 
   return (
     <>
@@ -53,13 +59,18 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '8px 0' }}>
-          <Link className="btn secondary" href={`/appointments?w=${offset - 1}`}>‹ 前週</Link>
-          <span className="meta">{week[0]} 〜 {week[6]}</span>
-          <Link className="btn secondary" href={`/appointments?w=${offset + 1}`}>翌週 ›</Link>
+        <div style={{ display: 'flex', gap: 8, margin: '8px 0' }}>
+          <Link className={'btn ' + (view === 'list' ? '' : 'secondary')} href={`/appointments?w=${offset}&view=list`}>リスト</Link>
+          <Link className={'btn ' + (view === 'calendar' ? '' : 'secondary')} href={`/appointments?w=${offset}&view=calendar`}>カレンダー</Link>
         </div>
 
-        {week.map((d, i) => (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '8px 0' }}>
+          <Link className="btn secondary" href={`/appointments?w=${offset - 1}&view=${view}`}>‹ 前週</Link>
+          <span className="meta">{week[0]} 〜 {week[6]}</span>
+          <Link className="btn secondary" href={`/appointments?w=${offset + 1}&view=${view}`}>翌週 ›</Link>
+        </div>
+
+        {view === 'calendar' ? <AppointmentCalendar week={week} appts={calAppts} /> : week.map((d, i) => (
           <div className="card" key={d} style={{ padding: '12px 14px' }}>
             <h2 style={{ margin: 0, fontSize: '1rem' }}>{d}（{wd[i]}）</h2>
             {byDay[d]?.length ? (

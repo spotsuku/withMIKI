@@ -115,3 +115,13 @@ a:hover { text-decoration: underline; }
 .cal-slot.blocked { background: #eee; border: 1px solid #ccc; color: #888; }
 .cal-slot.appt { background: #dfeffd; border: 1px solid #1d6fb8; color: #155; }
 .cal-slot .x { float: right; cursor: pointer; font-weight: 700; }
+
+/* ヘッダー整列 */
+.topbar { gap: 12px; }
+.topbar .brand { white-space: nowrap; }
+.topnav { display: flex; align-items: center; gap: 14px; flex-wrap: nowrap; }
+.topnav a { white-space: nowrap; font-size: .9rem; }
+.topuser {
+  background: rgba(255,255,255,.18); color: #fff; padding: 3px 10px; border-radius: 999px;
+  font-size: .82rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
