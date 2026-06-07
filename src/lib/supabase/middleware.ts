@@ -39,7 +39,7 @@ export async function updateSession(request: NextRequest) {
     path.startsWith('/login') || path.startsWith('/auth') || path.startsWith('/share') ||
     path.startsWith('/book') || path.startsWith('/appointment/') ||
     path.startsWith('/liff') || path.startsWith('/invite') ||
-    path.startsWith('/api/auth') || path.startsWith('/api/invite');
+    path.startsWith('/api/auth') || path.startsWith('/api/invite') || path.startsWith('/api/line');
   if (!user && !isPublic) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = '/login';
