@@ -23,17 +23,13 @@ export async function POST(req: NextRequest) {
   const { data: linked } = await admin.from('patient_user').select('id').eq('patient_id', inv.patient_id).maybeSingle();
   if (linked) return NextResponse.json({ error: '既に連携済みです。ログイン画面からログインしてください。' }, { status: 409 });
 
-  // Auth ユーザー作成（既存メールなら検索して連携）
-  let authId: string | null = null;
+  // Auth ユーザーを新規作成。
+  // 既存メールの場合は createUser が失敗 → 拒否する（アカウント乗っ取り／パスワード上書き防止）。
   const created = await admin.auth.admin.createUser({ email, password, email_confirm: true });
-  if (created.data?.user) {
-    authId = created.data.user.id;
-  } else {
-    const list = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    const u = list.data?.users?.find((x) => (x.email || '').toLowerCase() === email.toLowerCase());
-    if (u) { authId = u.id; await admin.auth.admin.updateUserById(u.id, { password }); }
+  if (created.error || !created.data?.user) {
+    return NextResponse.json({ error: 'このメールアドレスは使用できません（既に登録済みの可能性があります）。別のメールアドレス、またはLINEログインでお試しください。' }, { status: 409 });
   }
-  if (!authId) return NextResponse.json({ error: 'アカウント作成に失敗しました：' + (created.error?.message ?? '') }, { status: 500 });
+  const authId = created.data.user.id;
 
   const { error: linkErr } = await admin.from('patient_user').insert({
     tenant_id: inv.tenant_id, patient_id: inv.patient_id, auth_user_id: authId,

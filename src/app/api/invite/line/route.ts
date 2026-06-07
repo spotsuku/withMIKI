@@ -35,12 +35,17 @@ export async function POST(req: NextRequest) {
   if (inv.used_at) return NextResponse.json({ error: 'この招待は使用済みです。' }, { status: 409 });
   if (new Date(inv.expires_at) < new Date()) return NextResponse.json({ error: '招待リンクの有効期限が切れています。' }, { status: 410 });
 
-  // 3) 既に連携済みなら拒否
+  // 3) このLINEが既に管理者(先生)に連携済みなら、患者連携は禁止（権限混在の防止）
+  const { data: staffLine } = await admin.from('app_user').select('id').eq('line_user_id', lineUserId).maybeSingle();
+  if (staffLine) return NextResponse.json({ error: 'このLINEは管理者アカウントに連携済みです。' }, { status: 409 });
+
+  // 4) 既に連携済みなら拒否
   const { data: linked } = await admin.from('patient_user').select('id').eq('patient_id', inv.patient_id).maybeSingle();
   if (linked) return NextResponse.json({ error: '既に連携済みです。LINEログインからご利用ください。' }, { status: 409 });
 
-  // 4) Auth ユーザー作成（LINE の email があれば利用、無ければ擬似メール）
-  const email = profile.email || `line_${lineUserId}@line.withmiki.local`;
+  // 5) Auth ユーザー作成。患者は LINE 専用の名前空間メールに固定し、
+  //    先生の実メールと衝突して既存アカウントへ連携してしまう事故を防ぐ。
+  const email = `line_${lineUserId}@line.withmiki.local`;
   let authId: string | null = null;
   const created = await admin.auth.admin.createUser({ email, email_confirm: true, user_metadata: { line_user_id: lineUserId } });
   if (created.data?.user) {
@@ -52,7 +57,11 @@ export async function POST(req: NextRequest) {
   }
   if (!authId) return NextResponse.json({ error: 'アカウント作成に失敗しました：' + (created.error?.message ?? '') }, { status: 500 });
 
-  // 5) 連携（line_account / patient_user）
+  // 念のため：対象 Auth ユーザーが管理者(app_user)でないことを確認
+  const { data: staffUser } = await admin.from('app_user').select('id').eq('auth_user_id', authId).maybeSingle();
+  if (staffUser) return NextResponse.json({ error: 'このアカウントは管理者用のため連携できません。' }, { status: 409 });
+
+  // 6) 連携（line_account / patient_user）
   await admin.from('line_account').upsert({ tenant_id: inv.tenant_id, patient_id: inv.patient_id, line_user_id: lineUserId }, { onConflict: 'line_user_id' });
   const { error: linkErr } = await admin.from('patient_user').insert({ tenant_id: inv.tenant_id, patient_id: inv.patient_id, auth_user_id: authId });
   if (linkErr) return NextResponse.json({ error: '連携に失敗しました：' + linkErr.message }, { status: 500 });
