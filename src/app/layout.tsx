@@ -11,6 +11,7 @@ export const metadata: Metadata = {
     title: 'WithMIKI',
   },
   icons: { icon: '/icon.svg', apple: '/icon.svg' },
+  other: { 'mobile-web-app-capable': 'yes' },
 };
 
 export const viewport: Viewport = {
