@@ -12,7 +12,7 @@ interface Mark {
 }
 
 const W = 280;
-const H = 420;
+const H = 607; // 人体図画像(852×1846)の縦横比に合わせる
 
 const COLORS = ['#e63946', '#f08c00', '#1d6fb8', '#2a9d4a', '#7048e8'];
 const COLOR_LABELS: Record<string, string> = {
