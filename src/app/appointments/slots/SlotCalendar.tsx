@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useTransition } from 'react';
 import { addSlotAt, removeSlotById, setSlotBlocked } from '../actions';
 
 export interface SlotItem { id: string; start_at: string; end_at: string; is_blocked: boolean }
@@ -9,8 +8,8 @@ export interface ApptBlock { id: string; start_at: string; end_at: string; statu
 
 const START_HOUR = 8;
 const END_HOUR = 21;
-const ROW = 48; // px / hour
-const SNAP = 15; // 分
+const ROW = 48;
+const SNAP = 15;
 const WD = ['月', '火', '水', '木', '金', '土', '日'];
 
 function jstParts(iso: string): { date: string; minutes: number } {
@@ -21,45 +20,35 @@ function jstParts(iso: string): { date: string; minutes: number } {
   return { date, minutes: h * 60 + m };
 }
 function hhmm(min: number) { return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`; }
+function toMin(t: string) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+function isoFromJst(date: string, min: number) { return new Date(`${date}T${hhmm(min)}:00+09:00`).toISOString(); }
 
-/** 空き枠カレンダー（Googleカレンダー風：縦ドラッグで作成・タップで既定長作成） */
 export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: SlotItem[]; appts?: ApptBlock[] }) {
-  const router = useRouter();
-  const [pending, start] = useTransition();
+  const [, startTr] = useTransition();
+  const [list, setList] = useState<SlotItem[]>(slots);
+  useEffect(() => { setList(slots); }, [slots]);
+
   const [duration, setDuration] = useState(60);
   const [msg, setMsg] = useState<string | null>(null);
   const [drag, setDrag] = useState<{ date: string; a: number; b: number } | null>(null);
+  const [modal, setModal] = useState<{ date: string } | null>(null);
+  const [mStart, setMStart] = useState('10:00');
+  const [mEnd, setMEnd] = useState('11:00');
 
   const combined = !!appts;
-  const byDate: Record<string, SlotItem[]> = {};
-  for (const s of slots) {
-    const { date } = jstParts(s.start_at);
-    (byDate[date] ??= []).push(s);
-  }
-  const apptByDate: Record<string, ApptBlock[]> = {};
-  for (const a of appts ?? []) {
-    if (a.status === 'cancelled') continue;
-    const { date } = jstParts(a.start_at);
-    (apptByDate[date] ??= []).push(a);
-  }
-  const dayHeight = (END_HOUR - START_HOUR) * ROW;
   const slotRight = combined ? '52%' : '2px';
+  const dayHeight = (END_HOUR - START_HOUR) * ROW;
 
-  function run(fn: () => Promise<{ error?: string }>) {
-    setMsg(null);
-    start(async () => {
-      const r = await fn();
-      if (r?.error) setMsg(r.error);
-      router.refresh();
-    });
-  }
+  const byDate: Record<string, SlotItem[]> = {};
+  for (const s of list) { const { date } = jstParts(s.start_at); (byDate[date] ??= []).push(s); }
+  const apptByDate: Record<string, ApptBlock[]> = {};
+  for (const a of appts ?? []) { if (a.status === 'cancelled') continue; const { date } = jstParts(a.start_at); (apptByDate[date] ??= []).push(a); }
 
   function yToMin(rectTop: number, clientY: number): number {
     const y = Math.min(Math.max(0, clientY - rectTop), dayHeight);
     const snapped = Math.round((START_HOUR * 60 + (y / ROW) * 60) / SNAP) * SNAP;
     return Math.min(END_HOUR * 60, Math.max(START_HOUR * 60, snapped));
   }
-
   function onDown(date: string, e: React.PointerEvent<HTMLDivElement>) {
     if (e.button && e.button !== 0) return;
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ }
@@ -71,13 +60,42 @@ export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: Sl
     const m = yToMin(e.currentTarget.getBoundingClientRect().top, e.clientY);
     setDrag((d) => (d && d.b !== m ? { ...d, b: m } : d));
   }
-  function commit(date: string) {
+  function openModal(date: string) {
     if (!drag || drag.date !== date) { setDrag(null); return; }
     const s = Math.min(drag.a, drag.b);
-    const en = Math.max(drag.a, drag.b);
-    const mins = en - s;
+    let en = Math.max(drag.a, drag.b);
+    if (en - s < SNAP) en = Math.min(END_HOUR * 60, s + duration); // タップは既定長
     setDrag(null);
-    run(() => addSlotAt(date, hhmm(s), mins >= SNAP ? mins : duration));
+    setMStart(hhmm(s));
+    setMEnd(hhmm(en));
+    setModal({ date });
+  }
+
+  function create() {
+    if (!modal) return;
+    const date = modal.date;
+    const s = toMin(mStart); const en = toMin(mEnd);
+    if (en <= s) { setMsg('終了は開始より後にしてください。'); return; }
+    const mins = en - s;
+    const tmpId = 'tmp-' + Date.now();
+    setList((p) => [...p, { id: tmpId, start_at: isoFromJst(date, s), end_at: isoFromJst(date, en), is_blocked: false }]);
+    setModal(null);
+    setMsg(null);
+    startTr(async () => {
+      const r = await addSlotAt(date, mStart, mins);
+      if (r.error) { setList((p) => p.filter((x) => x.id !== tmpId)); setMsg(r.error); }
+      else if (r.id) setList((p) => p.map((x) => (x.id === tmpId ? { ...x, id: r.id! } : x)));
+    });
+  }
+
+  function remove(id: string) {
+    const prev = list;
+    setList((p) => p.filter((x) => x.id !== id)); // 即時反映
+    startTr(async () => { const r = await removeSlotById(id); if (r.error) { setList(prev); setMsg(r.error); } });
+  }
+  function toggle(id: string, blocked: boolean) {
+    setList((p) => p.map((x) => (x.id === id ? { ...x, is_blocked: blocked } : x)));
+    startTr(async () => { const r = await setSlotBlocked(id, blocked); if (r.error) { setList((p) => p.map((x) => (x.id === id ? { ...x, is_blocked: !blocked } : x))); setMsg(r.error); } });
   }
 
   return (
@@ -91,73 +109,49 @@ export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: Sl
           </select>
         </label>
       </div>
-      <p className="meta">縦に<strong>ドラッグ</strong>で時間幅を指定して作成・<strong>タップ</strong>で{duration}分作成。枠タップで受付可/不可・×で削除。{pending ? ' 反映中…' : ''}</p>
+      <p className="meta">縦に<strong>ドラッグ</strong>（またはタップ）→確認画面で作成。枠タップで受付可/不可・×で削除。</p>
       {msg ? <p className="error">{msg}</p> : null}
 
       <div className="cal-wrap">
         <div className="cal">
           <div className="cal-head" />
-          {week.map((d, i) => (
-            <div key={d} className="cal-head">{Number(d.slice(8))}<br />{WD[i]}</div>
-          ))}
-
+          {week.map((d, i) => (<div key={d} className="cal-head">{Number(d.slice(8))}<br />{WD[i]}</div>))}
           <div className="cal-timeaxis">
-            {Array.from({ length: END_HOUR - START_HOUR }, (_, i) => (
-              <div key={i} className="cal-hourlabel">{START_HOUR + i}:00</div>
-            ))}
+            {Array.from({ length: END_HOUR - START_HOUR }, (_, i) => (<div key={i} className="cal-hourlabel">{START_HOUR + i}:00</div>))}
           </div>
-
           {week.map((d) => (
-            <div
-              key={d}
-              className="cal-day"
-              style={{ height: dayHeight, touchAction: 'none' }}
-              onPointerDown={(e) => onDown(d, e)}
-              onPointerMove={(e) => onMove(d, e)}
-              onPointerUp={() => commit(d)}
-              onPointerCancel={() => setDrag(null)}
-              onLostPointerCapture={() => setDrag(null)}
-            >
+            <div key={d} className="cal-day" style={{ height: dayHeight, touchAction: 'none' }}
+              onPointerDown={(e) => onDown(d, e)} onPointerMove={(e) => onMove(d, e)}
+              onPointerUp={() => openModal(d)} onPointerCancel={() => setDrag(null)} onLostPointerCapture={() => setDrag(null)}>
               {Array.from({ length: END_HOUR - START_HOUR }, (_, i) => <div key={i} className="cal-hourline" />)}
 
               {drag && drag.date === d ? (() => {
                 const s = Math.min(drag.a, drag.b); const en = Math.max(drag.a, drag.b);
-                const top = ((s - START_HOUR * 60) / 60) * ROW;
-                const height = Math.max(10, ((en - s) / 60) * ROW);
-                return <div className="cal-slot preview" style={{ top, height, right: slotRight }}>{hhmm(s)}–{hhmm(en === s ? s + duration : en)}</div>;
+                const top = ((s - START_HOUR * 60) / 60) * ROW; const height = Math.max(10, ((en - s) / 60) * ROW);
+                return <div className="cal-slot preview" style={{ top, height, right: slotRight }}>{hhmm(s)}</div>;
               })() : null}
 
               {(byDate[d] ?? []).map((slot) => {
-                const st = jstParts(slot.start_at).minutes;
-                const en = jstParts(slot.end_at).minutes;
-                const top = ((st - START_HOUR * 60) / 60) * ROW;
-                const height = Math.max(16, ((en - st) / 60) * ROW - 2);
+                const st = jstParts(slot.start_at).minutes; const en = jstParts(slot.end_at).minutes;
+                const top = ((st - START_HOUR * 60) / 60) * ROW; const height = Math.max(16, ((en - st) / 60) * ROW - 2);
                 return (
-                  <div key={slot.id}
-                    className={'cal-slot ' + (slot.is_blocked ? 'blocked' : 'open')}
+                  <div key={slot.id} className={'cal-slot ' + (slot.is_blocked ? 'blocked' : 'open')}
                     style={{ top, height, right: slotRight }}
                     onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); run(() => setSlotBlocked(slot.id, !slot.is_blocked)); }}
-                  >
-                    <span className="x" onClick={(e) => { e.stopPropagation(); run(() => removeSlotById(slot.id)); }}>×</span>
+                    onClick={(e) => { e.stopPropagation(); toggle(slot.id, !slot.is_blocked); }}>
+                    <span className="x" onClick={(e) => { e.stopPropagation(); remove(slot.id); }}>×</span>
                     {hhmm(st)}
                   </div>
                 );
               })}
 
-              {/* 予約（重ね表示・クリックで編集） */}
               {(apptByDate[d] ?? []).map((a) => {
-                const st = jstParts(a.start_at).minutes;
-                const en = jstParts(a.end_at).minutes;
-                const top = ((st - START_HOUR * 60) / 60) * ROW;
-                const height = Math.max(16, ((en - st) / 60) * ROW - 2);
+                const st = jstParts(a.start_at).minutes; const en = jstParts(a.end_at).minutes;
+                const top = ((st - START_HOUR * 60) / 60) * ROW; const height = Math.max(16, ((en - st) / 60) * ROW - 2);
                 return (
-                  <a key={a.id} href={`/appointments/${a.id}/edit`}
-                    className="cal-slot appt"
+                  <a key={a.id} href={`/appointments/${a.id}/edit`} className="cal-slot appt"
                     style={{ top, height, left: '50%', right: '2px' }}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                    onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
                     {hhmm(st)} {a.name}
                   </a>
                 );
@@ -166,6 +160,23 @@ export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: Sl
           ))}
         </div>
       </div>
+
+      {modal ? (
+        <div className="modal-overlay" onClick={() => setModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ marginTop: 0 }}>空き枠を作成</h2>
+            <p className="meta">{modal.date}</p>
+            <div className="grid cols-2">
+              <div className="field"><label>開始</label><input type="time" value={mStart} onChange={(e) => setMStart(e.target.value)} /></div>
+              <div className="field"><label>終了</label><input type="time" value={mEnd} onChange={(e) => setMEnd(e.target.value)} /></div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button className="btn secondary" onClick={() => setModal(null)}>キャンセル</button>
+              <button className="btn" onClick={create}>作成</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

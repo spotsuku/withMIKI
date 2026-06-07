@@ -203,8 +203,8 @@ export async function regenerateBookingToken(): Promise<void> {
 
 // ===== カレンダーUI（クライアントから直接呼ぶ引数ベースのアクション） =====
 
-/** 指定日時に空き枠を作成（Google同期）。カレンダーのセルクリック用 */
-export async function addSlotAt(date: string, time: string, minutes: number): Promise<ApptState> {
+/** 指定日時に空き枠を作成（Google同期）。作成IDを返す（楽観更新の確定用） */
+export async function addSlotAt(date: string, time: string, minutes: number): Promise<{ id?: string; error?: string }> {
   const ctx = await getUserContext();
   if (!ctx?.appUser) return { error: 'アカウントが未設定です。' };
   if (!date || !time) return { error: '日時が不正です。' };
@@ -214,9 +214,11 @@ export async function addSlotAt(date: string, time: string, minutes: number): Pr
     tenant_id: ctx.appUser.tenant_id, start_at: start, end_at: addMinutesIso(start, minutes || 60), is_blocked: false,
   }).select('id').single();
   if (error || !slot) return { error: '枠の作成に失敗しました：' + (error?.message ?? '') };
-  try { const { pushSlotToGoogle } = await import('@/lib/google'); await pushSlotToGoogle(ctx.appUser.tenant_id, (slot as { id: string }).id); } catch { /* ignore */ }
+  const id = (slot as { id: string }).id;
+  try { const { pushSlotToGoogle } = await import('@/lib/google'); await pushSlotToGoogle(ctx.appUser.tenant_id, id); } catch { /* ignore */ }
   revalidatePath('/appointments/slots');
-  return {};
+  revalidatePath('/appointments');
+  return { id };
 }
 
 /** 枠を削除（Google同期）。カレンダーの×用 */
