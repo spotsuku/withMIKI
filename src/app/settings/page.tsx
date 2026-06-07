@@ -5,6 +5,7 @@ import { Topbar } from '@/components/Topbar';
 import { getUserContext } from '@/lib/auth';
 import { LineLinkButton } from './LineLinkButton';
 import { StaffPanel } from './StaffPanel';
+import { ClinicForm } from './ClinicForm';
 import { listStaff } from './staff-actions';
 
 export const dynamic = 'force-dynamic';
@@ -18,6 +19,8 @@ export default async function SettingsPage() {
   const supabase = createClient();
   const { data } = await supabase.from('app_user').select('line_user_id').eq('id', ctx.appUser.id).maybeSingle();
   const linked = Boolean((data as { line_user_id: string | null } | null)?.line_user_id);
+  const { data: tenantRow } = await supabase.from('tenant').select('name').eq('id', ctx.appUser.tenant_id).maybeSingle();
+  const clinicName = (tenantRow as { name: string } | null)?.name ?? '';
   const staff = await listStaff();
 
   return (
@@ -33,6 +36,11 @@ export default async function SettingsPage() {
             <dt>名前</dt><dd>{ctx.appUser.name}</dd>
             <dt>メール</dt><dd>{ctx.user.email}</dd>
           </dl>
+        </div>
+
+        <div className="card">
+          <h2>院情報</h2>
+          <ClinicForm name={clinicName} />
         </div>
 
         <div className="card">

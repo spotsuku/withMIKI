@@ -11,6 +11,20 @@ export interface StaffState { ok?: boolean; error?: string; email?: string; pass
 
 const ROLES = ['owner', 'practitioner', 'staff'];
 
+/** 院名（テナント名）を更新 */
+export async function updateClinicName(_p: StaffState, fd: FormData): Promise<StaffState> {
+  const ctx = await getUserContext();
+  if (!ctx?.appUser) return { error: '権限がありません。' };
+  const name = String(fd.get('clinic_name') ?? '').trim();
+  if (!name) return { error: '院名を入力してください。' };
+  const admin = createAdminClient();
+  if (!admin) return { error: 'サーバー設定が必要です（SUPABASE_SERVICE_ROLE_KEY）。' };
+  const { error } = await admin.from('tenant').update({ name }).eq('id', ctx.appUser.tenant_id);
+  if (error) return { error: '更新に失敗しました：' + error.message };
+  revalidatePath('/settings');
+  return { ok: true };
+}
+
 /** 自テナントのスタッフ一覧 */
 export async function listStaff(): Promise<StaffRow[]> {
   const ctx = await getUserContext();
