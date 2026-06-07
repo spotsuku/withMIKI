@@ -1,22 +1,21 @@
 import Link from 'next/link';
 import { getUserContext } from '@/lib/auth';
 
-/** 先生用ヘッダー。ユーザー名を表示（メールは出さない）。 */
+/** 先生用ヘッダー。ナビはボタン風、ユーザーは丸アイコン表示。 */
 export async function Topbar(_props?: { userEmail?: string | null }) {
   const ctx = await getUserContext();
   const name = ctx?.appUser?.name || ctx?.user.email?.split('@')[0] || '';
+  const initial = name.trim().charAt(0) || 'M';
 
   return (
     <div className="topbar">
-      <Link href="/patients" className="brand">
-        WithMIKI<small>カルテ</small>
-      </Link>
+      <Link href="/patients" className="brand">WithMIKI</Link>
       <nav className="topnav">
-        <Link href="/patients">患者</Link>
-        <Link href="/appointments">予約</Link>
-        {name ? <span className="topuser">{name}</span> : null}
+        <Link href="/patients" className="navbtn">カルテ</Link>
+        <Link href="/appointments" className="navbtn">予約</Link>
+        <span className="avatar-mini" title={name}>{initial}</span>
         <form action="/auth/signout" method="post">
-          <button className="btn secondary" type="submit">ログアウト</button>
+          <button className="navbtn" type="submit">ログアウト</button>
         </form>
       </nav>
     </div>

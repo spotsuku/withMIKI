@@ -116,21 +116,23 @@ a:hover { text-decoration: underline; }
 .cal-slot.appt { background: #dfeffd; border: 1px solid #1d6fb8; color: #155; }
 .cal-slot .x { float: right; cursor: pointer; font-weight: 700; }
 
-/* ヘッダー整列 */
-.topbar { gap: 12px; }
+/* ヘッダー整列：1行・高さ揃え、ナビはボタン風 */
+.topbar { gap: 12px; align-items: center; }
 .topbar .brand { white-space: nowrap; }
-.topnav { display: flex; align-items: center; gap: 14px; flex-wrap: nowrap; }
-.topnav a { white-space: nowrap; font-size: .9rem; }
-.topuser {
-  background: rgba(255,255,255,.18); color: #fff; padding: 3px 10px; border-radius: 999px;
-  font-size: .82rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-
-/* ヘッダー：1行・高さ揃え */
-.topbar { align-items: center; }
+.topnav { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
 .topnav form { display: inline-flex; margin: 0; }
-.topnav .btn.secondary { padding: 6px 12px; font-size: .85rem; line-height: 1.2; height: 34px; display: inline-flex; align-items: center; }
-.topnav a { display: inline-flex; align-items: center; height: 34px; }
+.navbtn {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 32px; padding: 0 12px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.6); background: transparent; color: #fff;
+  font-size: .85rem; line-height: 1; white-space: nowrap; cursor: pointer;
+}
+.navbtn:hover { background: rgba(255,255,255,.15); text-decoration: none; }
+.avatar-mini {
+  width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,.25); color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: .85rem; flex: 0 0 auto;
+}
 
 /* 曜日チェック（崩れ防止：均一なピル） */
 .wd-list { display: flex; flex-wrap: wrap; gap: 8px; }
