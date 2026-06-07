@@ -4,6 +4,8 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { Topbar } from '@/components/Topbar';
 import { getUserContext } from '@/lib/auth';
 import { LineLinkButton } from './LineLinkButton';
+import { StaffPanel } from './StaffPanel';
+import { listStaff } from './staff-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +18,7 @@ export default async function SettingsPage() {
   const supabase = createClient();
   const { data } = await supabase.from('app_user').select('line_user_id').eq('id', ctx.appUser.id).maybeSingle();
   const linked = Boolean((data as { line_user_id: string | null } | null)?.line_user_id);
+  const staff = await listStaff();
 
   return (
     <>
@@ -36,6 +39,8 @@ export default async function SettingsPage() {
           <h2>LINEログイン連携</h2>
           <LineLinkButton linked={linked} />
         </div>
+
+        <StaffPanel staff={staff} />
       </div>
     </>
   );
