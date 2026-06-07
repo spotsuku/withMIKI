@@ -41,7 +41,6 @@ export async function bookSlot(_p: BookState, fd: FormData): Promise<BookState> 
     status: 'pending',
     guest_name: name,
     booking_token: token,
-    source: 'patient',
   }).select('id').single();
   if (error || !created) return { error: '予約に失敗しました：' + (error?.message ?? '') };
 

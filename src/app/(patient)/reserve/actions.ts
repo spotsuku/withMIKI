@@ -35,7 +35,6 @@ export async function reserveSlot(_p: ReserveState, fd: FormData): Promise<Reser
     status: 'pending',
     notes: note || null,
     booking_token: token,
-    source: 'patient',
   }).select('id').single();
   if (error || !created) return { error: '予約に失敗しました：' + (error?.message ?? '') };
 
