@@ -7,6 +7,7 @@ import { TrendChart, type Series } from '@/components/TrendChart';
 import { ShareLinks, type ShareRow } from './share/ShareLinks';
 import { BookingSend } from './share/BookingSend';
 import { InviteButton } from './InviteButton';
+import { KarteTabs } from './KarteTabs';
 import {
   ageFromDob,
   type Patient,
@@ -226,10 +227,11 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
               📅 予約を追加
             </Link>
           </div>
-          <BookingSend patientId={p.id} />
-          <InviteButton patientId={p.id} />
         </div>
 
+        <KarteTabs
+          basic={(
+            <>
         {/* ケアプラン（表紙） */}
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -399,6 +401,12 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
           )}
         </div>
 
+        {/* AI カルテ補助 */}
+        <KarteChat patientId={p.id} />
+            </>
+          )}
+          patient={(
+            <>
         {/* 患者本人の記録（共有設定を尊重） */}
         <div className="card">
           <h2>本人の記録（最近）</h2>
@@ -467,11 +475,19 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
           </>
         ) : null}
 
-        {/* 共有リンク */}
+            </>
+          )}
+          system={(
+            <>
+        {/* 予約リンク送信 */}
+        <BookingSend patientId={p.id} />
+        {/* ログイン招待URL・ログイン不要の記録URL（患者本人用） */}
+        <InviteButton patientId={p.id} />
+        {/* 他院への紹介リンク（閲覧専用） */}
         <ShareLinks patientId={p.id} shares={shares} />
-
-        {/* AI カルテ補助 */}
-        <KarteChat patientId={p.id} />
+            </>
+          )}
+        />
       </div>
     </div>
   );
