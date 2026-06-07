@@ -96,6 +96,26 @@ export async function setAppointmentStatus(fd: FormData): Promise<void> {
   revalidatePath('/appointments');
 }
 
+/** 予約のステータス変更（ID指定・カレンダー用）。Google同期＋通知あり。 */
+export async function updateApptStatus(id: string, status: string): Promise<ApptState> {
+  const ctx = await getUserContext();
+  if (!ctx?.appUser) return { error: '権限がありません。' };
+  if (!id || !status) return { error: '対象が不正です。' };
+  const supabase = createClient();
+  const patch: Record<string, unknown> = { status };
+  if (status === 'cancelled') patch.cancelled_at = new Date().toISOString();
+  const { error } = await supabase.from('appointments').update(patch).eq('id', id);
+  if (error) return { error: '更新に失敗しました：' + error.message };
+  if (status === 'confirmed') {
+    try { const { syncAppointmentToGoogle } = await import('@/lib/google'); await syncAppointmentToGoogle(ctx.appUser.tenant_id, id); } catch { /* ignore */ }
+  }
+  if (status === 'confirmed' || status === 'cancelled') {
+    try { const { notifyAppointment } = await import('@/lib/notify'); await notifyAppointment(id, status); } catch { /* ignore */ }
+  }
+  revalidatePath('/appointments');
+  return {};
+}
+
 /** 空き枠を作成（先生） */
 export async function createSlot(_p: ApptState, fd: FormData): Promise<ApptState> {
   const ctx = await getUserContext();

@@ -15,6 +15,9 @@ interface Appt {
   guest_name: string | null; patient: { name: string } | { name: string }[] | null;
 }
 
+const STATUS_BG: Record<string, string> = { confirmed: '#d3f9d8', pending: '#ffec99', cancelled: '#f1f3f5' };
+const STATUS_FG: Record<string, string> = { confirmed: '#2b8a3e', pending: '#e67700', cancelled: '#868e96' };
+
 export default async function AppointmentsPage({ searchParams }: { searchParams: { w?: string; view?: string } }) {
   if (!isSupabaseConfigured()) redirect('/patients');
   const supabase = createClient();
@@ -89,21 +92,21 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
                   const name = pat?.name ?? a.guest_name ?? '（名称未設定）';
                   return (
                     <li key={a.id}>
-                      <div style={{ padding: '8px 4px', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                        <span>
-                          <strong>{fmtTimeJst(a.start_at)}–{fmtTimeJst(a.end_at)}</strong>　{name}
+                      <div style={{ padding: '10px 4px', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ minWidth: 0 }}>
+                          <span className="status-badge" style={{ background: STATUS_BG[a.status] ?? '#eee', color: STATUS_FG[a.status] ?? '#555' }}>{STATUS_LABEL[a.status] ?? a.status}</span>
+                          <strong style={{ marginLeft: 8 }}>{fmtTimeJst(a.start_at)}–{fmtTimeJst(a.end_at)}</strong>　{name}
                           {a.title ? <span className="meta">　{a.title}</span> : null}
                           {a.location ? <span className="tag" style={{ marginLeft: 8 }}>📍{a.location}</span> : null}
-                          <span className="tag" style={{ marginLeft: 8 }}>{STATUS_LABEL[a.status] ?? a.status}</span>
                         </span>
-                        <span style={{ display: 'flex', gap: 6 }}>
-                          <Link className="btn secondary" style={{ padding: '2px 8px', fontSize: 12 }} href={`/appointments/${a.id}/edit`}>変更</Link>
+                        <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {a.status !== 'confirmed' ? (
-                            <form action={setAppointmentStatus}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="status" value="confirmed" /><button className="btn secondary" style={{ padding: '2px 8px', fontSize: 12 }}>確定</button></form>
+                            <form action={setAppointmentStatus}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="status" value="confirmed" /><button className="btn" style={{ padding: '6px 12px', fontSize: 13 }}>✅ 確定</button></form>
                           ) : null}
                           {a.status !== 'cancelled' ? (
-                            <form action={setAppointmentStatus}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="status" value="cancelled" /><button className="btn secondary" style={{ padding: '2px 8px', fontSize: 12, borderColor: 'var(--danger)', color: 'var(--danger)' }}>取消</button></form>
+                            <form action={setAppointmentStatus}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="status" value="cancelled" /><button className="btn secondary" style={{ padding: '6px 12px', fontSize: 13, borderColor: 'var(--danger)', color: 'var(--danger)' }}>キャンセル</button></form>
                           ) : null}
+                          <Link className="btn secondary" style={{ padding: '6px 12px', fontSize: 13 }} href={`/appointments/${a.id}/edit`}>編集</Link>
                         </span>
                       </div>
                     </li>

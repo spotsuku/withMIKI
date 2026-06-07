@@ -36,12 +36,15 @@ export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: Sl
   const [, startTr] = useTransition();
   const [list, setList] = useState<SlotItem[]>(slots);
   useEffect(() => { setList(slots); }, [slots]);
+  const [apptList, setApptList] = useState<ApptBlock[]>(appts ?? []);
+  useEffect(() => { setApptList(appts ?? []); }, [appts]);
 
   const [duration, setDuration] = useState(60);
   const [msg, setMsg] = useState<string | null>(null);
   const [drag, setDrag] = useState<{ date: string; a: number; b: number } | null>(null);
   const [modal, setModal] = useState<{ date: string } | null>(null);
   const [delId, setDelId] = useState<string | null>(null);
+  const [apptModal, setApptModal] = useState<ApptBlock | null>(null);
   const [mStart, setMStart] = useState('10:00');
   const [mEnd, setMEnd] = useState('11:00');
 
@@ -52,7 +55,17 @@ export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: Sl
   const byDate: Record<string, SlotItem[]> = {};
   for (const s of list) { const { date } = jstParts(s.start_at); (byDate[date] ??= []).push(s); }
   const apptByDate: Record<string, ApptBlock[]> = {};
-  for (const a of appts ?? []) { if (a.status === 'cancelled') continue; const { date } = jstParts(a.start_at); (apptByDate[date] ??= []).push(a); }
+  for (const a of apptList) { if (a.status === 'cancelled') continue; const { date } = jstParts(a.start_at); (apptByDate[date] ??= []).push(a); }
+
+  function changeApptStatus(id: string, status: string) {
+    setApptList((p) => p.map((x) => (x.id === id ? { ...x, status } : x)));
+    setApptModal(null);
+    startTr(async () => {
+      const { updateApptStatus } = await import('../actions');
+      const r = await updateApptStatus(id, status);
+      if (r.error) setMsg(r.error);
+    });
+  }
 
   function yToMin(rectTop: number, clientY: number): number {
     const y = Math.min(Math.max(0, clientY - rectTop), dayHeight);
@@ -169,14 +182,15 @@ export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: Sl
                 const top = ((st - START_HOUR * 60) / 60) * ROW; const height = Math.max(18, ((en - st) / 60) * ROW - 2);
                 const sub = [a.title, a.location ? '📍' + a.location : null].filter(Boolean).join(' ・ ');
                 return (
-                  <a key={a.id} href={`/appointments/${a.id}/edit`}
+                  <div key={a.id}
                     className={'cal-slot appt' + (a.status === 'pending' ? ' pending' : '')}
-                    style={{ top, height, left: '2px', right: '2px', zIndex: 2 }}
-                    onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                    style={{ top, height, left: '2px', right: '2px', zIndex: 2, cursor: 'pointer' }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); setApptModal(a); }}>
                     <span className="appt-time">{hhmm(st)}–{hhmm(en)}</span>
                     <span className="appt-name">{a.name}</span>
                     {sub ? <span className="appt-sub">{sub}</span> : null}
-                  </a>
+                  </div>
                 );
               })}
             </div>
@@ -209,6 +223,33 @@ export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: Sl
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="btn secondary" onClick={() => setDelId(null)}>キャンセル</button>
               <button className="btn" style={{ background: 'var(--danger)' }} onClick={() => { const id = delId; setDelId(null); remove(id); }}>削除する</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {apptModal ? (
+        <div className="modal-overlay" onClick={() => setApptModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ marginTop: 0 }}>予約の操作</h2>
+            <p style={{ margin: '4px 0', fontWeight: 700 }}>{apptModal.name}</p>
+            <p className="meta" style={{ marginTop: 0 }}>
+              {hhmm(jstParts(apptModal.start_at).minutes)}–{hhmm(jstParts(apptModal.end_at).minutes)}
+              {apptModal.title ? ` ・ ${apptModal.title}` : ''}
+              {apptModal.location ? ` ・ 📍${apptModal.location}` : ''}
+            </p>
+            <p className="meta">
+              現在の状態：{apptModal.status === 'confirmed' ? '確定' : apptModal.status === 'pending' ? '申込（未確定）' : apptModal.status}
+            </p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+              {apptModal.status !== 'confirmed' ? (
+                <button className="btn" onClick={() => changeApptStatus(apptModal.id, 'confirmed')}>✅ 確定する</button>
+              ) : null}
+              {apptModal.status !== 'cancelled' ? (
+                <button className="btn secondary" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }} onClick={() => changeApptStatus(apptModal.id, 'cancelled')}>キャンセルにする</button>
+              ) : null}
+              <a className="btn secondary" href={`/appointments/${apptModal.id}/edit`}>編集</a>
+              <button className="btn secondary" onClick={() => setApptModal(null)}>閉じる</button>
             </div>
           </div>
         </div>
