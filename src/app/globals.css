@@ -140,3 +140,7 @@ a:hover { text-decoration: underline; }
   color: var(--ink); cursor: pointer; user-select: none;
 }
 .wd-list input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+
+/* ドラッグ作成プレビュー */
+.cal-slot.preview { background: rgba(11,61,166,.18); border: 1.5px dashed var(--accent); color: var(--accent); pointer-events: none; }
+.theme-gyneco .cal-slot.preview { background: rgba(214,51,108,.18); }
