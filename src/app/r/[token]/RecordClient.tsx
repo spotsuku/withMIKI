@@ -114,15 +114,17 @@ export function RecordClient({
 
       {tab === 'karte' ? (
         <>
-          {/* 基本カルテ（先生が記入済み・閲覧のみ） */}
+          {/* 基本カルテ（先生が記入・閲覧のみ） */}
+          <p className="meta">先生が記入したあなたの基本カルテです（閲覧のみ）。</p>
           <BasicKarte data={basicKarte} showHeader={false} />
-          <p className="meta">体調や症状を記録できます。先生に見せる項目は「公開設定」タブで選べます。</p>
-          <DailyForm initial={initial} action={saveRecordByToken} hidden={{ rt_token: token, rt_pin: pinInput }} />
         </>
       ) : null}
 
       {tab === 'mypage' ? (
         <>
+          {/* 今日の記録（本人が記入） */}
+          <p className="meta">体調や症状を記録できます。先生に見せる項目は「公開設定」タブで選べます。</p>
+          <DailyForm initial={initial} action={saveRecordByToken} hidden={{ rt_token: token, rt_pin: pinInput }} />
           {/* 日記（エントリごとに公開/非公開） */}
           <DiaryView
             entries={diary}
