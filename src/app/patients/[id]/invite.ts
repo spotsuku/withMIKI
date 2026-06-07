@@ -16,6 +16,49 @@ export interface InviteState {
   url?: string;
 }
 
+/** 患者ログイン招待URLを発行（メール不要・LINEなどで送付）。 */
+export async function createInviteLink(_p: InviteState, fd: FormData): Promise<InviteState> {
+  const ctx = await getUserContext();
+  if (!ctx?.appUser) return { error: 'アカウントが未設定です。' };
+  const patientId = String(fd.get('patientId') ?? '');
+  if (!patientId) return { error: '患者IDがありません。' };
+
+  const base = (process.env.PATIENT_APP_URL || '').replace(/\/$/, '');
+  if (!base) return { error: '患者アプリURL（PATIENT_APP_URL）が未設定です。' };
+
+  const supabase = createClient();
+  const { data: pat } = await supabase.from('patient').select('tenant_id').eq('id', patientId).maybeSingle();
+  const p = pat as { tenant_id: string } | null;
+  if (!p) return { error: '患者が見つかりません。' };
+
+  // 既に連携済みなら、その旨を表示
+  const admin = createAdminClient();
+  if (admin) {
+    const { data: linked } = await admin.from('patient_user').select('id').eq('patient_id', patientId).maybeSingle();
+    if (linked) return { ok: true, existing: true };
+  }
+
+  // 未使用・未期限切れのトークンがあれば再利用、無ければ発行
+  const { data: ex } = await supabase
+    .from('patient_invite')
+    .select('token, expires_at, used_at')
+    .eq('patient_id', patientId)
+    .is('used_at', null)
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  let token = (ex as { token: string } | null)?.token ?? null;
+  if (!token) {
+    token = randomBytes(24).toString('hex');
+    const { error } = await supabase.from('patient_invite').insert({
+      tenant_id: p.tenant_id, patient_id: patientId, token,
+    });
+    if (error) return { error: '招待の発行に失敗しました：' + error.message };
+  }
+  return { ok: true, url: `${base}/invite/${token}` };
+}
+
 /** 患者にログインアカウントを発行し patient_user へ連携（招待） */
 export async function invitePatient(_p: InviteState, fd: FormData): Promise<InviteState> {
   const ctx = await getUserContext();

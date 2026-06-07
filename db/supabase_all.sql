@@ -1216,3 +1216,23 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON patient_share_settings TO authenticated;
 -- 0013_appointment_location.sql  予約に施術場所(location)を追加
 -- =============================================================================
 ALTER TABLE appointments ADD COLUMN IF NOT EXISTS location text;
+
+-- =============================================================================
+-- 0014_patient_invite.sql  患者ログイン招待（URL方式）トークン
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS patient_invite (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id   uuid NOT NULL REFERENCES tenant(id),
+  patient_id  uuid NOT NULL REFERENCES patient(id),
+  token       text NOT NULL UNIQUE,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  expires_at  timestamptz NOT NULL DEFAULT (now() + interval '14 days'),
+  used_at     timestamptz
+);
+CREATE INDEX IF NOT EXISTS idx_patient_invite_patient ON patient_invite(patient_id);
+ALTER TABLE patient_invite ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS patient_invite_staff ON patient_invite;
+CREATE POLICY patient_invite_staff ON patient_invite
+  USING (tenant_id = app_current_tenant())
+  WITH CHECK (tenant_id = app_current_tenant());
+GRANT SELECT, INSERT, UPDATE, DELETE ON patient_invite TO authenticated;

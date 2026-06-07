@@ -54,7 +54,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
   const wd = ['月', '火', '水', '木', '金', '土', '日'];
   const calAppts: CalAppt[] = appts.map((a) => {
     const pat = Array.isArray(a.patient) ? a.patient[0] : a.patient;
-    return { id: a.id, start_at: a.start_at, end_at: a.end_at, status: a.status, title: a.title, name: pat?.name ?? a.guest_name ?? '（未設定）' };
+    return { id: a.id, start_at: a.start_at, end_at: a.end_at, status: a.status, title: a.title, location: a.location, name: pat?.name ?? a.guest_name ?? '（未設定）' };
   });
 
   return (

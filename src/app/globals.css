@@ -127,8 +127,19 @@ a:hover { text-decoration: underline; }
 .cal-slot { position: absolute; left: 2px; right: 2px; border-radius: 6px; padding: 2px 4px; font-size: 10px; overflow: hidden; box-sizing: border-box; }
 .cal-slot.open { background: var(--accent-soft); border: 1px solid var(--accent); color: var(--accent); }
 .cal-slot.blocked { background: #eee; border: 1px solid #ccc; color: #888; }
-.cal-slot.appt { background: #dfeffd; border: 1px solid #1d6fb8; color: #155; }
 .cal-slot .x { float: right; cursor: pointer; font-weight: 700; }
+
+/* 予約イベント（Google風：内容が見える全幅ブロック） */
+.cal-slot.appt {
+  background: var(--accent); border: 1px solid var(--accent-dark); color: #fff;
+  display: flex; flex-direction: column; gap: 1px; line-height: 1.15;
+  padding: 3px 5px; box-shadow: 0 1px 2px rgba(0,0,0,.18); text-decoration: none;
+}
+.cal-slot.appt:hover { filter: brightness(1.05); text-decoration: none; }
+.cal-slot.appt.pending { background: #f59f00; border-color: #e8590c; }
+.cal-slot.appt .appt-time { font-size: 9px; opacity: .9; }
+.cal-slot.appt .appt-name { font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-slot.appt .appt-sub { font-size: 9px; opacity: .92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ヘッダー整列：1行・高さ揃え、ナビはボタン風 */
 .topbar { gap: 12px; align-items: center; }

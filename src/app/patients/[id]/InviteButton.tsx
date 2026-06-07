@@ -2,17 +2,17 @@
 
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
-import { invitePatient, type InviteState } from './invite';
+import { createInviteLink, type InviteState } from './invite';
 
 function Btn() {
   const { pending } = useFormStatus();
-  return <button className="btn secondary" type="submit" disabled={pending}>{pending ? '発行中…' : '🔑 ログイン招待を発行'}</button>;
+  return <button className="btn secondary" type="submit" disabled={pending}>{pending ? '発行中…' : '🔑 ログイン招待URLを発行'}</button>;
 }
 
 function Copy({ text, label }: { text: string; label: string }) {
   const [done, setDone] = useState(false);
   return (
-    <button type="button" className="btn secondary" style={{ padding: '2px 8px', fontSize: 12 }}
+    <button type="button" className="btn secondary" style={{ padding: '4px 10px', fontSize: 12 }}
       onClick={() => { navigator.clipboard?.writeText(text); setDone(true); setTimeout(() => setDone(false), 1200); }}>
       {done ? 'コピー済' : label}
     </button>
@@ -20,7 +20,7 @@ function Copy({ text, label }: { text: string; label: string }) {
 }
 
 export function InviteButton({ patientId }: { patientId: string }) {
-  const [state, formAction] = useFormState<InviteState, FormData>(invitePatient, {});
+  const [state, formAction] = useFormState<InviteState, FormData>(createInviteLink, {});
 
   return (
     <div style={{ marginTop: 8 }}>
@@ -29,21 +29,18 @@ export function InviteButton({ patientId }: { patientId: string }) {
         <Btn />
       </form>
 
-      {state.existing ? <p className="meta">✅ この患者は既にログイン連携済みです（{state.email}）。</p> : null}
+      {state.existing ? <p className="meta">✅ この患者は既にログイン連携済みです。</p> : null}
 
-      {state.ok && state.password ? (
+      {state.ok && state.url ? (
         <div className="card" style={{ marginTop: 8, background: 'var(--accent-soft)' }}>
-          <p className="meta" style={{ marginTop: 0 }}>ログインアカウントを発行しました。患者さんへお伝えください（初回ログイン後の変更を推奨）。</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr auto', gap: 6, alignItems: 'center' }}>
-            <span className="meta">メール</span><code>{state.email}</code><Copy text={state.email ?? ''} label="コピー" />
-            <span className="meta">初期PW</span><code>{state.password}</code><Copy text={state.password} label="コピー" />
-            {state.url ? (<><span className="meta">URL</span><code style={{ wordBreak: 'break-all' }}>{state.url}</code><Copy text={state.url} label="コピー" /></>) : null}
+          <p className="meta" style={{ marginTop: 0 }}>
+            招待URLを発行しました。LINEなどで患者さんに送ってください。患者さんはこのURLを開き、<strong>LINEログイン</strong>か<strong>メール・パスワード</strong>でアカウントを受け取れます（有効期限14日）。
+          </p>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <code style={{ wordBreak: 'break-all', flex: 1, minWidth: 0 }}>{state.url}</code>
+            <Copy text={state.url} label="URLをコピー" />
           </div>
         </div>
-      ) : null}
-
-      {state.ok && state.linkedExisting ? (
-        <p className="meta">✅ 既存のログインアカウント（{state.email}）を連携しました。患者さんは既存のパスワードでログインできます。</p>
       ) : null}
 
       {state.error ? <p className="error">{state.error}</p> : null}

@@ -33,6 +33,15 @@ export default function LoginPage() {
           <SubmitButton />
           {state?.error ? <p className="error">{state.error}</p> : null}
         </form>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '14px 0' }}>
+          <span style={{ flex: 1, height: 1, background: 'var(--line)' }} />
+          <span className="meta">または</span>
+          <span style={{ flex: 1, height: 1, background: 'var(--line)' }} />
+        </div>
+        <a className="btn" href="/liff" style={{ width: '100%', background: '#06c755', textAlign: 'center', display: 'block' }}>
+          LINEでログイン
+        </a>
       </div>
     </div>
   );

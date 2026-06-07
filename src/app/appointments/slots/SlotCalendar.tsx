@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { addSlotAt, removeSlotById, setSlotBlocked } from '../actions';
 
 export interface SlotItem { id: string; start_at: string; end_at: string; is_blocked: boolean }
-export interface ApptBlock { id: string; start_at: string; end_at: string; status: string; name: string }
+export interface ApptBlock { id: string; start_at: string; end_at: string; status: string; name: string; title?: string | null; location?: string | null }
 
 const START_HOUR = 8;
 const END_HOUR = 21;
@@ -37,7 +37,8 @@ export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: Sl
   const [mEnd, setMEnd] = useState('11:00');
 
   const combined = !!appts;
-  const slotRight = combined ? '52%' : '2px';
+  // 予約を Google 風に「内容が見える」全幅ブロックで表示するため、空き枠は左の細いレールにする
+  const slotRight = combined ? 'calc(100% - 12px)' : '2px';
   const dayHeight = (END_HOUR - START_HOUR) * ROW;
 
   const byDate: Record<string, SlotItem[]> = {};
@@ -148,12 +149,16 @@ export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: Sl
 
               {(apptByDate[d] ?? []).map((a) => {
                 const st = jstParts(a.start_at).minutes; const en = jstParts(a.end_at).minutes;
-                const top = ((st - START_HOUR * 60) / 60) * ROW; const height = Math.max(16, ((en - st) / 60) * ROW - 2);
+                const top = ((st - START_HOUR * 60) / 60) * ROW; const height = Math.max(18, ((en - st) / 60) * ROW - 2);
+                const sub = [a.title, a.location ? '📍' + a.location : null].filter(Boolean).join(' ・ ');
                 return (
-                  <a key={a.id} href={`/appointments/${a.id}/edit`} className="cal-slot appt"
-                    style={{ top, height, left: '50%', right: '2px' }}
+                  <a key={a.id} href={`/appointments/${a.id}/edit`}
+                    className={'cal-slot appt' + (a.status === 'pending' ? ' pending' : '')}
+                    style={{ top, height, left: 14, right: '2px', zIndex: 2 }}
                     onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
-                    {hhmm(st)} {a.name}
+                    <span className="appt-time">{hhmm(st)}–{hhmm(en)}</span>
+                    <span className="appt-name">{a.name}</span>
+                    {sub ? <span className="appt-sub">{sub}</span> : null}
                   </a>
                 );
               })}

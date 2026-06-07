@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export interface CalAppt {
-  id: string; start_at: string; end_at: string; status: string; title: string | null; name: string;
+  id: string; start_at: string; end_at: string; status: string; title: string | null; name: string; location?: string | null;
 }
 
 const START_HOUR = 8;
