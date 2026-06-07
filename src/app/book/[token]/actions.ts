@@ -19,7 +19,6 @@ export async function bookSlot(_p: BookState, fd: FormData): Promise<BookState> 
   const bookingPageToken = s(fd, 'pageToken');
   const slotId = s(fd, 'slot_id');
   const name = s(fd, 'name');
-  const email = s(fd, 'email');
   if (!bookingPageToken || !slotId || !name) return { error: 'お名前と希望枠を入力してください。' };
 
   // トークン→テナント
@@ -41,7 +40,6 @@ export async function bookSlot(_p: BookState, fd: FormData): Promise<BookState> 
     end_at: sl.end_at,
     status: 'pending',
     guest_name: name,
-    guest_email: email,
     booking_token: token,
     source: 'patient',
   }).select('id').single();

@@ -39,7 +39,6 @@ export function BookingForm({ pageToken, slots }: { pageToken: string; slots: Sl
         <div className="card">
           <h2>お客様情報</h2>
           <div className="field"><label htmlFor="name">お名前 *</label><input id="name" name="name" required /></div>
-          <div className="field"><label htmlFor="email">メールアドレス</label><input id="email" name="email" type="email" /></div>
           {state?.error ? <p className="error">{state.error}</p> : null}
           {!slotId ? <p className="meta">※ 上から希望枠を選んでください。</p> : null}
           <Submit />
