@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { addSlotAt, addApptAt, removeSlotById, setSlotBlocked } from '../actions';
 
 function Legend({ color, border, label }: { color: string; border: string; label: string }) {
@@ -35,6 +36,7 @@ function isoFromJst(date: string, min: number) { return new Date(`${date}T${hhmm
 
 export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { week: string[]; slots: SlotItem[]; appts?: ApptBlock[]; googleEvents?: GEvent[]; patients?: { id: string; name: string }[] }) {
   const [, startTr] = useTransition();
+  const router = useRouter();
   const [list, setList] = useState<SlotItem[]>(slots);
   useEffect(() => { setList(slots); }, [slots]);
   const [apptList, setApptList] = useState<ApptBlock[]>(appts ?? []);
@@ -46,11 +48,21 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
   const [modal, setModal] = useState<{ date: string } | null>(null);
   const [delId, setDelId] = useState<string | null>(null);
   const [apptModal, setApptModal] = useState<ApptBlock | null>(null);
+  const [slotModal, setSlotModal] = useState<SlotItem | null>(null);
   const [mStart, setMStart] = useState('10:00');
   const [mEnd, setMEnd] = useState('11:00');
   const [mType, setMType] = useState<'open' | 'blocked' | 'confirmed' | 'pending'>('open');
   const [mPatient, setMPatient] = useState('');
   const [mTitle, setMTitle] = useState('');
+
+  // リロード不要のリアルタイム同期：一定間隔でサーバーデータ(予約/枠/Google予定)を再取得。
+  // 操作中（モーダル/ドラッグ）は更新しない。
+  const busyRef = useRef(false);
+  busyRef.current = Boolean(modal || apptModal || slotModal || delId || drag);
+  useEffect(() => {
+    const id = setInterval(() => { if (!busyRef.current && document.visibilityState === 'visible') router.refresh(); }, 20000);
+    return () => clearInterval(id);
+  }, [router]);
 
   // 空き枠は全幅の薄い背景、予約はその上に重なる全幅ブロック（Google風）
   const slotRight = '2px';
@@ -70,6 +82,26 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
       const { updateApptStatus } = await import('../actions');
       const r = await updateApptStatus(id, status);
       if (r.error) setMsg(r.error);
+    });
+  }
+
+  /** 空き枠を予約（確定/申込）に変換。枠は受付不可にして予約を作成。 */
+  function convertSlot(status: 'confirmed' | 'pending') {
+    if (!slotModal) return;
+    const slot = slotModal;
+    const p = jstParts(slot.start_at); const enMin = jstParts(slot.end_at).minutes;
+    const date = p.date; const startMin = p.minutes; const mins = enMin - startMin;
+    const patientName = patients?.find((x) => x.id === mPatient)?.name;
+    const tmpId = 'tmp-' + Date.now();
+    setApptList((prev) => [...prev, { id: tmpId, start_at: slot.start_at, end_at: slot.end_at, status, name: patientName ?? '（予約）', title: mTitle || null }]);
+    setList((prev) => prev.map((x) => (x.id === slot.id ? { ...x, is_blocked: true } : x)));
+    setSlotModal(null);
+    setMsg(null);
+    startTr(async () => {
+      const r = await addApptAt(date, hhmm(startMin), mins, { patientId: mPatient || null, title: mTitle || null, status });
+      if (r.error) { setApptList((q) => q.filter((x) => x.id !== tmpId)); setMsg(r.error); return; }
+      if (r.id) setApptList((q) => q.map((x) => (x.id === tmpId ? { ...x, id: r.id! } : x)));
+      await setSlotBlocked(slot.id, true);
     });
   }
 
@@ -157,7 +189,7 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
           </select>
         </label>
       </div>
-      <p className="meta">縦に<strong>ドラッグ</strong>（またはタップ）→確認画面で作成。枠タップで受付可/不可・×で削除。</p>
+      <p className="meta">空白を<strong>ドラッグ／タップ</strong>→種類を選んで作成。<strong>枠やタップで編集</strong>（受付可否の切替・予約に変換）・×で削除。予約タップで確定/キャンセル。</p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', margin: '4px 0 8px', fontSize: '.78rem' }}>
         <Legend color="var(--accent-soft)" border="var(--accent)" label="空き枠（受付中）" />
         <Legend color="#eee" border="#ccc" label="受付不可" />
@@ -196,7 +228,7 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
                   <div key={slot.id} className={'cal-slot ' + (slot.is_blocked ? 'blocked' : 'open')}
                     style={{ top, height, right: slotRight }}
                     onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); toggle(slot.id, !slot.is_blocked); }}>
+                    onClick={(e) => { e.stopPropagation(); setSlotModal(slot); setMType('confirmed'); setMPatient(''); setMTitle(''); }}>
                     <span className="x" onClick={(e) => { e.stopPropagation(); setDelId(slot.id); }}>×</span>
                     <span className="slot-label">{slot.is_blocked ? '受付不可' : '空き枠'}</span>
                     <span className="slot-time">{hhmm(st)}</span>
@@ -276,6 +308,52 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="btn secondary" onClick={() => setModal(null)}>キャンセル</button>
               <button className="btn" onClick={create}>作成</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {slotModal ? (
+        <div className="modal-overlay" onClick={() => setSlotModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ marginTop: 0 }}>枠の編集</h2>
+            <p className="meta" style={{ marginTop: 0 }}>
+              {jstParts(slotModal.start_at).date}　{hhmm(jstParts(slotModal.start_at).minutes)}–{hhmm(jstParts(slotModal.end_at).minutes)}
+              　／　現在：{slotModal.is_blocked ? '受付不可' : '空き枠（受付中）'}
+            </p>
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button className="btn secondary" onClick={() => { const s = slotModal; setSlotModal(null); toggle(s.id, !s.is_blocked); }}>
+                {slotModal.is_blocked ? '受付可にする' : '受付不可にする'}
+              </button>
+              <button className="btn secondary" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }} onClick={() => { const id = slotModal.id; setSlotModal(null); setDelId(id); }}>削除</button>
+            </div>
+
+            <div style={{ borderTop: '1px solid var(--line)', marginTop: 14, paddingTop: 12 }}>
+              <h2 style={{ fontSize: '1rem', margin: '0 0 8px' }}>予約に変換</h2>
+              <div className="field">
+                <label>状態</label>
+                <div className="chips">
+                  <button type="button" className={'chip' + (mType === 'confirmed' ? ' on' : '')} onClick={() => setMType('confirmed')}>確定</button>
+                  <button type="button" className={'chip' + (mType === 'pending' ? ' on' : '')} onClick={() => setMType('pending')}>申込</button>
+                </div>
+              </div>
+              <div className="field">
+                <label>患者</label>
+                <select value={mPatient} onChange={(e) => setMPatient(e.target.value)}>
+                  <option value="">（未選択）</option>
+                  {(patients ?? []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+              <div className="field">
+                <label>メニュー・件名</label>
+                <input value={mTitle} onChange={(e) => setMTitle(e.target.value)} placeholder="例: 鍼灸施術" />
+              </div>
+              <button className="btn" onClick={() => convertSlot(mType === 'pending' ? 'pending' : 'confirmed')}>この枠を予約にする</button>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+              <button className="btn secondary" onClick={() => setSlotModal(null)}>閉じる</button>
             </div>
           </div>
         </div>
