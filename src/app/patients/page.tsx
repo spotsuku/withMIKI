@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { Topbar } from '@/components/Topbar';
-import { ageFromDob, type Patient } from '@/lib/types';
+import { PatientList } from './PatientList';
+import { type Patient } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,37 +63,7 @@ export default async function PatientsPage() {
           </div>
         ) : null}
 
-        <div className="card" style={{ marginTop: 12 }}>
-          {patients.length === 0 ? (
-            <div className="empty">
-              患者がまだいません。既存データは <code>tools/importer</code> で取り込めます。
-            </div>
-          ) : (
-            <ul className="patient-list">
-              {patients.map((p) => {
-                const age = ageFromDob(p.dob);
-                return (
-                  <li key={p.id}>
-                    <Link href={`/patients/${p.id}`}>
-                      <span className="avatar">{p.avatar || '🧑'}</span>
-                      <span style={{ flex: 1 }}>
-                        <span style={{ fontWeight: 600 }}>{p.name}</span>
-                        {p.kana ? <span className="meta">　{p.kana}</span> : null}
-                        <br />
-                        <span className="meta">
-                          {p.code ? `No.${p.code}　` : ''}
-                          {p.sex ?? ''}
-                          {age !== null ? `　${age}歳` : ''}
-                        </span>
-                      </span>
-                      <span className="meta">›</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
+        <PatientList patients={patients} />
       </div>
     </>
   );
