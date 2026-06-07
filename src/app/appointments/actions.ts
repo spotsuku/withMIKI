@@ -127,6 +127,30 @@ export async function updateApptStatus(id: string, status: string): Promise<Appt
   return {};
 }
 
+/** Googleの既存予定を編集（タイトル・時間） */
+export async function editGoogleEvent(eventId: string, summary: string, date: string, start: string, end: string): Promise<ApptState> {
+  const ctx = await getUserContext();
+  if (!ctx?.appUser) return { error: '権限がありません。' };
+  if (!eventId || !date || !start || !end) return { error: '入力が不正です。' };
+  const { updateGoogleEvent } = await import('@/lib/google');
+  const ok = await updateGoogleEvent(ctx.appUser.tenant_id, eventId, summary || '予定', jstToIso(date, start), jstToIso(date, end));
+  if (!ok) return { error: 'Google予定の更新に失敗しました。' };
+  revalidatePath('/appointments');
+  return {};
+}
+
+/** Googleの既存予定を削除 */
+export async function removeGoogleEvent(eventId: string): Promise<ApptState> {
+  const ctx = await getUserContext();
+  if (!ctx?.appUser) return { error: '権限がありません。' };
+  if (!eventId) return { error: '対象がありません。' };
+  const { deleteGoogleEvent } = await import('@/lib/google');
+  const ok = await deleteGoogleEvent(ctx.appUser.tenant_id, eventId);
+  if (!ok) return { error: 'Google予定の削除に失敗しました。' };
+  revalidatePath('/appointments');
+  return {};
+}
+
 /** 空き枠を作成（先生） */
 export async function createSlot(_p: ApptState, fd: FormData): Promise<ApptState> {
   const ctx = await getUserContext();

@@ -41,6 +41,8 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
   useEffect(() => { setList(slots); }, [slots]);
   const [apptList, setApptList] = useState<ApptBlock[]>(appts ?? []);
   useEffect(() => { setApptList(appts ?? []); }, [appts]);
+  const [gList, setGList] = useState<GEvent[]>(googleEvents ?? []);
+  useEffect(() => { setGList(googleEvents ?? []); }, [googleEvents]);
 
   const [duration, setDuration] = useState(60);
   const [msg, setMsg] = useState<string | null>(null);
@@ -54,11 +56,15 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
   const [mType, setMType] = useState<'open' | 'blocked' | 'confirmed' | 'pending'>('open');
   const [mPatient, setMPatient] = useState('');
   const [mTitle, setMTitle] = useState('');
+  const [gModal, setGModal] = useState<GEvent | null>(null);
+  const [gTitle, setGTitle] = useState('');
+  const [gStart, setGStart] = useState('10:00');
+  const [gEnd, setGEnd] = useState('11:00');
 
   // リロード不要のリアルタイム同期：一定間隔でサーバーデータ(予約/枠/Google予定)を再取得。
   // 操作中（モーダル/ドラッグ）は更新しない。
   const busyRef = useRef(false);
-  busyRef.current = Boolean(modal || apptModal || slotModal || delId || drag);
+  busyRef.current = Boolean(modal || apptModal || slotModal || gModal || delId || drag);
   useEffect(() => {
     const id = setInterval(() => { if (!busyRef.current && document.visibilityState === 'visible') router.refresh(); }, 20000);
     return () => clearInterval(id);
@@ -73,7 +79,7 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
   const apptByDate: Record<string, ApptBlock[]> = {};
   for (const a of apptList) { if (a.status === 'cancelled') continue; const { date } = jstParts(a.start_at); (apptByDate[date] ??= []).push(a); }
   const gByDate: Record<string, GEvent[]> = {};
-  for (const g of googleEvents ?? []) { const { date } = jstParts(g.start_at); (gByDate[date] ??= []).push(g); }
+  for (const g of gList) { const { date } = jstParts(g.start_at); (gByDate[date] ??= []).push(g); }
 
   function changeApptStatus(id: string, status: string) {
     setApptList((p) => p.map((x) => (x.id === id ? { ...x, status } : x)));
@@ -102,6 +108,38 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
       if (r.error) { setApptList((q) => q.filter((x) => x.id !== tmpId)); setMsg(r.error); return; }
       if (r.id) setApptList((q) => q.map((x) => (x.id === tmpId ? { ...x, id: r.id! } : x)));
       await setSlotBlocked(slot.id, true);
+    });
+  }
+
+  function openGModal(g: GEvent) {
+    setGTitle(g.title);
+    setGStart(hhmm(jstParts(g.start_at).minutes));
+    setGEnd(hhmm(jstParts(g.end_at).minutes));
+    setGModal(g);
+  }
+  function saveGEvent() {
+    if (!gModal) return;
+    const g = gModal;
+    const date = jstParts(g.start_at).date;
+    const s = toMin(gStart); const en = toMin(gEnd);
+    if (en <= s) { setMsg('終了は開始より後にしてください。'); return; }
+    setGList((p) => p.map((x) => (x.id === g.id ? { ...x, title: gTitle || '予定', start_at: isoFromJst(date, s), end_at: isoFromJst(date, en) } : x)));
+    setGModal(null); setMsg(null);
+    startTr(async () => {
+      const { editGoogleEvent } = await import('../actions');
+      const r = await editGoogleEvent(g.id, gTitle || '予定', date, gStart, gEnd);
+      if (r.error) setMsg(r.error);
+    });
+  }
+  function deleteGEvent() {
+    if (!gModal) return;
+    const g = gModal;
+    setGList((p) => p.filter((x) => x.id !== g.id));
+    setGModal(null); setMsg(null);
+    startTr(async () => {
+      const { removeGoogleEvent } = await import('../actions');
+      const r = await removeGoogleEvent(g.id);
+      if (r.error) setMsg(r.error);
     });
   }
 
@@ -257,8 +295,10 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
                 const st = jstParts(g.start_at).minutes; const en = jstParts(g.end_at).minutes;
                 const top = ((st - START_HOUR * 60) / 60) * ROW; const height = Math.max(16, ((en - st) / 60) * ROW - 2);
                 return (
-                  <div key={g.id} className="cal-slot gcal" style={{ top, height, left: '2px', right: '2px', zIndex: 3 }}
-                    title={g.title}>
+                  <div key={g.id} className="cal-slot gcal" style={{ top, height, left: '2px', right: '2px', zIndex: 3, cursor: 'pointer' }}
+                    title={g.title}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); openGModal(g); }}>
                     <span className="appt-time">{hhmm(st)}–{hhmm(en)}</span>
                     <span className="appt-name">{g.title}</span>
                   </div>
@@ -354,6 +394,30 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
               <button className="btn secondary" onClick={() => setSlotModal(null)}>閉じる</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {gModal ? (
+        <div className="modal-overlay" onClick={() => setGModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ marginTop: 0 }}>Google予定の編集</h2>
+            <p className="meta" style={{ marginTop: 0 }}>{jstParts(gModal.start_at).date}（Googleカレンダーに反映されます）</p>
+            <div className="field">
+              <label>タイトル</label>
+              <input value={gTitle} onChange={(e) => setGTitle(e.target.value)} />
+            </div>
+            <div className="grid cols-2">
+              <div className="field"><label>開始</label><input type="time" value={gStart} onChange={(e) => setGStart(e.target.value)} /></div>
+              <div className="field"><label>終了</label><input type="time" value={gEnd} onChange={(e) => setGEnd(e.target.value)} /></div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+              <button className="btn secondary" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }} onClick={deleteGEvent}>削除</button>
+              <span style={{ display: 'flex', gap: 8 }}>
+                <button className="btn secondary" onClick={() => setGModal(null)}>閉じる</button>
+                <button className="btn" onClick={saveGEvent}>保存</button>
+              </span>
             </div>
           </div>
         </div>

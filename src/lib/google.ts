@@ -166,6 +166,29 @@ export async function removeSlotFromGoogle(tenantId: string, slotId: string): Pr
 
 export interface GCalEvent { id: string; title: string; start_at: string; end_at: string }
 
+/** Google の既存予定を更新（タイトル・時間） */
+export async function updateGoogleEvent(tenantId: string, eventId: string, summary: string, startIso: string, endIso: string): Promise<boolean> {
+  const auth = await getToken(tenantId);
+  if (!auth) return false;
+  const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(auth.calendarId)}/events/${eventId}`, {
+    method: 'PATCH',
+    headers: { authorization: `Bearer ${auth.token.access_token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ summary, start: { dateTime: startIso }, end: { dateTime: endIso } }),
+  });
+  return res.ok;
+}
+
+/** Google の既存予定を削除 */
+export async function deleteGoogleEvent(tenantId: string, eventId: string): Promise<boolean> {
+  const auth = await getToken(tenantId);
+  if (!auth) return false;
+  const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(auth.calendarId)}/events/${eventId}`, {
+    method: 'DELETE',
+    headers: { authorization: `Bearer ${auth.token.access_token}` },
+  });
+  return res.ok || res.status === 410;
+}
+
 /** Google の予定をライブ取得（DBに保存しない・カレンダー表示用）。連携なしや時間指定なし予定は除外。 */
 export async function listGoogleEvents(tenantId: string, fromIso: string, toIso: string): Promise<GCalEvent[]> {
   const auth = await getToken(tenantId);
