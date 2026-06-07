@@ -32,6 +32,7 @@ export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: Sl
   const [msg, setMsg] = useState<string | null>(null);
   const [drag, setDrag] = useState<{ date: string; a: number; b: number } | null>(null);
   const [modal, setModal] = useState<{ date: string } | null>(null);
+  const [delId, setDelId] = useState<string | null>(null);
   const [mStart, setMStart] = useState('10:00');
   const [mEnd, setMEnd] = useState('11:00');
 
@@ -139,7 +140,7 @@ export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: Sl
                     style={{ top, height, right: slotRight }}
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); toggle(slot.id, !slot.is_blocked); }}>
-                    <span className="x" onClick={(e) => { e.stopPropagation(); remove(slot.id); }}>×</span>
+                    <span className="x" onClick={(e) => { e.stopPropagation(); setDelId(slot.id); }}>×</span>
                     {hhmm(st)}
                   </div>
                 );
@@ -173,6 +174,19 @@ export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: Sl
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="btn secondary" onClick={() => setModal(null)}>キャンセル</button>
               <button className="btn" onClick={create}>作成</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {delId ? (
+        <div className="modal-overlay" onClick={() => setDelId(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ marginTop: 0 }}>空き枠の削除</h2>
+            <p className="meta">この空き枠を削除しますか？</p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button className="btn secondary" onClick={() => setDelId(null)}>キャンセル</button>
+              <button className="btn" style={{ background: 'var(--danger)' }} onClick={() => { const id = delId; setDelId(null); remove(id); }}>削除する</button>
             </div>
           </div>
         </div>

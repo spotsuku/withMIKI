@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { applyTemplate, saveTemplate, deleteTemplate, type ApptState } from '../actions';
 import type { SlotTemplate } from '@/lib/slotTemplates';
@@ -19,6 +20,7 @@ function SaveBtn() {
 export function TemplatePanel({ templates }: { templates: SlotTemplate[] }) {
   const [applyState, applyAction] = useFormState<ApptState, FormData>(applyTemplate, {});
   const [saveState, saveAction] = useFormState<ApptState, FormData>(saveTemplate, {});
+  const [showCreate, setShowCreate] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
   const plus4w = new Date(Date.now() + 28 * 86400000).toISOString().slice(0, 10);
 
@@ -58,30 +60,37 @@ export function TemplatePanel({ templates }: { templates: SlotTemplate[] }) {
         ))}
       </div>
 
-      {/* 新規テンプレ保存 */}
-      <details style={{ marginTop: 12 }}>
-        <summary style={{ cursor: 'pointer', fontWeight: 600 }}>テンプレを新規作成</summary>
-        <form action={saveAction} style={{ marginTop: 8 }}>
-          <div className="field"><label htmlFor="name">名称 *</label><input id="name" name="name" required placeholder="例: 平日夜間" /></div>
-          <div className="grid cols-2">
-            <div className="field"><label htmlFor="t_start">開始</label><input id="t_start" name="start" type="time" defaultValue="18:00" required /></div>
-            <div className="field"><label htmlFor="t_end">終了</label><input id="t_end" name="end" type="time" defaultValue="21:00" required /></div>
-            <div className="field"><label htmlFor="t_int">1枠</label><select id="t_int" name="interval" defaultValue="60">{[30, 45, 60, 90].map((m) => <option key={m} value={m}>{m}分</option>)}</select></div>
-          </div>
-          <div className="field">
-            <label>曜日</label>
-            <div className="wd-list">
-              {WD.map(([v, l]) => (
-                <label key={v}>
-                  <input type="checkbox" name="wd" value={v} defaultChecked={v !== '0'} />{l}
-                </label>
-              ))}
+      {/* 新規テンプレ作成（ボタンで開く） */}
+      <div style={{ marginTop: 14, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
+        {!showCreate ? (
+          <button className="btn" onClick={() => setShowCreate(true)}>＋ テンプレを新規作成</button>
+        ) : (
+          <form action={saveAction}>
+            <h2 style={{ marginTop: 0 }}>テンプレを新規作成</h2>
+            <div className="field"><label htmlFor="name">名称 *</label><input id="name" name="name" required placeholder="例: 平日夜間" /></div>
+            <div className="grid cols-2">
+              <div className="field"><label htmlFor="t_start">開始</label><input id="t_start" name="start" type="time" defaultValue="18:00" required /></div>
+              <div className="field"><label htmlFor="t_end">終了</label><input id="t_end" name="end" type="time" defaultValue="21:00" required /></div>
+              <div className="field"><label htmlFor="t_int">1枠</label><select id="t_int" name="interval" defaultValue="60">{[30, 45, 60, 90].map((m) => <option key={m} value={m}>{m}分</option>)}</select></div>
             </div>
-          </div>
-          {saveState?.error ? <p className="error">{saveState.error}</p> : null}
-          <SaveBtn />
-        </form>
-      </details>
+            <div className="field">
+              <label>曜日</label>
+              <div className="wd-list">
+                {WD.map(([v, l]) => (
+                  <label key={v}>
+                    <input type="checkbox" name="wd" value={v} defaultChecked={v !== '0'} />{l}
+                  </label>
+                ))}
+              </div>
+            </div>
+            {saveState?.error ? <p className="error">{saveState.error}</p> : null}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <SaveBtn />
+              <button type="button" className="btn secondary" onClick={() => setShowCreate(false)}>キャンセル</button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
