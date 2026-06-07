@@ -27,7 +27,7 @@ export async function createAppointment(_p: ApptState, fd: FormData): Promise<Ap
   const start = jstToIso(date, time);
   const supabase = createClient();
   const status = s(fd, 'status') ?? 'confirmed';
-  const { data: created, error } = await supabase.from('appointments').insert({
+  const payload: Record<string, unknown> = {
     tenant_id: ctx.appUser.tenant_id,
     patient_id: s(fd, 'patient_id'),
     title: s(fd, 'title'),
@@ -38,7 +38,13 @@ export async function createAppointment(_p: ApptState, fd: FormData): Promise<Ap
     notes: s(fd, 'notes'),
     booking_token: randomBytes(24).toString('hex'),
     created_by: ctx.appUser.id,
-  }).select('id').single();
+  };
+  let { data: created, error } = await supabase.from('appointments').insert(payload).select('id').single();
+  // location 列が未適用(0013未実行)でも作成できるよう、無い場合は外して再試行
+  if (error && /location/.test(error.message)) {
+    delete payload.location;
+    ({ data: created, error } = await supabase.from('appointments').insert(payload).select('id').single());
+  }
   if (error || !created) return { error: '予約の作成に失敗しました：' + (error?.message ?? '') };
   // 確定予約は Google カレンダーへ反映（連携済みなら）
   if (status === 'confirmed') {
@@ -59,7 +65,7 @@ export async function updateAppointment(_p: ApptState, fd: FormData): Promise<Ap
   const dur = parseInt(String(fd.get('duration') ?? '60'), 10) || 60;
   const start = jstToIso(date, time);
   const supabase = createClient();
-  const { error } = await supabase.from('appointments').update({
+  const patch: Record<string, unknown> = {
     patient_id: s(fd, 'patient_id'),
     title: s(fd, 'title'),
     location: s(fd, 'location'),
@@ -67,7 +73,12 @@ export async function updateAppointment(_p: ApptState, fd: FormData): Promise<Ap
     end_at: addMinutesIso(start, dur),
     status: s(fd, 'status') ?? 'confirmed',
     notes: s(fd, 'notes'),
-  }).eq('id', id);
+  };
+  let { error } = await supabase.from('appointments').update(patch).eq('id', id);
+  if (error && /location/.test(error.message)) {
+    delete patch.location;
+    ({ error } = await supabase.from('appointments').update(patch).eq('id', id));
+  }
   if (error) return { error: '予約の更新に失敗しました：' + error.message };
   // Google イベントへ反映（連携済みなら）
   try { const { syncAppointmentToGoogle } = await import('@/lib/google'); await syncAppointmentToGoogle(ctx.appUser.tenant_id, id); } catch { /* ignore */ }
