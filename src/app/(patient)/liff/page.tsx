@@ -60,9 +60,21 @@ export default function LiffPage() {
         if (!liff.isLoggedIn()) { liff.login(); return; } // LINEへ→戻ると再実行（sessionStorageは保持）
         const idToken = liff.getIDToken();
         if (!idToken) { setStatus('IDトークンを取得できませんでした。'); return; }
-        // ここまで来たら消費完了として消す（次回のlogin既定に影響させない）
-        sessionStorage.removeItem('liff_mode');
-        sessionStorage.removeItem('liff_token');
+
+        // idToken 期限切れ時：一度だけ再ログインして新しいトークンを取り直す
+        const refreshLogin = () => {
+          if (sessionStorage.getItem('liff_retried')) return false;
+          sessionStorage.setItem('liff_retried', '1');
+          setStatus('ログイン情報を更新中…');
+          try { liff.logout(); } catch { /* noop */ }
+          liff.login();
+          return true;
+        };
+        const clearStorage = () => {
+          sessionStorage.removeItem('liff_mode');
+          sessionStorage.removeItem('liff_token');
+          sessionStorage.removeItem('liff_retried');
+        };
 
         // ---- 連携（先生がLINEをひも付け）----
         if (mode === 'link') {
@@ -71,7 +83,9 @@ export default function LiffPage() {
             method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ idToken }),
           });
           const j = await res.json();
+          if (res.status === 401 && j.expired && refreshLogin()) return;
           if (!res.ok) { setStatus(j.error || '連携に失敗しました'); return; }
+          clearStorage();
           router.replace('/settings?line=linked'); router.refresh();
           return;
         }
@@ -83,9 +97,11 @@ export default function LiffPage() {
             method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: inviteToken, idToken }),
           });
           const j = await res.json();
+          if (res.status === 401 && j.expired && refreshLogin()) return;
           if (!res.ok) { setStatus(j.error || '登録に失敗しました'); return; }
           const { error } = await supabase.auth.verifyOtp({ email: j.email, token: j.otp, type: 'magiclink' });
           if (error) { setStatus('セッション確立に失敗しました：' + error.message); return; }
+          clearStorage();
           router.replace('/today'); router.refresh();
           return;
         }
@@ -97,9 +113,11 @@ export default function LiffPage() {
         });
         const j = await res.json();
         if (res.status === 404) { setNotlinked(true); setStatus(''); return; }
+        if (res.status === 401 && j.expired && refreshLogin()) return;
         if (!res.ok) { setStatus(j.error || 'ログインに失敗しました'); return; }
         const { error } = await supabase.auth.verifyOtp({ email: j.email, token: j.otp, type: 'magiclink' });
         if (error) { setStatus('セッション確立に失敗しました：' + error.message); return; }
+        clearStorage();
         router.replace(j.role === 'staff' ? '/patients' : '/today'); router.refresh();
       } catch (e) {
         if (!cancelled) setStatus('エラー：' + (e as Error).message);

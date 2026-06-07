@@ -25,7 +25,11 @@ export async function POST(req: NextRequest) {
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ id_token: body.idToken, client_id: channelId }),
   });
-  if (!verifyRes.ok) return NextResponse.json({ error: 'LINE認証に失敗しました' }, { status: 401 });
+  if (!verifyRes.ok) {
+    const d = (await verifyRes.json().catch(() => ({}))) as { error?: string; error_description?: string };
+    const expired = /expire/i.test(d.error_description || d.error || '');
+    return NextResponse.json({ expired, error: expired ? 'ログイン情報が期限切れでした。再取得します。' : 'LINE認証に失敗しました' }, { status: 401 });
+  }
   const profile = (await verifyRes.json()) as { sub?: string; picture?: string };
   const lineUserId = profile.sub;
   if (!lineUserId) return NextResponse.json({ error: 'LINEユーザーを特定できません' }, { status: 401 });

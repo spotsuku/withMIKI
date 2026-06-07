@@ -28,8 +28,12 @@ export async function POST(req: NextRequest) {
   });
   if (!verifyRes.ok) {
     const detail = (await verifyRes.json().catch(() => ({}))) as { error?: string; error_description?: string };
+    const expired = /expire/i.test(detail.error_description || detail.error || '');
     return NextResponse.json({
-      error: 'LINE認証に失敗しました（' + (detail.error_description || detail.error || 'verify失敗') + '）。サーバーの LINE_LOGIN_CHANNEL_ID が、LIFFを含むLINEログインチャネルのIDと一致しているか確認してください。',
+      expired,
+      error: expired
+        ? 'LINEのログイン情報が期限切れでした。再取得します。'
+        : 'LINE認証に失敗しました（' + (detail.error_description || detail.error || 'verify失敗') + '）。サーバーの LINE_LOGIN_CHANNEL_ID が、LIFFを含むLINEログインチャネルのIDと一致しているか確認してください。',
     }, { status: 401 });
   }
   const profile = (await verifyRes.json()) as { sub?: string; picture?: string };
