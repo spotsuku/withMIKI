@@ -26,18 +26,24 @@ export async function createAppointment(_p: ApptState, fd: FormData): Promise<Ap
   const dur = parseInt(String(fd.get('duration') ?? '30'), 10) || 30;
   const start = jstToIso(date, time);
   const supabase = createClient();
-  const { error } = await supabase.from('appointments').insert({
+  const status = s(fd, 'status') ?? 'confirmed';
+  const { data: created, error } = await supabase.from('appointments').insert({
     tenant_id: ctx.appUser.tenant_id,
     patient_id: s(fd, 'patient_id'),
     title: s(fd, 'title'),
+    location: s(fd, 'location'),
     start_at: start,
     end_at: addMinutesIso(start, dur),
-    status: s(fd, 'status') ?? 'confirmed',
+    status,
     notes: s(fd, 'notes'),
     booking_token: randomBytes(24).toString('hex'),
     created_by: ctx.appUser.id,
-  });
-  if (error) return { error: '予約の作成に失敗しました：' + error.message };
+  }).select('id').single();
+  if (error || !created) return { error: '予約の作成に失敗しました：' + (error?.message ?? '') };
+  // 確定予約は Google カレンダーへ反映（連携済みなら）
+  if (status === 'confirmed') {
+    try { const { syncAppointmentToGoogle } = await import('@/lib/google'); await syncAppointmentToGoogle(ctx.appUser.tenant_id, (created as { id: string }).id); } catch { /* 未設定なら無視 */ }
+  }
   revalidatePath('/appointments');
   redirect('/appointments');
 }
@@ -56,6 +62,7 @@ export async function updateAppointment(_p: ApptState, fd: FormData): Promise<Ap
   const { error } = await supabase.from('appointments').update({
     patient_id: s(fd, 'patient_id'),
     title: s(fd, 'title'),
+    location: s(fd, 'location'),
     start_at: start,
     end_at: addMinutesIso(start, dur),
     status: s(fd, 'status') ?? 'confirmed',
@@ -330,4 +337,46 @@ export async function applyTemplate(_p: ApptState, fd: FormData): Promise<ApptSt
   try { const { pushSlotToGoogle } = await import('@/lib/google'); for (const r of (data ?? []) as { id: string }[]) await pushSlotToGoogle(ctx.appUser.tenant_id, r.id); } catch { /* ignore */ }
   revalidatePath('/appointments/slots');
   return {};
+}
+
+// ===== 施術場所テンプレート（tenant_settings.settings.location_templates に保存） =====
+
+const DEFAULT_LOCATIONS = ['院内', 'オンライン', '出張'];
+
+/** 施術場所の候補一覧（未登録なら既定値） */
+export async function listLocations(): Promise<string[]> {
+  const settings = await readSettings();
+  const locs = settings.location_templates as string[] | undefined;
+  if (locs && locs.length) return locs;
+  return DEFAULT_LOCATIONS;
+}
+
+/** 施術場所テンプレを追加 */
+export async function addLocation(_p: ApptState, fd: FormData): Promise<ApptState> {
+  const ctx = await getUserContext();
+  if (!ctx?.appUser) return { error: 'アカウントが未設定です。' };
+  const name = s(fd, 'name');
+  if (!name) return { error: '場所名を入力してください。' };
+  const settings = await readSettings();
+  const locs = (settings.location_templates as string[] | undefined) ?? [...DEFAULT_LOCATIONS];
+  if (locs.includes(name)) return { error: 'すでに登録済みです。' };
+  locs.push(name);
+  const supabase = createClient();
+  await supabase.from('tenant_settings').upsert({ tenant_id: ctx.appUser.tenant_id, settings: { ...settings, location_templates: locs } }, { onConflict: 'tenant_id' });
+  revalidatePath('/appointments/slots');
+  return {};
+}
+
+/** 施術場所テンプレを削除 */
+export async function deleteLocation(fd: FormData): Promise<void> {
+  const ctx = await getUserContext();
+  if (!ctx?.appUser) return;
+  const name = s(fd, 'name');
+  if (!name) return;
+  const settings = await readSettings();
+  const locs = (settings.location_templates as string[] | undefined) ?? [...DEFAULT_LOCATIONS];
+  const next = locs.filter((l) => l !== name);
+  const supabase = createClient();
+  await supabase.from('tenant_settings').upsert({ tenant_id: ctx.appUser.tenant_id, settings: { ...settings, location_templates: next } }, { onConflict: 'tenant_id' });
+  revalidatePath('/appointments/slots');
 }

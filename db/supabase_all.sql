@@ -1211,3 +1211,8 @@ CREATE POLICY share_settings_staff ON patient_share_settings FOR SELECT
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON patient_share_settings TO authenticated;
 
+
+-- =============================================================================
+-- 0013_appointment_location.sql  予約に施術場所(location)を追加
+-- =============================================================================
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS location text;

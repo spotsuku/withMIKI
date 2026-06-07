@@ -11,7 +11,7 @@ import { jstToIso, fmtTimeJst, isoDateJst, weekDatesJst, STATUS_LABEL } from '@/
 export const dynamic = 'force-dynamic';
 
 interface Appt {
-  id: string; title: string | null; start_at: string; end_at: string; status: string;
+  id: string; title: string | null; location: string | null; start_at: string; end_at: string; status: string;
   guest_name: string | null; patient: { name: string } | { name: string }[] | null;
 }
 
@@ -29,7 +29,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
 
   const { data } = await supabase
     .from('appointments')
-    .select('id, title, start_at, end_at, status, guest_name, patient:patient_id(name)')
+    .select('id, title, location, start_at, end_at, status, guest_name, patient:patient_id(name)')
     .gte('start_at', rangeStart)
     .lte('start_at', rangeEnd)
     .order('start_at', { ascending: true });
@@ -94,6 +94,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
                         <span>
                           <strong>{fmtTimeJst(a.start_at)}–{fmtTimeJst(a.end_at)}</strong>　{name}
                           {a.title ? <span className="meta">　{a.title}</span> : null}
+                          {a.location ? <span className="tag" style={{ marginLeft: 8 }}>📍{a.location}</span> : null}
                           <span className="tag" style={{ marginLeft: 8 }}>{STATUS_LABEL[a.status] ?? a.status}</span>
                         </span>
                         <span style={{ display: 'flex', gap: 6 }}>

@@ -97,6 +97,7 @@ export async function syncAppointmentToGoogle(tenantId: string, appointmentId: s
   const event = {
     summary: (a.title as string) || '予約',
     description: (a.notes as string) || '',
+    location: (a.location as string) || undefined,
     start: { dateTime: a.start_at as string },
     end: { dateTime: a.end_at as string },
   };

@@ -8,6 +8,7 @@ export interface ApptInitial {
   id?: string;
   patient_id?: string | null;
   title?: string | null;
+  location?: string | null;
   date?: string;
   time?: string;
   duration?: number;
@@ -22,10 +23,12 @@ function Save({ isEdit }: { isEdit: boolean }) {
 
 export function AppointmentForm({
   patients,
+  locations = [],
   defaultPatientId,
   initial,
 }: {
   patients: { id: string; name: string }[];
+  locations?: string[];
   defaultPatientId?: string;
   initial?: ApptInitial;
 }) {
@@ -48,6 +51,13 @@ export function AppointmentForm({
         <div className="field">
           <label htmlFor="title">メニュー・件名</label>
           <input id="title" name="title" defaultValue={initial?.title ?? ''} placeholder="例: 鍼灸施術 / 初診" />
+        </div>
+        <div className="field">
+          <label htmlFor="location">施術場所</label>
+          <input id="location" name="location" list="loc-list" defaultValue={initial?.location ?? ''} placeholder="例: 院内 / オンライン / 出張先" />
+          <datalist id="loc-list">
+            {locations.map((l) => <option key={l} value={l} />)}
+          </datalist>
         </div>
         <div className="grid cols-2">
           <div className="field"><label htmlFor="date">日付 *</label><input id="date" name="date" type="date" required defaultValue={initial?.date ?? ''} /></div>

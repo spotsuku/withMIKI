@@ -4,7 +4,8 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { Topbar } from '@/components/Topbar';
 import { SlotForm } from './SlotForm';
 import { TemplatePanel } from './TemplatePanel';
-import { listTemplates, toggleSlot, deleteSlot } from '../actions';
+import { LocationPanel } from './LocationPanel';
+import { listTemplates, listLocations, toggleSlot, deleteSlot } from '../actions';
 import { fmtJst, fmtTimeJst } from '@/lib/datetime';
 
 export const dynamic = 'force-dynamic';
@@ -17,22 +18,23 @@ export default async function SlotsPage({ searchParams }: { searchParams: { tab?
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const tab = searchParams.tab === 'templates' ? 'templates' : 'slots';
+  const tab = searchParams.tab === 'templates' ? 'templates' : searchParams.tab === 'locations' ? 'locations' : 'slots';
 
   return (
     <>
       <Topbar userEmail={user.email} />
       <div className="container">
         <p className="meta"><Link href="/appointments">‹ 予約一覧</Link></p>
-        <h1 style={{ fontSize: '1.3rem' }}>空き枠の設定</h1>
+        <h1 style={{ fontSize: '1.3rem' }}>予約の設定</h1>
 
         {/* タブ */}
-        <div style={{ display: 'flex', gap: 8, margin: '8px 0' }}>
+        <div style={{ display: 'flex', gap: 8, margin: '8px 0', flexWrap: 'wrap' }}>
           <Link className={'btn ' + (tab === 'slots' ? '' : 'secondary')} href="/appointments/slots?tab=slots">空き枠</Link>
           <Link className={'btn ' + (tab === 'templates' ? '' : 'secondary')} href="/appointments/slots?tab=templates">テンプレ</Link>
+          <Link className={'btn ' + (tab === 'locations' ? '' : 'secondary')} href="/appointments/slots?tab=locations">施術場所</Link>
         </div>
 
-        {tab === 'templates' ? <TemplatesTab /> : <SlotsTab />}
+        {tab === 'templates' ? <TemplatesTab /> : tab === 'locations' ? <LocationsTab /> : <SlotsTab />}
       </div>
     </>
   );
@@ -96,4 +98,9 @@ async function TemplatesTab() {
       <TemplatePanel templates={templates} />
     </>
   );
+}
+
+async function LocationsTab() {
+  const locations = await listLocations();
+  return <LocationPanel locations={locations} />;
 }
