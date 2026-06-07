@@ -3,6 +3,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { persistDaily } from '@/lib/dailySave';
+import { addDiary, setDiaryShare, deleteDiary } from '@/lib/diaryCore';
 
 export interface RecordState { error?: string; ok?: boolean }
 
@@ -75,6 +76,37 @@ export async function saveShareByToken(token: string, pin: string, shared: Recor
     if (error) return { error: '保存に失敗しました：' + error.message };
   }
   return { ok: true };
+}
+
+// --- 日記（トークン版） ---
+async function authToken(token: string, pin: string) {
+  const admin = createAdminClient();
+  if (!admin) return { err: 'サーバー設定が未完了です。' as string, admin: null, row: null };
+  const row = await loadToken(admin, token);
+  if (!row) return { err: 'このURLは無効です。', admin, row: null };
+  if (!row.pin_hash || row.pin_hash !== hashPin(token, pin)) return { err: 'PINが違います。', admin, row: null };
+  return { err: '', admin, row };
+}
+
+export async function addDiaryByToken(token: string, pin: string, fd: FormData): Promise<RecordState> {
+  const a = await authToken(token, pin);
+  if (a.err || !a.admin || !a.row) return { error: a.err };
+  const r = await addDiary(a.admin, { id: a.row.patient_id, tenant_id: a.row.tenant_id }, fd);
+  return r.error ? { error: r.error } : { ok: true };
+}
+
+export async function toggleDiaryByToken(token: string, pin: string, id: string, isShared: boolean): Promise<RecordState> {
+  const a = await authToken(token, pin);
+  if (a.err || !a.admin || !a.row) return { error: a.err };
+  const r = await setDiaryShare(a.admin, a.row.patient_id, id, isShared);
+  return r.error ? { error: r.error } : { ok: true };
+}
+
+export async function deleteDiaryByToken(token: string, pin: string, id: string): Promise<RecordState> {
+  const a = await authToken(token, pin);
+  if (a.err || !a.admin || !a.row) return { error: a.err };
+  const r = await deleteDiary(a.admin, a.row.patient_id, id);
+  return r.error ? { error: r.error } : { ok: true };
 }
 
 /** 途中からLINEログインに切り替える：この患者の招待トークンを発行して返す */

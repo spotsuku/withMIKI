@@ -119,6 +119,15 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
   const showMenst = isShared('menstrual');
   const showPms = isShared('pms');
 
+  // 公開された日記（RLSにより is_shared のみ取得される）
+  const { data: diaryRaw } = await supabase
+    .from('diary_entry')
+    .select('id, entry_date, mood, title, body')
+    .eq('patient_id', p.id)
+    .order('entry_date', { ascending: false })
+    .limit(30);
+  const diary = (diaryRaw ?? []) as { id: string; entry_date: string; mood: string | null; title: string | null; body: string }[];
+
   // 有効な共有リンク
   const { data: shareRows } = await supabase
     .from('karte_share')
@@ -430,6 +439,22 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
           ) : (
             <div className="empty">本人の公開記録はありません</div>
           )}
+        </div>
+
+        {/* 公開された日記 */}
+        <div className="card">
+          <h2>📔 日記（公開分）</h2>
+          {diary.length ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {diary.map((e) => (
+                <div key={e.id} style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 12 }}>
+                  <strong>{e.entry_date}{e.mood ? `　${e.mood}` : ''}</strong>
+                  {e.title ? <div style={{ fontWeight: 700, marginTop: 4 }}>{e.title}</div> : null}
+                  {e.body ? <div style={{ whiteSpace: 'pre-wrap', marginTop: 4 }}>{e.body}</div> : null}
+                </div>
+              ))}
+            </div>
+          ) : <div className="empty">公開された日記はありません</div>}
         </div>
 
         {/* 推移グラフ */}

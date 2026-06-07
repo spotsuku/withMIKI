@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { loadDailyInitial } from '@/lib/dailySave';
+import { listDiary } from '@/lib/diaryCore';
 import { RecordClient } from './RecordClient';
 
 export const dynamic = 'force-dynamic';
@@ -42,6 +43,8 @@ export default async function RecordTokenPage({ params }: { params: { token: str
   const shared: Record<string, boolean> = {};
   for (const r of (shareRows ?? []) as { section: string; is_shared: boolean }[]) shared[r.section] = r.is_shared;
 
+  const diary = await listDiary(admin, row.patient_id);
+
   return (
     <RecordClient
       token={params.token}
@@ -50,6 +53,7 @@ export default async function RecordTokenPage({ params }: { params: { token: str
       initial={initial}
       cover={cover}
       shared={shared}
+      diary={diary}
     />
   );
 }

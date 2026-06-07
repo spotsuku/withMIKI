@@ -1281,3 +1281,27 @@ CREATE POLICY prt_staff ON patient_record_token
   USING (tenant_id = app_current_tenant())
   WITH CHECK (tenant_id = app_current_tenant());
 GRANT SELECT, INSERT, UPDATE, DELETE ON patient_record_token TO authenticated;
+
+-- =============================================================================
+-- 0020_diary.sql  患者の日記（エントリごとに公開/非公開）
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS diary_entry (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id  uuid NOT NULL REFERENCES tenant(id),
+  patient_id uuid NOT NULL REFERENCES patient(id),
+  entry_date date NOT NULL DEFAULT current_date,
+  mood       text, title text, body text NOT NULL DEFAULT '',
+  is_shared  boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  deleted_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS idx_diary_patient ON diary_entry(patient_id, entry_date DESC);
+DROP TRIGGER IF EXISTS trg_diary_updated ON diary_entry;
+CREATE TRIGGER trg_diary_updated BEFORE UPDATE ON diary_entry FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+ALTER TABLE diary_entry ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS diary_self ON diary_entry;
+CREATE POLICY diary_self ON diary_entry USING (patient_id = app_current_patient()) WITH CHECK (patient_id = app_current_patient());
+DROP POLICY IF EXISTS diary_staff ON diary_entry;
+CREATE POLICY diary_staff ON diary_entry FOR SELECT USING (tenant_id = app_current_tenant() AND is_shared AND deleted_at IS NULL);
+GRANT SELECT, INSERT, UPDATE, DELETE ON diary_entry TO authenticated;

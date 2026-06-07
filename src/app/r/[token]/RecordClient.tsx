@@ -2,17 +2,21 @@
 
 import { useState } from 'react';
 import { DailyForm, type DailyInitial } from '@/app/(patient)/today/DailyForm';
+import { DiaryView } from '@/app/(patient)/diary/DiaryView';
+import type { DiaryRow } from '@/lib/diaryCore';
 import { SHARE_SECTIONS } from '@/lib/sections';
-import { setRecordPin, verifyRecordPin, saveRecordByToken, linkLineFromRecord, saveShareByToken } from './actions';
+import { setRecordPin, verifyRecordPin, saveRecordByToken, linkLineFromRecord, saveShareByToken, addDiaryByToken, toggleDiaryByToken, deleteDiaryByToken } from './actions';
 
 export function RecordClient({
-  token, patientName, hasPin, initial, cover, shared,
+  token, patientName, hasPin, initial, cover, shared, diary,
 }: {
   token: string; patientName: string; hasPin: boolean; initial: DailyInitial;
   cover: Record<string, string | null> | null;
   shared: Record<string, boolean>;
+  diary: DiaryRow[];
 }) {
   const [phase, setPhase] = useState<'gate' | 'form'>('gate');
+  const [tab, setTab] = useState<'karte' | 'mypage' | 'share'>('karte');
   const [setup] = useState(!hasPin);
   const [pin, setPin] = useState('');
   const [pin2, setPin2] = useState('');
@@ -85,55 +89,90 @@ export function RecordClient({
     );
   }
 
+  const TABS: { key: typeof tab; label: string }[] = [
+    { key: 'karte', label: '🗂 カルテ' },
+    { key: 'mypage', label: '🙂 マイページ' },
+    { key: 'share', label: '🔒 公開設定' },
+  ];
+
   return (
     <div className="container">
-      <div className="topbar" style={{ borderRadius: 12, marginBottom: 12 }}>
+      <div className="topbar" style={{ borderRadius: 12, marginBottom: 0 }}>
         <span className="brand">WithMIKI<small>記録</small></span>
         <span className="meta">{patientName} さん</span>
       </div>
-      {/* 基礎情報（先生が記入済み・閲覧のみ） */}
-      {cover && Object.values(cover).some(Boolean) ? (
-        <div className="card">
-          <h2>📋 基礎情報（先生記入）</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {([['purpose', '目的・主訴'], ['goal', '目標'], ['diagnosis', '見立て'], ['caution', '注意事項'], ['therapist', '担当'], ['doctor', '医師'], ['start_date', '開始日'], ['next_visit', '次回']] as [string, string][])
-              .filter(([k]) => cover[k]).map(([k, label]) => (
-                <div key={k} style={{ display: 'flex', gap: 8 }}>
-                  <span className="meta" style={{ minWidth: 80 }}>{label}</span>
-                  <span style={{ flex: 1 }}>{cover[k]}</span>
-                </div>
-              ))}
-          </div>
-        </div>
+
+      {/* タブ */}
+      <div style={{ display: 'flex', gap: 4, position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg)', padding: '8px 0' }}>
+        {TABS.map((t) => (
+          <button key={t.key} type="button" onClick={() => setTab(t.key)}
+            className={`btn${tab === t.key ? '' : ' secondary'}`}
+            style={{ flex: 1, padding: '10px 4px', fontSize: 14 }}>{t.label}</button>
+        ))}
+      </div>
+
+      {tab === 'karte' ? (
+        <>
+          {/* 基礎情報（先生が記入済み・閲覧のみ） */}
+          {cover && Object.values(cover).some(Boolean) ? (
+            <div className="card">
+              <h2>📋 基礎情報（先生記入）</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {([['purpose', '目的・主訴'], ['goal', '目標'], ['diagnosis', '見立て'], ['caution', '注意事項'], ['therapist', '担当'], ['doctor', '医師'], ['start_date', '開始日'], ['next_visit', '次回']] as [string, string][])
+                  .filter(([k]) => cover[k]).map(([k, label]) => (
+                    <div key={k} style={{ display: 'flex', gap: 8 }}>
+                      <span className="meta" style={{ minWidth: 80 }}>{label}</span>
+                      <span style={{ flex: 1 }}>{cover[k]}</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          ) : null}
+          <p className="meta">体調や症状を記録できます。先生に見せる項目は「公開設定」タブで選べます。</p>
+          <DailyForm initial={initial} action={saveRecordByToken} hidden={{ rt_token: token, rt_pin: pinInput }} />
+        </>
       ) : null}
 
-      <p className="meta">記録は先生のカルテに反映されます（先生の記入内容は上書きされません）。下の「公開設定」で、先生に見せる項目を選べます。</p>
-      <DailyForm initial={initial} action={saveRecordByToken} hidden={{ rt_token: token, rt_pin: pinInput }} />
+      {tab === 'mypage' ? (
+        <>
+          {/* 日記（エントリごとに公開/非公開） */}
+          <DiaryView
+            entries={diary}
+            refreshOnChange={false}
+            handlers={{
+              onAdd: (fd) => addDiaryByToken(token, pinInput, fd),
+              onToggle: (id, isShared) => toggleDiaryByToken(token, pinInput, id, isShared),
+              onDelete: (id) => deleteDiaryByToken(token, pinInput, id),
+            }}
+          />
+          <div className="card">
+            <h2>LINEでログインに切り替える</h2>
+            <p className="meta">アカウントを作ると、PIN無しでLINEからいつでも記録できます。</p>
+            {msg ? <p className="error">{msg}</p> : null}
+            <button className="btn" style={{ background: '#06c755' }} onClick={switchToLine} disabled={busy}>LINEに切り替える</button>
+          </div>
+        </>
+      ) : null}
 
-      {/* 公開設定（項目ごとに先生へ公開/非公開を選ぶ） */}
-      <div className="card">
-        <h2>🔒 先生への公開設定</h2>
-        <p className="meta">公開にした項目だけ、先生のカルテに表示されます。いつでも変更できます。</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
-          {SHARE_SECTIONS.map((s) => (
-            <label key={s.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 4px', borderBottom: '1px solid var(--line)' }}>
-              <span>{s.label}</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <input type="checkbox" checked={share[s.key] ?? true} onChange={(e) => setShare((p) => ({ ...p, [s.key]: e.target.checked }))} style={{ width: 18, height: 18, accentColor: 'var(--accent)' }} />
-                <span className="meta">{(share[s.key] ?? true) ? '公開' : '非公開'}</span>
-              </span>
-            </label>
-          ))}
+      {tab === 'share' ? (
+        <div className="card">
+          <h2>🔒 先生への公開設定</h2>
+          <p className="meta">公開にした項目だけ、先生のカルテに表示されます。いつでも変更できます。</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
+            {SHARE_SECTIONS.map((s) => (
+              <label key={s.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 4px', borderBottom: '1px solid var(--line)' }}>
+                <span>{s.label}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <input type="checkbox" checked={share[s.key] ?? true} onChange={(e) => setShare((p) => ({ ...p, [s.key]: e.target.checked }))} style={{ width: 18, height: 18, accentColor: 'var(--accent)' }} />
+                  <span className="meta">{(share[s.key] ?? true) ? '公開' : '非公開'}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          {shareMsg ? <p className={shareMsg.startsWith('✅') ? 'meta' : 'error'}>{shareMsg}</p> : null}
+          <div style={{ marginTop: 12 }}><button className="btn" onClick={saveShare} disabled={busy}>公開設定を保存</button></div>
         </div>
-        {shareMsg ? <p className={shareMsg.startsWith('✅') ? 'meta' : 'error'}>{shareMsg}</p> : null}
-        <div style={{ marginTop: 12 }}><button className="btn" onClick={saveShare} disabled={busy}>公開設定を保存</button></div>
-      </div>
-      <div className="card">
-        <h2>LINEでログインに切り替える</h2>
-        <p className="meta">アカウントを作ると、PIN無しでLINEからいつでも記録できます。</p>
-        {msg ? <p className="error">{msg}</p> : null}
-        <button className="btn" style={{ background: '#06c755' }} onClick={switchToLine} disabled={busy}>LINEに切り替える</button>
-      </div>
+      ) : null}
     </div>
   );
 }

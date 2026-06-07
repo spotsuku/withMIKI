@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 
 const LINKS = [
   { href: '/today', icon: '📝', label: '今日の記録', sub: '体調・症状を入力' },
+  { href: '/diary', icon: '📔', label: '日記', sub: '自由記述・公開選択' },
   { href: '/reserve', icon: '📅', label: '予約する', sub: '空き枠から予約' },
   { href: '/history', icon: '📈', label: '推移・周期', sub: 'グラフ・カレンダー' },
   { href: '/food', icon: '🍱', label: '食事', sub: '食事・栄養' },
