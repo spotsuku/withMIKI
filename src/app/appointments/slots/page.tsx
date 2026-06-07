@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { Topbar } from '@/components/Topbar';
 import { SlotCalendar, type SlotItem } from './SlotCalendar';
+import { SlotForm } from './SlotForm';
 import { TemplatePanel } from './TemplatePanel';
 import { listTemplates } from '../actions';
 import { jstToIso, weekDatesJst } from '@/lib/datetime';
@@ -20,13 +21,14 @@ export default async function SlotsPage({ searchParams }: { searchParams: { w?: 
   const rangeStart = jstToIso(week[0], '00:00');
   const rangeEnd = jstToIso(week[6], '23:59');
 
-  const { data } = await supabase
+  const { data, error: slotErr } = await supabase
     .from('appointment_slots')
     .select('id, start_at, end_at, is_blocked')
     .gte('start_at', rangeStart)
     .lte('start_at', rangeEnd)
     .order('start_at', { ascending: true });
   const slots = (data ?? []) as SlotItem[];
+  const tableMissing = !!slotErr && /appointment_slots/.test(slotErr.message);
   const templates = await listTemplates();
 
   return (
@@ -41,7 +43,15 @@ export default async function SlotsPage({ searchParams }: { searchParams: { w?: 
           <Link className="btn secondary" href={`/appointments/slots?w=${offset + 1}`}>翌週 ›</Link>
         </div>
 
+        {tableMissing ? (
+          <div className="notice">
+            予約テーブルが未作成です。Supabase の SQL Editor で <code>0011_appointments.sql</code>
+            （または最新の <code>db/supabase_all.sql</code>）を実行してください。実行するとカレンダー追加・手動追加が有効になります。
+          </div>
+        ) : null}
+
         <SlotCalendar week={week} slots={slots} />
+        <SlotForm />
         <TemplatePanel templates={templates} />
       </div>
     </>

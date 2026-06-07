@@ -53,9 +53,9 @@ export function SlotCalendar({ week, slots }: { week: string[]; slots: SlotItem[
   }
 
   function onDown(date: string, e: React.PointerEvent<HTMLDivElement>) {
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ }
     const m = yToMin(e);
-    setDrag({ date, a: m, b: m + SNAP });
+    setDrag({ date, a: m, b: m });
   }
   function onMove(date: string, e: React.PointerEvent<HTMLDivElement>) {
     if (!drag || drag.date !== date) return;
@@ -68,6 +68,7 @@ export function SlotCalendar({ week, slots }: { week: string[]; slots: SlotItem[
     const en = Math.max(drag.a, drag.b);
     const mins = en - s;
     setDrag(null);
+    // ドラッグ幅が無ければ（タップ）選択中の長さで作成
     run(() => addSlotAt(date, hhmm(s), mins >= SNAP ? mins : duration));
   }
 
