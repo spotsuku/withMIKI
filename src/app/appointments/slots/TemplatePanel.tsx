@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { useFormState, useFormStatus } from 'react-dom';
 import { applyTemplate, saveTemplate, deleteTemplate, type ApptState } from '../actions';
 import type { SlotTemplate } from '@/lib/slotTemplates';
@@ -21,6 +22,21 @@ export function TemplatePanel({ templates }: { templates: SlotTemplate[] }) {
   const [applyState, applyAction] = useFormState<ApptState, FormData>(applyTemplate, {});
   const [saveState, saveAction] = useFormState<ApptState, FormData>(saveTemplate, {});
   const [showCreate, setShowCreate] = useState(false);
+  const [delIdx, setDelIdx] = useState<number | null>(null);
+  const [, startTr] = useTransition();
+  const router = useRouter();
+
+  function confirmDelete() {
+    if (delIdx === null) return;
+    const idx = delIdx;
+    setDelIdx(null);
+    startTr(async () => {
+      const fd = new FormData();
+      fd.set('idx', String(idx));
+      await deleteTemplate(fd);
+      router.refresh();
+    });
+  }
   const today = new Date().toISOString().slice(0, 10);
   const plus4w = new Date(Date.now() + 28 * 86400000).toISOString().slice(0, 10);
 
@@ -53,9 +69,7 @@ export function TemplatePanel({ templates }: { templates: SlotTemplate[] }) {
         {templates.map((t, i) => (
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderTop: '1px solid var(--line)' }}>
             <span className="meta">{t.name}（{t.weekdays.map((w) => WDLABEL[w]).join('')} {t.start}-{t.end} {t.interval}分）</span>
-            <form action={deleteTemplate}><input type="hidden" name="idx" value={i} />
-              <button className="btn secondary" style={{ padding: '2px 8px', fontSize: 12, borderColor: 'var(--danger)', color: 'var(--danger)' }}>削除</button>
-            </form>
+            <button type="button" className="btn secondary" style={{ padding: '2px 8px', fontSize: 12, borderColor: 'var(--danger)', color: 'var(--danger)' }} onClick={() => setDelIdx(i)}>削除</button>
           </div>
         ))}
       </div>
@@ -91,6 +105,19 @@ export function TemplatePanel({ templates }: { templates: SlotTemplate[] }) {
           </form>
         )}
       </div>
+
+      {delIdx !== null ? (
+        <div className="modal-overlay" onClick={() => setDelIdx(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ marginTop: 0 }}>テンプレの削除</h2>
+            <p className="meta">「{templates[delIdx]?.name}」を削除しますか？</p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button className="btn secondary" onClick={() => setDelIdx(null)}>キャンセル</button>
+              <button className="btn" style={{ background: 'var(--danger)' }} onClick={confirmDelete}>削除する</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
