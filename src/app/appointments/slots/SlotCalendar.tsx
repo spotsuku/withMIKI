@@ -19,7 +19,7 @@ export interface GEvent { id: string; title: string; start_at: string; end_at: s
 
 const START_HOUR = 8;
 const END_HOUR = 21;
-const ROW = 48;
+const ROW = 40;
 const SNAP = 15;
 const WD = ['月', '火', '水', '木', '金', '土', '日'];
 
@@ -148,9 +148,12 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
     const snapped = Math.round((START_HOUR * 60 + (y / ROW) * 60) / SNAP) * SNAP;
     return Math.min(END_HOUR * 60, Math.max(START_HOUR * 60, snapped));
   }
+  // タッチのジェスチャー判定：横スワイプ=日移動(スクロール)、縦ドラッグ=枠作成
+  const gesture = useRef<{ x: number; y: number; mode: 'none' | 'scroll' | 'drag' }>({ x: 0, y: 0, mode: 'drag' });
   function onDown(date: string, e: React.PointerEvent<HTMLDivElement>) {
     if (e.button && e.button !== 0) return;
-    // マウス/ペンのみポインタを捕捉（タッチで捕捉すると縦スクロールできなくなるため）
+    gesture.current = { x: e.clientX, y: e.clientY, mode: e.pointerType === 'touch' ? 'none' : 'drag' };
+    // マウス/ペンは即捕捉。タッチは横スクロールを生かすため捕捉しない
     if (e.pointerType !== 'touch') {
       try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ }
     }
@@ -159,10 +162,23 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
   }
   function onMove(date: string, e: React.PointerEvent<HTMLDivElement>) {
     if (!drag || drag.date !== date) return;
-    // タッチでドラッグ幅を更新するとスクロールと競合するため、マウス/ペンのみドラッグ作成
-    if (e.pointerType === 'touch') return;
+    // タッチは初回移動で方向を判定
+    if (gesture.current.mode === 'none') {
+      const dx = Math.abs(e.clientX - gesture.current.x);
+      const dy = Math.abs(e.clientY - gesture.current.y);
+      if (dx < 8 && dy < 8) return;
+      if (dx > dy) { gesture.current.mode = 'scroll'; setDrag(null); return; } // 横=日移動
+      gesture.current.mode = 'drag';
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ }
+    }
+    if (gesture.current.mode === 'scroll') return;
     const m = yToMin(e.currentTarget.getBoundingClientRect().top, e.clientY);
     setDrag((d) => (d && d.b !== m ? { ...d, b: m } : d));
+  }
+  function onUp(date: string) {
+    if (gesture.current.mode === 'scroll') { gesture.current.mode = 'none'; setDrag(null); return; }
+    gesture.current.mode = 'none';
+    openModal(date);
   }
   function openModal(date: string) {
     if (!drag || drag.date !== date) { setDrag(null); return; }
@@ -253,9 +269,9 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
             {Array.from({ length: END_HOUR - START_HOUR }, (_, i) => (<div key={i} className="cal-hourlabel">{START_HOUR + i}:00</div>))}
           </div>
           {week.map((d) => (
-            <div key={d} className="cal-day" style={{ height: dayHeight, touchAction: 'pan-x pan-y' }}
+            <div key={d} className="cal-day" style={{ height: dayHeight, touchAction: 'pan-x' }}
               onPointerDown={(e) => onDown(d, e)} onPointerMove={(e) => onMove(d, e)}
-              onPointerUp={() => openModal(d)} onPointerCancel={() => setDrag(null)} onLostPointerCapture={() => setDrag(null)}>
+              onPointerUp={() => onUp(d)} onPointerCancel={() => { gesture.current.mode = 'none'; setDrag(null); }} onLostPointerCapture={() => setDrag(null)}>
               {Array.from({ length: END_HOUR - START_HOUR }, (_, i) => <div key={i} className="cal-hourline" />)}
 
               {drag && drag.date === d ? (() => {

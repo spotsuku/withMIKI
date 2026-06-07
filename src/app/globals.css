@@ -120,10 +120,9 @@ a:hover { text-decoration: underline; }
 .login-wrap { max-width: 380px; margin: 8vh auto; }
 
 /* 週カレンダー（予約・空き枠） */
-/* Google カレンダー風：日付ヘッダー固定＋時間グリッドは枠内スクロール（overscroll封じ込め） */
-.cal-wrap { overflow: auto; max-height: 68vh; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; position: relative; }
+/* Google カレンダー風：左の時間軸を固定し、日(列)だけ横スクロール。全時間帯は1画面に収める */
+.cal-wrap { overflow-x: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; position: relative; }
 .cal-head { z-index: 3; }
-/* 左の時間軸は固定し、日(列)だけ横スクロール */
 .cal-timeaxis { position: sticky; left: 0; z-index: 4; background: var(--card); }
 .cal-head:first-child { left: 0; z-index: 6; }
 .cal-timeaxis .cal-hourlabel { background: var(--card); }
@@ -131,9 +130,9 @@ a:hover { text-decoration: underline; }
 .cal-head { position: sticky; top: 0; background: var(--card); border-bottom: 1px solid var(--line); padding: 6px 2px; text-align: center; font-size: 12px; }
 .cal-head.today { color: var(--accent); font-weight: 700; }
 .cal-timeaxis { position: relative; }
-.cal-hourlabel { height: 48px; font-size: 10px; color: var(--muted); text-align: right; padding-right: 4px; transform: translateY(-6px); }
+.cal-hourlabel { height: 40px; font-size: 10px; color: var(--muted); text-align: right; padding-right: 4px; transform: translateY(-6px); }
 .cal-day { position: relative; border-left: 1px solid var(--line); cursor: pointer; }
-.cal-hourline { height: 48px; border-bottom: 1px dashed #eee; }
+.cal-hourline { height: 40px; border-bottom: 1px dashed #eee; }
 .cal-slot { position: absolute; left: 2px; right: 2px; border-radius: 6px; padding: 2px 4px; font-size: 10px; overflow: hidden; box-sizing: border-box; }
 .cal-slot.open { background: var(--accent-soft); border: 1px solid var(--accent); color: var(--accent); }
 .cal-slot.blocked { background: #eee; border: 1px solid #ccc; color: #888; }
