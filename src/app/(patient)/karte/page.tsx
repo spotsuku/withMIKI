@@ -16,7 +16,7 @@ export default async function MyKartePage() {
   const pid = ctx.patient.id;
   const [patRes, coverRes, intakeRes, problemsRes] = await Promise.all([
     supabase.from('patient').select('name, kana, dob, sex, blood_type').eq('id', pid).maybeSingle(),
-    supabase.from('karte_cover').select('purpose, goal, diagnosis, treatment, caution, therapist, doctor, next_visit').eq('patient_id', pid).maybeSingle(),
+    supabase.from('karte_cover').select('purpose, goal, diagnosis, treatment, caution, therapist, next_visit').eq('patient_id', pid).maybeSingle(),
     supabase.from('patient_intake').select('chief, onset, current, history, meds, note').eq('patient_id', pid).maybeSingle(),
     supabase.from('problem').select('title, category, status, detail').eq('patient_id', pid).is('deleted_at', null).order('sort_order'),
   ]);

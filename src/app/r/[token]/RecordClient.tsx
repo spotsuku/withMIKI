@@ -117,6 +117,9 @@ export function RecordClient({
           {/* 基本カルテ（先生が記入・閲覧のみ） */}
           <p className="meta">先生が記入したあなたの基本カルテです（閲覧のみ）。</p>
           <BasicKarte data={basicKarte} showHeader={false} />
+          {!basicKarte.cover && !basicKarte.intake && !(basicKarte.problems && basicKarte.problems.length) ? (
+            <div className="card"><div className="empty">まだ先生の記入はありません</div></div>
+          ) : null}
         </>
       ) : null}
 

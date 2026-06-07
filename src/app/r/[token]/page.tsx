@@ -33,7 +33,7 @@ export default async function RecordTokenPage({ params }: { params: { token: str
 
   // 基本カルテ（先生が記入済み）＝表紙・問診・問題リスト
   const [coverRes, intakeRes, problemsRes] = await Promise.all([
-    admin.from('karte_cover').select('purpose, goal, diagnosis, treatment, caution, therapist, doctor, start_date, next_visit').eq('patient_id', row.patient_id).maybeSingle(),
+    admin.from('karte_cover').select('purpose, goal, diagnosis, treatment, caution, therapist, next_visit').eq('patient_id', row.patient_id).maybeSingle(),
     admin.from('patient_intake').select('chief, onset, current, history, meds, note').eq('patient_id', row.patient_id).maybeSingle(),
     admin.from('problem').select('title, category, status, detail').eq('patient_id', row.patient_id).is('deleted_at', null).order('sort_order'),
   ]);
