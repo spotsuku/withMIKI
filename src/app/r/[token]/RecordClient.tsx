@@ -3,15 +3,16 @@
 import { useState } from 'react';
 import { DailyForm, type DailyInitial } from '@/app/(patient)/today/DailyForm';
 import { DiaryView } from '@/app/(patient)/diary/DiaryView';
+import { BasicKarte, type BasicKarteData } from '@/components/BasicKarte';
 import type { DiaryRow } from '@/lib/diaryCore';
 import { SHARE_SECTIONS } from '@/lib/sections';
 import { setRecordPin, verifyRecordPin, saveRecordByToken, linkLineFromRecord, saveShareByToken, addDiaryByToken, toggleDiaryByToken, deleteDiaryByToken } from './actions';
 
 export function RecordClient({
-  token, patientName, hasPin, initial, cover, shared, diary,
+  token, patientName, hasPin, initial, basicKarte, shared, diary,
 }: {
   token: string; patientName: string; hasPin: boolean; initial: DailyInitial;
-  cover: Record<string, string | null> | null;
+  basicKarte: BasicKarteData;
   shared: Record<string, boolean>;
   diary: DiaryRow[];
 }) {
@@ -113,21 +114,8 @@ export function RecordClient({
 
       {tab === 'karte' ? (
         <>
-          {/* 基礎情報（先生が記入済み・閲覧のみ） */}
-          {cover && Object.values(cover).some(Boolean) ? (
-            <div className="card">
-              <h2>📋 基礎情報（先生記入）</h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {([['purpose', '目的・主訴'], ['goal', '目標'], ['diagnosis', '見立て'], ['caution', '注意事項'], ['therapist', '担当'], ['doctor', '医師'], ['start_date', '開始日'], ['next_visit', '次回']] as [string, string][])
-                  .filter(([k]) => cover[k]).map(([k, label]) => (
-                    <div key={k} style={{ display: 'flex', gap: 8 }}>
-                      <span className="meta" style={{ minWidth: 80 }}>{label}</span>
-                      <span style={{ flex: 1 }}>{cover[k]}</span>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          ) : null}
+          {/* 基本カルテ（先生が記入済み・閲覧のみ） */}
+          <BasicKarte data={basicKarte} showHeader={false} />
           <p className="meta">体調や症状を記録できます。先生に見せる項目は「公開設定」タブで選べます。</p>
           <DailyForm initial={initial} action={saveRecordByToken} hidden={{ rt_token: token, rt_pin: pinInput }} />
         </>

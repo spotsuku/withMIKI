@@ -6,6 +6,7 @@ import { getPatientContext } from '@/lib/patient';
 export const dynamic = 'force-dynamic';
 
 const LINKS = [
+  { href: '/karte', icon: '🗂', label: 'カルテ', sub: '先生記入の基本カルテ' },
   { href: '/today', icon: '📝', label: '今日の記録', sub: '体調・症状を入力' },
   { href: '/diary', icon: '📔', label: '日記', sub: '自由記述・公開選択' },
   { href: '/reserve', icon: '📅', label: '予約する', sub: '空き枠から予約' },

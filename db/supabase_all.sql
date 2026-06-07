@@ -1305,3 +1305,9 @@ CREATE POLICY diary_self ON diary_entry USING (patient_id = app_current_patient(
 DROP POLICY IF EXISTS diary_staff ON diary_entry;
 CREATE POLICY diary_staff ON diary_entry FOR SELECT USING (tenant_id = app_current_tenant() AND is_shared AND deleted_at IS NULL);
 GRANT SELECT, INSERT, UPDATE, DELETE ON diary_entry TO authenticated;
+
+-- =============================================================================
+-- 0021_problem_self_read.sql  患者が自分の問題リストを閲覧可能に
+-- =============================================================================
+DROP POLICY IF EXISTS problem_self_select ON problem;
+CREATE POLICY problem_self_select ON problem FOR SELECT USING (patient_id = app_current_patient());
