@@ -148,37 +148,77 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
     const snapped = Math.round((START_HOUR * 60 + (y / ROW) * 60) / SNAP) * SNAP;
     return Math.min(END_HOUR * 60, Math.max(START_HOUR * 60, snapped));
   }
-  // タッチのジェスチャー判定：横スワイプ=日移動(スクロール)、縦ドラッグ=枠作成
-  const gesture = useRef<{ x: number; y: number; mode: 'none' | 'scroll' | 'drag' }>({ x: 0, y: 0, mode: 'drag' });
+  // ===== マウス/ペン：ドラッグで範囲選択 =====
   function onDown(date: string, e: React.PointerEvent<HTMLDivElement>) {
+    if (e.pointerType === 'touch') return; // タッチは onTouch* で処理
     if (e.button && e.button !== 0) return;
-    gesture.current = { x: e.clientX, y: e.clientY, mode: e.pointerType === 'touch' ? 'none' : 'drag' };
-    // マウス/ペンは即捕捉。タッチは横スクロールを生かすため捕捉しない
-    if (e.pointerType !== 'touch') {
-      try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ }
-    }
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ }
     const m = yToMin(e.currentTarget.getBoundingClientRect().top, e.clientY);
     setDrag({ date, a: m, b: m });
   }
   function onMove(date: string, e: React.PointerEvent<HTMLDivElement>) {
+    if (e.pointerType === 'touch') return;
     if (!drag || drag.date !== date) return;
-    // タッチは初回移動で方向を判定
-    if (gesture.current.mode === 'none') {
-      const dx = Math.abs(e.clientX - gesture.current.x);
-      const dy = Math.abs(e.clientY - gesture.current.y);
-      if (dx < 8 && dy < 8) return;
-      if (dx > dy) { gesture.current.mode = 'scroll'; setDrag(null); return; } // 横=日移動
-      gesture.current.mode = 'drag';
-      try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ }
-    }
-    if (gesture.current.mode === 'scroll') return;
     const m = yToMin(e.currentTarget.getBoundingClientRect().top, e.clientY);
     setDrag((d) => (d && d.b !== m ? { ...d, b: m } : d));
   }
-  function onUp(date: string) {
-    if (gesture.current.mode === 'scroll') { gesture.current.mode = 'none'; setDrag(null); return; }
-    gesture.current.mode = 'none';
-    openModal(date);
+
+  // ===== タッチ：長押し→ドラッグで範囲選択（Googleカレンダー風）。通常スワイプはスクロール =====
+  const calRef = useRef<HTMLDivElement>(null);
+  const lpTimer = useRef<number | null>(null);
+  const draggingRef = useRef(false);
+  const scrolledRef = useRef(false);
+  const startRef = useRef<{ date: string; top: number; min: number } | null>(null);
+  const startXY = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const el = calRef.current;
+    if (!el) return;
+    const onTM = (e: TouchEvent) => {
+      if (!draggingRef.current || !startRef.current) return;
+      const t = e.touches[0]; if (!t) return;
+      e.preventDefault(); // ドラッグ中はスクロールさせない
+      const m = yToMin(startRef.current.top, t.clientY);
+      setDrag((d) => (d && d.b !== m ? { ...d, b: m } : d));
+    };
+    el.addEventListener('touchmove', onTM, { passive: false });
+    return () => el.removeEventListener('touchmove', onTM);
+  }, []);
+
+  function clearLp() { if (lpTimer.current) { clearTimeout(lpTimer.current); lpTimer.current = null; } }
+  function openCreateAt(date: string, startMin: number) {
+    const en = Math.min(END_HOUR * 60, startMin + duration);
+    setMStart(hhmm(startMin)); setMEnd(hhmm(en));
+    setMType('open'); setMPatient(''); setMTitle('');
+    setDrag(null);
+    setModal({ date });
+  }
+  function tStart(date: string, e: React.TouchEvent<HTMLDivElement>) {
+    const t = e.touches[0]; if (!t) return;
+    const top = e.currentTarget.getBoundingClientRect().top;
+    const m = yToMin(top, t.clientY);
+    startRef.current = { date, top, min: m };
+    startXY.current = { x: t.clientX, y: t.clientY };
+    draggingRef.current = false; scrolledRef.current = false;
+    clearLp();
+    lpTimer.current = window.setTimeout(() => {
+      draggingRef.current = true;
+      setDrag({ date, a: m, b: m }); // プレビュー表示
+      try { navigator.vibrate?.(10); } catch { /* noop */ }
+    }, 350);
+  }
+  function tMove(e: React.TouchEvent<HTMLDivElement>) {
+    if (draggingRef.current) return; // ドラッグ中は native listener が処理
+    const t = e.touches[0]; if (!t) return;
+    if (Math.abs(t.clientX - startXY.current.x) > 8 || Math.abs(t.clientY - startXY.current.y) > 8) {
+      scrolledRef.current = true; clearLp(); // 動いた＝スクロール
+    }
+  }
+  function tEnd(date: string) {
+    clearLp();
+    if (draggingRef.current) { draggingRef.current = false; openModal(date); return; }
+    if (scrolledRef.current) { scrolledRef.current = false; setDrag(null); return; }
+    openCreateAt(date, startRef.current?.min ?? START_HOUR * 60); // タップ＝既定長で作成
   }
   function openModal(date: string) {
     if (!drag || drag.date !== date) { setDrag(null); return; }
@@ -262,16 +302,17 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
       {msg ? <p className="error">{msg}</p> : null}
 
       <div className="cal-wrap">
-        <div className="cal">
+        <div className="cal" ref={calRef}>
           <div className="cal-head" />
           {week.map((d, i) => (<div key={d} className="cal-head">{Number(d.slice(8))}<br />{WD[i]}</div>))}
           <div className="cal-timeaxis">
             {Array.from({ length: END_HOUR - START_HOUR }, (_, i) => (<div key={i} className="cal-hourlabel">{START_HOUR + i}:00</div>))}
           </div>
           {week.map((d) => (
-            <div key={d} className="cal-day" style={{ height: dayHeight, touchAction: 'pan-x' }}
+            <div key={d} className="cal-day" style={{ height: dayHeight, touchAction: 'pan-x pan-y' }}
               onPointerDown={(e) => onDown(d, e)} onPointerMove={(e) => onMove(d, e)}
-              onPointerUp={() => onUp(d)} onPointerCancel={() => { gesture.current.mode = 'none'; setDrag(null); }} onLostPointerCapture={() => setDrag(null)}>
+              onPointerUp={(e) => { if (e.pointerType !== 'touch') openModal(d); }} onPointerCancel={() => setDrag(null)} onLostPointerCapture={() => setDrag(null)}
+              onTouchStart={(e) => tStart(d, e)} onTouchMove={(e) => tMove(e)} onTouchEnd={() => tEnd(d)} onTouchCancel={() => { clearLp(); draggingRef.current = false; setDrag(null); }}>
               {Array.from({ length: END_HOUR - START_HOUR }, (_, i) => <div key={i} className="cal-hourline" />)}
 
               {drag && drag.date === d ? (() => {
@@ -287,6 +328,7 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
                   <div key={slot.id} className={'cal-slot ' + (slot.is_blocked ? 'blocked' : 'open')}
                     style={{ top, height, right: slotRight }}
                     onPointerDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()} onTouchEnd={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); setSlotModal(slot); setMType('confirmed'); setMPatient(''); setMTitle(''); }}>
                     <span className="x" onClick={(e) => { e.stopPropagation(); setDelId(slot.id); }}>×</span>
                     <span className="slot-label">{slot.is_blocked ? '受付不可' : '空き枠'}</span>
@@ -304,6 +346,7 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
                     className={'cal-slot appt' + (a.status === 'pending' ? ' pending' : '')}
                     style={{ top, height, left: '2px', right: '2px', zIndex: 2, cursor: 'pointer' }}
                     onPointerDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()} onTouchEnd={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); setApptModal(a); }}>
                     <span className="appt-time">{hhmm(st)}–{hhmm(en)}</span>
                     <span className="appt-name">{a.name}</span>
@@ -319,6 +362,7 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
                   <div key={g.id} className="cal-slot gcal" style={{ top, height, left: '2px', right: '2px', zIndex: 3, cursor: 'pointer' }}
                     title={g.title}
                     onPointerDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()} onTouchEnd={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); openGModal(g); }}>
                     <span className="appt-time">{hhmm(st)}–{hhmm(en)}</span>
                     <span className="appt-name">{g.title}</span>
