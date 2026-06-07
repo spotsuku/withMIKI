@@ -9,7 +9,7 @@ import { listStaff } from './staff-actions';
 
 export const dynamic = 'force-dynamic';
 
-export default async function SettingsPage({ searchParams }: { searchParams: { line?: string } }) {
+export default async function SettingsPage() {
   if (!isSupabaseConfigured()) redirect('/patients');
   const ctx = await getUserContext();
   if (!ctx) redirect('/login');
@@ -37,7 +37,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: { l
 
         <div className="card">
           <h2>LINEログイン連携</h2>
-          <LineLinkButton linked={linked} status={searchParams.line} />
+          <LineLinkButton linked={linked} />
         </div>
 
         <StaffPanel staff={staff} />

@@ -59,7 +59,7 @@ export default function LoginPage() {
           <span className="meta">または</span>
           <span style={{ flex: 1, height: 1, background: 'var(--line)' }} />
         </div>
-        <a className="btn" href="/api/auth/line/start?mode=login" style={{ width: '100%', background: '#06c755', textAlign: 'center', display: 'block' }}>
+        <a className="btn" href="/liff" style={{ width: '100%', background: '#06c755', textAlign: 'center', display: 'block' }}>
           LINEでログイン
         </a>
 
