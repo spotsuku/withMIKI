@@ -54,8 +54,14 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
   const slotsByDay: Record<string, SlotItem[]> = {};
   for (const sl of slots) { const d = isoDateJst(sl.start_at); (slotsByDay[d] ??= []).push(sl); }
   const token = await ensureBookingToken();
-  const { data: gset } = await supabase.from('tenant_settings').select('google_token').maybeSingle();
-  const googleConnected = Boolean((gset as { google_token: unknown } | null)?.google_token);
+  const { data: gset } = await supabase.from('tenant_settings').select('tenant_id, google_token').maybeSingle();
+  const gsetRow = gset as { tenant_id: string; google_token: unknown } | null;
+  const googleConnected = Boolean(gsetRow?.google_token);
+  // Googleの予定をライブ取得（カレンダー表示時のみ・実質リアルタイム）
+  let googleEvents: { id: string; title: string; start_at: string; end_at: string }[] = [];
+  if (view === 'calendar' && googleConnected && gsetRow?.tenant_id) {
+    try { const { listGoogleEvents } = await import('@/lib/google'); googleEvents = await listGoogleEvents(gsetRow.tenant_id, rangeStart, rangeEnd); } catch { /* ignore */ }
+  }
   const wd = ['月', '火', '水', '木', '金', '土', '日'];
   const calAppts: CalAppt[] = appts.map((a) => {
     const pat = Array.isArray(a.patient) ? a.patient[0] : a.patient;
@@ -84,7 +90,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
           <Link className="btn secondary" href={`/appointments?w=${offset + 1}&view=${view}`}>翌週 ›</Link>
         </div>
 
-        {view === 'calendar' ? <SlotCalendar week={week} slots={slots} appts={calAppts} /> : week.map((d, i) => (
+        {view === 'calendar' ? <SlotCalendar week={week} slots={slots} appts={calAppts} googleEvents={googleEvents} /> : week.map((d, i) => (
           <div className="card" key={d} style={{ padding: '12px 14px' }}>
             <h2 style={{ margin: 0, fontSize: '1rem' }}>{d}（{wd[i]}）</h2>
             {byDay[d]?.length ? (

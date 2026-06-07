@@ -14,6 +14,7 @@ function Legend({ color, border, label }: { color: string; border: string; label
 
 export interface SlotItem { id: string; start_at: string; end_at: string; is_blocked: boolean }
 export interface ApptBlock { id: string; start_at: string; end_at: string; status: string; name: string; title?: string | null; location?: string | null }
+export interface GEvent { id: string; title: string; start_at: string; end_at: string }
 
 const START_HOUR = 8;
 const END_HOUR = 21;
@@ -32,7 +33,7 @@ function hhmm(min: number) { return `${String(Math.floor(min / 60)).padStart(2, 
 function toMin(t: string) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
 function isoFromJst(date: string, min: number) { return new Date(`${date}T${hhmm(min)}:00+09:00`).toISOString(); }
 
-export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: SlotItem[]; appts?: ApptBlock[] }) {
+export function SlotCalendar({ week, slots, appts, googleEvents }: { week: string[]; slots: SlotItem[]; appts?: ApptBlock[]; googleEvents?: GEvent[] }) {
   const [, startTr] = useTransition();
   const [list, setList] = useState<SlotItem[]>(slots);
   useEffect(() => { setList(slots); }, [slots]);
@@ -56,6 +57,8 @@ export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: Sl
   for (const s of list) { const { date } = jstParts(s.start_at); (byDate[date] ??= []).push(s); }
   const apptByDate: Record<string, ApptBlock[]> = {};
   for (const a of apptList) { if (a.status === 'cancelled') continue; const { date } = jstParts(a.start_at); (apptByDate[date] ??= []).push(a); }
+  const gByDate: Record<string, GEvent[]> = {};
+  for (const g of googleEvents ?? []) { const { date } = jstParts(g.start_at); (gByDate[date] ??= []).push(g); }
 
   function changeApptStatus(id: string, status: string) {
     setApptList((p) => p.map((x) => (x.id === id ? { ...x, status } : x)));
@@ -138,6 +141,7 @@ export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: Sl
         <Legend color="#eee" border="#ccc" label="受付不可" />
         <Legend color="var(--accent)" border="var(--accent-dark)" label="確定予約" />
         <Legend color="#f59f00" border="#e8590c" label="申込（未確定）" />
+        {googleEvents ? <Legend color="#5c7cfa" border="#3b5bdb" label="Google予定" /> : null}
       </div>
       {appts && Object.keys(apptByDate).length === 0 ? (
         <p className="meta">※ この週に予約はありません。予約はその日がある週に表示されます（「翌週」で移動／「リスト」表示も便利）。</p>
@@ -172,7 +176,8 @@ export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: Sl
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); toggle(slot.id, !slot.is_blocked); }}>
                     <span className="x" onClick={(e) => { e.stopPropagation(); setDelId(slot.id); }}>×</span>
-                    {hhmm(st)}
+                    <span className="slot-label">{slot.is_blocked ? '受付不可' : '空き枠'}</span>
+                    <span className="slot-time">{hhmm(st)}</span>
                   </div>
                 );
               })}
@@ -190,6 +195,18 @@ export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: Sl
                     <span className="appt-time">{hhmm(st)}–{hhmm(en)}</span>
                     <span className="appt-name">{a.name}</span>
                     {sub ? <span className="appt-sub">{sub}</span> : null}
+                  </div>
+                );
+              })}
+
+              {(gByDate[d] ?? []).map((g) => {
+                const st = jstParts(g.start_at).minutes; const en = jstParts(g.end_at).minutes;
+                const top = ((st - START_HOUR * 60) / 60) * ROW; const height = Math.max(16, ((en - st) / 60) * ROW - 2);
+                return (
+                  <div key={g.id} className="cal-slot gcal" style={{ top, height, left: '2px', right: '2px', zIndex: 3 }}
+                    title={g.title}>
+                    <span className="appt-time">{hhmm(st)}–{hhmm(en)}</span>
+                    <span className="appt-name">{g.title}</span>
                   </div>
                 );
               })}

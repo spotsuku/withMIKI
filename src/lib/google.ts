@@ -164,6 +164,26 @@ export async function removeSlotFromGoogle(tenantId: string, slotId: string): Pr
   });
 }
 
+export interface GCalEvent { id: string; title: string; start_at: string; end_at: string }
+
+/** Google の予定をライブ取得（DBに保存しない・カレンダー表示用）。連携なしや時間指定なし予定は除外。 */
+export async function listGoogleEvents(tenantId: string, fromIso: string, toIso: string): Promise<GCalEvent[]> {
+  const auth = await getToken(tenantId);
+  if (!auth) return [];
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(auth.calendarId)}/events?timeMin=${encodeURIComponent(fromIso)}&timeMax=${encodeURIComponent(toIso)}&singleEvents=true&orderBy=startTime`;
+  const res = await fetch(url, { headers: { authorization: `Bearer ${auth.token.access_token}` }, cache: 'no-store' });
+  if (!res.ok) return [];
+  const j = (await res.json()) as { items?: { id: string; summary?: string; start?: { dateTime?: string }; end?: { dateTime?: string } }[] };
+  const out: GCalEvent[] = [];
+  for (const ev of j.items ?? []) {
+    if (!ev.start?.dateTime || !ev.end?.dateTime) continue; // 終日予定は除外
+    const title = ev.summary || '予定';
+    if (/^WithMIKI/.test(title)) continue; // 自分が作った枠/予約の重複表示を防ぐ
+    out.push({ id: ev.id, title, start_at: ev.start.dateTime, end_at: ev.end.dateTime });
+  }
+  return out;
+}
+
 /** Google の予定を取得して appointment_slots にブロック枠として反映（空き枠検出） */
 export async function syncBusyFromGoogle(tenantId: string, fromIso: string, toIso: string): Promise<number> {
   const admin = createAdminClient();

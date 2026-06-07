@@ -141,6 +141,15 @@ a:hover { text-decoration: underline; }
 .cal-slot.appt .appt-name { font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cal-slot.appt .appt-sub { font-size: 9px; opacity: .92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* 空き枠のラベル（空き枠/受付不可）と時刻 */
+.cal-slot .slot-label { display: block; font-weight: 700; font-size: 10px; }
+.cal-slot .slot-time { display: block; font-size: 9px; opacity: .85; }
+
+/* Google の予定（読み取り専用・外部予定） */
+.cal-slot.gcal { background: #5c7cfa; border: 1px solid #3b5bdb; color: #fff; display: flex; flex-direction: column; gap: 1px; line-height: 1.15; padding: 2px 5px; }
+.cal-slot.gcal .appt-time { font-size: 9px; opacity: .9; }
+.cal-slot.gcal .appt-name { font-size: 10px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 /* ヘッダー整列：1行・高さ揃え、ナビはボタン風 */
 .topbar { gap: 10px; align-items: center; flex-wrap: wrap; }
 .topbar .brand { white-space: nowrap; }
