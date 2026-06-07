@@ -49,7 +49,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
     .order('start_at', { ascending: true });
   const slots = (slotData ?? []) as SlotItem[];
   const token = await ensureBookingToken();
-  const { data: gset } = await supabase.from('app_user').select('google_token').eq('auth_user_id', user.id).maybeSingle();
+  const { data: gset } = await supabase.from('tenant_settings').select('google_token').maybeSingle();
   const googleConnected = Boolean((gset as { google_token: unknown } | null)?.google_token);
   const wd = ['月', '火', '水', '木', '金', '土', '日'];
   const calAppts: CalAppt[] = appts.map((a) => {
