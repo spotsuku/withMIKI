@@ -2,12 +2,15 @@
 
 import { useState } from 'react';
 import { DailyForm, type DailyInitial } from '@/app/(patient)/today/DailyForm';
-import { setRecordPin, verifyRecordPin, saveRecordByToken, linkLineFromRecord } from './actions';
+import { SHARE_SECTIONS } from '@/lib/sections';
+import { setRecordPin, verifyRecordPin, saveRecordByToken, linkLineFromRecord, saveShareByToken } from './actions';
 
 export function RecordClient({
-  token, patientName, hasPin, initial,
+  token, patientName, hasPin, initial, cover, shared,
 }: {
   token: string; patientName: string; hasPin: boolean; initial: DailyInitial;
+  cover: Record<string, string | null> | null;
+  shared: Record<string, boolean>;
 }) {
   const [phase, setPhase] = useState<'gate' | 'form'>('gate');
   const [setup] = useState(!hasPin);
@@ -16,6 +19,17 @@ export function RecordClient({
   const [pinInput, setPinInput] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [share, setShare] = useState<Record<string, boolean>>(
+    Object.fromEntries(SHARE_SECTIONS.map((s) => [s.key, shared[s.key] ?? true])),
+  );
+  const [shareMsg, setShareMsg] = useState<string | null>(null);
+
+  async function saveShare() {
+    setBusy(true);
+    const r = await saveShareByToken(token, pinInput, share);
+    setBusy(false);
+    setShareMsg(r.error ? r.error : '✅ 公開設定を保存しました。');
+  }
 
   async function doSetup() {
     if (pin.length < 4) { setMsg('PINは4桁以上で設定してください。'); return; }
@@ -77,8 +91,43 @@ export function RecordClient({
         <span className="brand">WithMIKI<small>記録</small></span>
         <span className="meta">{patientName} さん</span>
       </div>
-      <p className="meta">記録は先生のカルテに反映されます（先生の記入内容は上書きされません）。</p>
+      {/* 基礎情報（先生が記入済み・閲覧のみ） */}
+      {cover && Object.values(cover).some(Boolean) ? (
+        <div className="card">
+          <h2>📋 基礎情報（先生記入）</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {([['purpose', '目的・主訴'], ['goal', '目標'], ['diagnosis', '見立て'], ['caution', '注意事項'], ['therapist', '担当'], ['doctor', '医師'], ['start_date', '開始日'], ['next_visit', '次回']] as [string, string][])
+              .filter(([k]) => cover[k]).map(([k, label]) => (
+                <div key={k} style={{ display: 'flex', gap: 8 }}>
+                  <span className="meta" style={{ minWidth: 80 }}>{label}</span>
+                  <span style={{ flex: 1 }}>{cover[k]}</span>
+                </div>
+              ))}
+          </div>
+        </div>
+      ) : null}
+
+      <p className="meta">記録は先生のカルテに反映されます（先生の記入内容は上書きされません）。下の「公開設定」で、先生に見せる項目を選べます。</p>
       <DailyForm initial={initial} action={saveRecordByToken} hidden={{ rt_token: token, rt_pin: pinInput }} />
+
+      {/* 公開設定（項目ごとに先生へ公開/非公開を選ぶ） */}
+      <div className="card">
+        <h2>🔒 先生への公開設定</h2>
+        <p className="meta">公開にした項目だけ、先生のカルテに表示されます。いつでも変更できます。</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
+          {SHARE_SECTIONS.map((s) => (
+            <label key={s.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 4px', borderBottom: '1px solid var(--line)' }}>
+              <span>{s.label}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <input type="checkbox" checked={share[s.key] ?? true} onChange={(e) => setShare((p) => ({ ...p, [s.key]: e.target.checked }))} style={{ width: 18, height: 18, accentColor: 'var(--accent)' }} />
+                <span className="meta">{(share[s.key] ?? true) ? '公開' : '非公開'}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+        {shareMsg ? <p className={shareMsg.startsWith('✅') ? 'meta' : 'error'}>{shareMsg}</p> : null}
+        <div style={{ marginTop: 12 }}><button className="btn" onClick={saveShare} disabled={busy}>公開設定を保存</button></div>
+      </div>
       <div className="card">
         <h2>LINEでログインに切り替える</h2>
         <p className="meta">アカウントを作ると、PIN無しでLINEからいつでも記録できます。</p>

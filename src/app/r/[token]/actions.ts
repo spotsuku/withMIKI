@@ -59,6 +59,24 @@ export async function saveRecordByToken(_prev: RecordState, fd: FormData): Promi
   return { ok: true };
 }
 
+/** トークン＋PINで共有設定（項目ごとの公開/非公開）を保存 */
+export async function saveShareByToken(token: string, pin: string, shared: Record<string, boolean>): Promise<RecordState> {
+  const admin = createAdminClient();
+  if (!admin) return { error: 'サーバー設定が未完了です。' };
+  const row = await loadToken(admin, token);
+  if (!row) return { error: 'このURLは無効です。' };
+  if (!row.pin_hash || row.pin_hash !== hashPin(token, pin)) return { error: 'PINが違います。' };
+
+  const rows = Object.entries(shared).map(([section, is_shared]) => ({
+    tenant_id: row.tenant_id, patient_id: row.patient_id, section, is_shared,
+  }));
+  if (rows.length) {
+    const { error } = await admin.from('patient_share_settings').upsert(rows, { onConflict: 'patient_id,section' });
+    if (error) return { error: '保存に失敗しました：' + error.message };
+  }
+  return { ok: true };
+}
+
 /** 途中からLINEログインに切り替える：この患者の招待トークンを発行して返す */
 export async function linkLineFromRecord(token: string, pin: string): Promise<{ inviteToken?: string; error?: string }> {
   const admin = createAdminClient();

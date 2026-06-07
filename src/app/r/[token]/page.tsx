@@ -28,12 +28,28 @@ export default async function RecordTokenPage({ params }: { params: { token: str
   const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' });
   const initial = await loadDailyInitial(admin, row.patient_id, today);
 
+  // 基礎情報（先生が記入済み）＝カルテ表紙
+  const { data: coverRow } = await admin
+    .from('karte_cover')
+    .select('purpose, therapist, goal, diagnosis, caution, doctor, start_date, next_visit')
+    .eq('patient_id', row.patient_id).maybeSingle();
+  const cover = (coverRow as Record<string, string | null> | null) ?? null;
+
+  // 現在の共有設定
+  const { data: shareRows } = await admin
+    .from('patient_share_settings')
+    .select('section, is_shared').eq('patient_id', row.patient_id);
+  const shared: Record<string, boolean> = {};
+  for (const r of (shareRows ?? []) as { section: string; is_shared: boolean }[]) shared[r.section] = r.is_shared;
+
   return (
     <RecordClient
       token={params.token}
       patientName={pat?.name ?? 'あなた'}
       hasPin={Boolean(row.pin_hash)}
       initial={initial}
+      cover={cover}
+      shared={shared}
     />
   );
 }
