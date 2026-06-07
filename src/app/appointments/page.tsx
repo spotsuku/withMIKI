@@ -51,6 +51,8 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
     .lte('start_at', rangeEnd)
     .order('start_at', { ascending: true });
   const slots = (slotData ?? []) as SlotItem[];
+  const slotsByDay: Record<string, SlotItem[]> = {};
+  for (const sl of slots) { const d = isoDateJst(sl.start_at); (slotsByDay[d] ??= []).push(sl); }
   const token = await ensureBookingToken();
   const { data: gset } = await supabase.from('tenant_settings').select('google_token').maybeSingle();
   const googleConnected = Boolean((gset as { google_token: unknown } | null)?.google_token);
@@ -113,7 +115,20 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
                   );
                 })}
               </ul>
-            ) : <div className="empty" style={{ padding: 8 }}>予約なし</div>}
+            ) : null}
+            {slotsByDay[d]?.length ? (
+              <div style={{ marginTop: byDay[d]?.length ? 10 : 6 }}>
+                <span className="meta">空き枠：</span>
+                <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 6, marginLeft: 6 }}>
+                  {slotsByDay[d].map((sl) => (
+                    <span key={sl.id} className="tag" style={{ background: sl.is_blocked ? '#f1f3f5' : 'var(--accent-soft)', color: sl.is_blocked ? '#868e96' : 'var(--accent)' }}>
+                      {fmtTimeJst(sl.start_at)}–{fmtTimeJst(sl.end_at)}{sl.is_blocked ? '（不可）' : ''}
+                    </span>
+                  ))}
+                </span>
+              </div>
+            ) : null}
+            {!byDay[d]?.length && !slotsByDay[d]?.length ? <div className="empty" style={{ padding: 8 }}>予約・空き枠なし</div> : null}
           </div>
         ))}
 
