@@ -61,12 +61,11 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
     <>
       <Topbar userEmail={user.email} />
       <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 style={{ fontSize: '1.3rem' }}>予約</h1>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Link className="btn secondary" href="/appointments/slots">枠を設定</Link>
-            <Link className="btn" href="/appointments/new">＋ 予約を追加</Link>
-          </div>
+        <div className="toolbar">
+          <h1 style={{ fontSize: '1.3rem', margin: 0 }}>予約</h1>
+          <span className="spacer" />
+          <Link className="btn secondary" href="/appointments/slots">枠を設定</Link>
+          <Link className="btn" href="/appointments/new">＋ 予約を追加</Link>
         </div>
 
         <div style={{ display: 'flex', gap: 8, margin: '8px 0' }}>
@@ -74,9 +73,9 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
           <Link className={'btn ' + (view === 'calendar' ? '' : 'secondary')} href={`/appointments?w=${offset}&view=calendar`}>カレンダー</Link>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '8px 0' }}>
+        <div className="weeknav" style={{ margin: '8px 0' }}>
           <Link className="btn secondary" href={`/appointments?w=${offset - 1}&view=${view}`}>‹ 前週</Link>
-          <span className="meta">{week[0]} 〜 {week[6]}</span>
+          <span className="range meta">{week[0]} 〜 {week[6]}</span>
           <Link className="btn secondary" href={`/appointments?w=${offset + 1}&view=${view}`}>翌週 ›</Link>
         </div>
 

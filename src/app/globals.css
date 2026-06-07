@@ -85,7 +85,7 @@ a:hover { text-decoration: underline; }
 .btn {
   display: inline-block; padding: 9px 16px; border-radius: 8px; border: none;
   background: var(--grad); color: #fff; cursor: pointer; font-size: .95rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,.12);
+  box-shadow: 0 1px 3px rgba(0,0,0,.12); white-space: nowrap;
 }
 .btn.secondary { background: #fff; color: var(--accent); border: 1px solid var(--accent); box-shadow: none; }
 .btn:hover { filter: brightness(1.05); text-decoration: none; }
@@ -142,15 +142,16 @@ a:hover { text-decoration: underline; }
 .cal-slot.appt .appt-sub { font-size: 9px; opacity: .92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ヘッダー整列：1行・高さ揃え、ナビはボタン風 */
-.topbar { gap: 12px; align-items: center; }
+.topbar { gap: 10px; align-items: center; flex-wrap: wrap; }
 .topbar .brand { white-space: nowrap; }
-.topnav { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
+/* 文字拡大（シニアモード等）でも折り返して収まるように */
+.topnav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .topnav form { display: inline-flex; margin: 0; }
 .navbtn {
   display: inline-flex; align-items: center; justify-content: center;
-  height: 32px; padding: 0 12px; border-radius: 8px;
+  min-height: 32px; padding: 6px 12px; border-radius: 8px;
   border: 1px solid rgba(255,255,255,.6); background: transparent; color: #fff;
-  font-size: .85rem; line-height: 1; white-space: nowrap; cursor: pointer;
+  font-size: .85rem; line-height: 1.1; white-space: nowrap; cursor: pointer;
 }
 .navbtn:hover { background: rgba(255,255,255,.15); text-decoration: none; }
 .avatar-mini {
@@ -186,3 +187,20 @@ a:hover { text-decoration: underline; }
   cursor: pointer; font-family: inherit; transition: all .15s;
 }
 .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+/* ページ内ツールバー（見出し＋ボタン群、週ナビ）の折り返し */
+.toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.toolbar .spacer { flex: 1 1 auto; }
+.weeknav { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
+.weeknav .range { flex: 1 1 auto; text-align: center; font-size: .8rem; min-width: 0; }
+
+/* スマホ（狭幅）でヘッダーが見切れないように詰める */
+@media (max-width: 480px) {
+  .container { padding: 16px 12px 64px; }
+  .topbar { padding: 10px 10px; gap: 6px; }
+  .topbar .brand { font-size: 1rem; letter-spacing: 0; }
+  .topnav { gap: 6px; }
+  .navbtn { padding: 0 9px; height: 30px; font-size: .8rem; }
+  .avatar-mini { width: 28px; height: 28px; font-size: .8rem; }
+  .btn { padding: 8px 12px; font-size: .9rem; }
+}
