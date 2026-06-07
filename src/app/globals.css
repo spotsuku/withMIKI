@@ -123,6 +123,9 @@ a:hover { text-decoration: underline; }
 /* Google カレンダー風：日付ヘッダー固定＋時間グリッドは枠内スクロール（overscroll封じ込め） */
 .cal-wrap { overflow: auto; max-height: 68vh; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; position: relative; }
 .cal-head { z-index: 3; }
+/* 左の時間軸は固定し、日(列)だけ横スクロール */
+.cal-timeaxis { position: sticky; left: 0; z-index: 4; background: var(--card); }
+.cal-head:first-child { left: 0; z-index: 6; }
 .cal-timeaxis .cal-hourlabel { background: var(--card); }
 .cal { display: grid; grid-template-columns: 44px repeat(7, minmax(64px, 1fr)); min-width: 560px; }
 .cal-head { position: sticky; top: 0; background: var(--card); border-bottom: 1px solid var(--line); padding: 6px 2px; text-align: center; font-size: 12px; }
