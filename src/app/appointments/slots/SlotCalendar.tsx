@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
-import { addSlotAt, removeSlotById, setSlotBlocked } from '../actions';
+import { addSlotAt, addApptAt, removeSlotById, setSlotBlocked } from '../actions';
 
 function Legend({ color, border, label }: { color: string; border: string; label: string }) {
   return (
@@ -33,7 +33,7 @@ function hhmm(min: number) { return `${String(Math.floor(min / 60)).padStart(2, 
 function toMin(t: string) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
 function isoFromJst(date: string, min: number) { return new Date(`${date}T${hhmm(min)}:00+09:00`).toISOString(); }
 
-export function SlotCalendar({ week, slots, appts, googleEvents }: { week: string[]; slots: SlotItem[]; appts?: ApptBlock[]; googleEvents?: GEvent[] }) {
+export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { week: string[]; slots: SlotItem[]; appts?: ApptBlock[]; googleEvents?: GEvent[]; patients?: { id: string; name: string }[] }) {
   const [, startTr] = useTransition();
   const [list, setList] = useState<SlotItem[]>(slots);
   useEffect(() => { setList(slots); }, [slots]);
@@ -48,6 +48,9 @@ export function SlotCalendar({ week, slots, appts, googleEvents }: { week: strin
   const [apptModal, setApptModal] = useState<ApptBlock | null>(null);
   const [mStart, setMStart] = useState('10:00');
   const [mEnd, setMEnd] = useState('11:00');
+  const [mType, setMType] = useState<'open' | 'blocked' | 'confirmed' | 'pending'>('open');
+  const [mPatient, setMPatient] = useState('');
+  const [mTitle, setMTitle] = useState('');
 
   // 空き枠は全幅の薄い背景、予約はその上に重なる全幅ブロック（Google風）
   const slotRight = '2px';
@@ -94,6 +97,7 @@ export function SlotCalendar({ week, slots, appts, googleEvents }: { week: strin
     setDrag(null);
     setMStart(hhmm(s));
     setMEnd(hhmm(en));
+    setMType('open'); setMPatient(''); setMTitle('');
     setModal({ date });
   }
 
@@ -103,14 +107,32 @@ export function SlotCalendar({ week, slots, appts, googleEvents }: { week: strin
     const s = toMin(mStart); const en = toMin(mEnd);
     if (en <= s) { setMsg('終了は開始より後にしてください。'); return; }
     const mins = en - s;
-    const tmpId = 'tmp-' + Date.now();
-    setList((p) => [...p, { id: tmpId, start_at: isoFromJst(date, s), end_at: isoFromJst(date, en), is_blocked: false }]);
-    setModal(null);
     setMsg(null);
+
+    // 空き枠 / 受付不可
+    if (mType === 'open' || mType === 'blocked') {
+      const blocked = mType === 'blocked';
+      const tmpId = 'tmp-' + Date.now();
+      setList((p) => [...p, { id: tmpId, start_at: isoFromJst(date, s), end_at: isoFromJst(date, en), is_blocked: blocked }]);
+      setModal(null);
+      startTr(async () => {
+        const r = await addSlotAt(date, mStart, mins, blocked);
+        if (r.error) { setList((p) => p.filter((x) => x.id !== tmpId)); setMsg(r.error); }
+        else if (r.id) setList((p) => p.map((x) => (x.id === tmpId ? { ...x, id: r.id! } : x)));
+      });
+      return;
+    }
+
+    // 確定予約 / 申込
+    const status = mType;
+    const patientName = patients?.find((p) => p.id === mPatient)?.name;
+    const tmpId = 'tmp-' + Date.now();
+    setApptList((p) => [...p, { id: tmpId, start_at: isoFromJst(date, s), end_at: isoFromJst(date, en), status, name: patientName ?? '（予約）', title: mTitle || null }]);
+    setModal(null);
     startTr(async () => {
-      const r = await addSlotAt(date, mStart, mins);
-      if (r.error) { setList((p) => p.filter((x) => x.id !== tmpId)); setMsg(r.error); }
-      else if (r.id) setList((p) => p.map((x) => (x.id === tmpId ? { ...x, id: r.id! } : x)));
+      const r = await addApptAt(date, mStart, mins, { patientId: mPatient || null, title: mTitle || null, status });
+      if (r.error) { setApptList((p) => p.filter((x) => x.id !== tmpId)); setMsg(r.error); }
+      else if (r.id) setApptList((p) => p.map((x) => (x.id === tmpId ? { ...x, id: r.id! } : x)));
     });
   }
 
@@ -218,12 +240,39 @@ export function SlotCalendar({ week, slots, appts, googleEvents }: { week: strin
       {modal ? (
         <div className="modal-overlay" onClick={() => setModal(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginTop: 0 }}>空き枠を作成</h2>
+            <h2 style={{ marginTop: 0 }}>作成</h2>
             <p className="meta">{modal.date}</p>
+
+            <div className="field">
+              <label>種類</label>
+              <div className="chips">
+                {([['open', '空き枠'], ['blocked', '受付不可'], ['confirmed', '確定予約'], ['pending', '申込']] as const).map(([v, label]) => (
+                  <button key={v} type="button" className={'chip' + (mType === v ? ' on' : '')} onClick={() => setMType(v)}>{label}</button>
+                ))}
+              </div>
+            </div>
+
             <div className="grid cols-2">
               <div className="field"><label>開始</label><input type="time" value={mStart} onChange={(e) => setMStart(e.target.value)} /></div>
               <div className="field"><label>終了</label><input type="time" value={mEnd} onChange={(e) => setMEnd(e.target.value)} /></div>
             </div>
+
+            {mType === 'confirmed' || mType === 'pending' ? (
+              <>
+                <div className="field">
+                  <label>患者</label>
+                  <select value={mPatient} onChange={(e) => setMPatient(e.target.value)}>
+                    <option value="">（未選択）</option>
+                    {(patients ?? []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>メニュー・件名</label>
+                  <input value={mTitle} onChange={(e) => setMTitle(e.target.value)} placeholder="例: 鍼灸施術" />
+                </div>
+              </>
+            ) : null}
+
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button className="btn secondary" onClick={() => setModal(null)}>キャンセル</button>
               <button className="btn" onClick={create}>作成</button>

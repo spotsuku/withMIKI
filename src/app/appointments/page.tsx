@@ -62,6 +62,8 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
   if (view === 'calendar' && googleConnected && gsetRow?.tenant_id) {
     try { const { listGoogleEvents } = await import('@/lib/google'); googleEvents = await listGoogleEvents(gsetRow.tenant_id, rangeStart, rangeEnd); } catch { /* ignore */ }
   }
+  const { data: patData } = await supabase.from('patient').select('id, name').is('deleted_at', null).order('name');
+  const patients = (patData ?? []) as { id: string; name: string }[];
   const wd = ['月', '火', '水', '木', '金', '土', '日'];
   const calAppts: CalAppt[] = appts.map((a) => {
     const pat = Array.isArray(a.patient) ? a.patient[0] : a.patient;
@@ -90,7 +92,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
           <Link className="btn secondary" href={`/appointments?w=${offset + 1}&view=${view}`}>翌週 ›</Link>
         </div>
 
-        {view === 'calendar' ? <SlotCalendar week={week} slots={slots} appts={calAppts} googleEvents={googleEvents} /> : week.map((d, i) => (
+        {view === 'calendar' ? <SlotCalendar week={week} slots={slots} appts={calAppts} googleEvents={googleEvents} patients={patients} /> : week.map((d, i) => (
           <div className="card" key={d} style={{ padding: '12px 14px' }}>
             <h2 style={{ margin: 0, fontSize: '1rem' }}>{d}（{wd[i]}）</h2>
             {byDay[d]?.length ? (
