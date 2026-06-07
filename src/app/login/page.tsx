@@ -54,6 +54,15 @@ export default function LoginPage() {
           {state?.error ? <p className="error">{state.error}</p> : null}
         </form>
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '14px 0' }}>
+          <span style={{ flex: 1, height: 1, background: 'var(--line)' }} />
+          <span className="meta">または</span>
+          <span style={{ flex: 1, height: 1, background: 'var(--line)' }} />
+        </div>
+        <a className="btn" href="/liff" style={{ width: '100%', background: '#06c755', textAlign: 'center', display: 'block' }}>
+          LINEでログイン
+        </a>
+
         {DEV_LOGIN_VISIBLE ? (
           <form action={devAction} style={{ marginTop: 12, borderTop: '1px dashed var(--line)', paddingTop: 12 }}>
             <DevButton />
@@ -65,8 +74,9 @@ export default function LoginPage() {
         ) : null}
       </div>
       <p className="meta">
-        アカウントは Supabase の Authentication で作成し、app_user とひも付けてください
-        （docs/setup/supabase-setup.md §4）。
+        患者さんは先生から届く「招待URL」からアカウントを作成します。
+        先生アカウントは Supabase の Authentication で作成し、app_user にひも付けてください
+        （docs/setup/supabase-setup.md §4）。LINEでログインするには、先生は「設定」から事前にLINE連携が必要です。
       </p>
     </div>
   );
