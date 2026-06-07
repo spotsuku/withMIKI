@@ -253,7 +253,7 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
             {Array.from({ length: END_HOUR - START_HOUR }, (_, i) => (<div key={i} className="cal-hourlabel">{START_HOUR + i}:00</div>))}
           </div>
           {week.map((d) => (
-            <div key={d} className="cal-day" style={{ height: dayHeight, touchAction: 'pan-y' }}
+            <div key={d} className="cal-day" style={{ height: dayHeight, touchAction: 'pan-x pan-y' }}
               onPointerDown={(e) => onDown(d, e)} onPointerMove={(e) => onMove(d, e)}
               onPointerUp={() => openModal(d)} onPointerCancel={() => setDrag(null)} onLostPointerCapture={() => setDrag(null)}>
               {Array.from({ length: END_HOUR - START_HOUR }, (_, i) => <div key={i} className="cal-hourline" />)}
