@@ -9,6 +9,6 @@ export async function GET(request: NextRequest) {
   if (!ctx?.appUser) return NextResponse.redirect(new URL('/login', request.url));
   const from = new Date().toISOString();
   const to = new Date(Date.now() + 28 * 86400000).toISOString();
-  const n = await syncBusyFromGoogle(ctx.appUser.tenant_id, from, to);
+  const n = await syncBusyFromGoogle(ctx.appUser.id, from, to);
   return NextResponse.redirect(new URL(`/appointments/slots?synced=${n}`, request.url));
 }

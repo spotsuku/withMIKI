@@ -1248,3 +1248,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_app_user_line ON app_user(line_user_id) WH
 -- =============================================================================
 ALTER TABLE app_user ADD COLUMN IF NOT EXISTS avatar_url text;
 ALTER TABLE patient  ADD COLUMN IF NOT EXISTS avatar_url text;
+
+-- =============================================================================
+-- 0017_user_google_token.sql  Googleカレンダー連携をユーザー単位に
+-- =============================================================================
+ALTER TABLE app_user ADD COLUMN IF NOT EXISTS google_token jsonb;
+ALTER TABLE app_user ADD COLUMN IF NOT EXISTS google_calendar_id text;

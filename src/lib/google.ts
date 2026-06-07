@@ -65,30 +65,39 @@ async function refreshIfNeeded(token: GoogleToken): Promise<GoogleToken> {
   return { ...token, access_token: j.access_token, expiry: Date.now() + (j.expires_in ?? 3600) * 1000 };
 }
 
-async function getToken(tenantId: string): Promise<{ token: GoogleToken; calendarId: string } | null> {
+/** app_user 単位で Google トークンを取得（ユーザーごとの連携）。 */
+async function getToken(appUserId: string): Promise<{ token: GoogleToken; calendarId: string; tenantId: string } | null> {
   const admin = createAdminClient();
   if (!admin) return null;
-  const { data } = await admin.from('tenant_settings').select('google_token, google_calendar_id').eq('tenant_id', tenantId).maybeSingle();
-  const row = data as { google_token: GoogleToken | null; google_calendar_id: string | null } | null;
+  const { data } = await admin.from('app_user').select('google_token, google_calendar_id, tenant_id').eq('id', appUserId).maybeSingle();
+  const row = data as { google_token: GoogleToken | null; google_calendar_id: string | null; tenant_id: string } | null;
   if (!row?.google_token?.access_token) return null;
   const fresh = await refreshIfNeeded(row.google_token);
   if (fresh.access_token !== row.google_token.access_token) {
-    await admin.from('tenant_settings').update({ google_token: fresh }).eq('tenant_id', tenantId);
+    await admin.from('app_user').update({ google_token: fresh }).eq('id', appUserId);
   }
-  return { token: fresh, calendarId: row.google_calendar_id || 'primary' };
+  return { token: fresh, calendarId: row.google_calendar_id || 'primary', tenantId: row.tenant_id };
 }
 
-export async function saveToken(tenantId: string, token: GoogleToken): Promise<void> {
+export async function saveToken(appUserId: string, token: GoogleToken): Promise<void> {
   const admin = createAdminClient();
   if (!admin) return;
-  await admin.from('tenant_settings').upsert({ tenant_id: tenantId, google_token: token }, { onConflict: 'tenant_id' });
+  await admin.from('app_user').update({ google_token: token }).eq('id', appUserId);
+}
+
+/** ユーザーが Google 連携済みか */
+export async function userGoogleConnected(appUserId: string): Promise<boolean> {
+  const admin = createAdminClient();
+  if (!admin) return false;
+  const { data } = await admin.from('app_user').select('google_token').eq('id', appUserId).maybeSingle();
+  return Boolean((data as { google_token: GoogleToken | null } | null)?.google_token?.access_token);
 }
 
 /** 確定予約を Google Calendar イベント化（未設定なら何もしない） */
-export async function syncAppointmentToGoogle(tenantId: string, appointmentId: string): Promise<void> {
+export async function syncAppointmentToGoogle(appUserId: string, appointmentId: string): Promise<void> {
   const admin = createAdminClient();
   if (!admin) return;
-  const auth = await getToken(tenantId);
+  const auth = await getToken(appUserId);
   if (!auth) return;
   const { data: appt } = await admin.from('appointments').select('*').eq('id', appointmentId).maybeSingle();
   const a = appt as Record<string, unknown> | null;
@@ -116,10 +125,10 @@ export async function syncAppointmentToGoogle(tenantId: string, appointmentId: s
 }
 
 /** 予約枠を Google カレンダーへ作成/更新（google_event_id を枠に保存） */
-export async function pushSlotToGoogle(tenantId: string, slotId: string): Promise<void> {
+export async function pushSlotToGoogle(appUserId: string, slotId: string): Promise<void> {
   const admin = createAdminClient();
   if (!admin) return;
-  const auth = await getToken(tenantId);
+  const auth = await getToken(appUserId);
   if (!auth) return;
   const { data } = await admin
     .from('appointment_slots')
@@ -149,10 +158,10 @@ export async function pushSlotToGoogle(tenantId: string, slotId: string): Promis
 }
 
 /** 予約枠に対応する Google イベントを削除 */
-export async function removeSlotFromGoogle(tenantId: string, slotId: string): Promise<void> {
+export async function removeSlotFromGoogle(appUserId: string, slotId: string): Promise<void> {
   const admin = createAdminClient();
   if (!admin) return;
-  const auth = await getToken(tenantId);
+  const auth = await getToken(appUserId);
   if (!auth) return;
   const { data } = await admin.from('appointment_slots').select('google_event_id').eq('id', slotId).maybeSingle();
   const eventId = (data as { google_event_id: string | null } | null)?.google_event_id;
@@ -164,10 +173,10 @@ export async function removeSlotFromGoogle(tenantId: string, slotId: string): Pr
 }
 
 /** Google の予定を取得して appointment_slots にブロック枠として反映（空き枠検出） */
-export async function syncBusyFromGoogle(tenantId: string, fromIso: string, toIso: string): Promise<number> {
+export async function syncBusyFromGoogle(appUserId: string, fromIso: string, toIso: string): Promise<number> {
   const admin = createAdminClient();
   if (!admin) return 0;
-  const auth = await getToken(tenantId);
+  const auth = await getToken(appUserId);
   if (!auth) return 0;
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(auth.calendarId)}/events?timeMin=${encodeURIComponent(fromIso)}&timeMax=${encodeURIComponent(toIso)}&singleEvents=true&orderBy=startTime`;
   const res = await fetch(url, { headers: { authorization: `Bearer ${auth.token.access_token}` } });
@@ -176,10 +185,10 @@ export async function syncBusyFromGoogle(tenantId: string, fromIso: string, toIs
   let n = 0;
   for (const ev of j.items ?? []) {
     if (!ev.start?.dateTime || !ev.end?.dateTime) continue;
-    const { data: exist } = await admin.from('appointment_slots').select('id').eq('tenant_id', tenantId).eq('google_event_id', ev.id).maybeSingle();
+    const { data: exist } = await admin.from('appointment_slots').select('id').eq('tenant_id', auth.tenantId).eq('google_event_id', ev.id).maybeSingle();
     if (exist) continue;
     await admin.from('appointment_slots').insert({
-      tenant_id: tenantId, start_at: ev.start.dateTime, end_at: ev.end.dateTime, is_blocked: true, google_event_id: ev.id,
+      tenant_id: auth.tenantId, start_at: ev.start.dateTime, end_at: ev.end.dateTime, is_blocked: true, google_event_id: ev.id,
     });
     n++;
   }

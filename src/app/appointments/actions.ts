@@ -42,7 +42,7 @@ export async function createAppointment(_p: ApptState, fd: FormData): Promise<Ap
   if (error || !created) return { error: '予約の作成に失敗しました：' + (error?.message ?? '') };
   // 確定予約は Google カレンダーへ反映（連携済みなら）
   if (status === 'confirmed') {
-    try { const { syncAppointmentToGoogle } = await import('@/lib/google'); await syncAppointmentToGoogle(ctx.appUser.tenant_id, (created as { id: string }).id); } catch { /* 未設定なら無視 */ }
+    try { const { syncAppointmentToGoogle } = await import('@/lib/google'); await syncAppointmentToGoogle(ctx.appUser.id, (created as { id: string }).id); } catch { /* 未設定なら無視 */ }
   }
   revalidatePath('/appointments');
   redirect('/appointments');
@@ -70,7 +70,7 @@ export async function updateAppointment(_p: ApptState, fd: FormData): Promise<Ap
   }).eq('id', id);
   if (error) return { error: '予約の更新に失敗しました：' + error.message };
   // Google イベントへ反映（連携済みなら）
-  try { const { syncAppointmentToGoogle } = await import('@/lib/google'); await syncAppointmentToGoogle(ctx.appUser.tenant_id, id); } catch { /* ignore */ }
+  try { const { syncAppointmentToGoogle } = await import('@/lib/google'); await syncAppointmentToGoogle(ctx.appUser.id, id); } catch { /* ignore */ }
   revalidatePath('/appointments');
   redirect('/appointments');
 }
@@ -87,7 +87,7 @@ export async function setAppointmentStatus(fd: FormData): Promise<void> {
   await supabase.from('appointments').update(patch).eq('id', id);
   // 確定時に Google Calendar へ反映（設定済みなら）
   if (status === 'confirmed') {
-    try { const { syncAppointmentToGoogle } = await import('@/lib/google'); await syncAppointmentToGoogle(ctx.appUser.tenant_id, id); } catch { /* 未設定なら無視 */ }
+    try { const { syncAppointmentToGoogle } = await import('@/lib/google'); await syncAppointmentToGoogle(ctx.appUser.id, id); } catch { /* 未設定なら無視 */ }
   }
   // 通知（確定/キャンセル。未設定なら no-op）
   if (status === 'confirmed' || status === 'cancelled') {
@@ -111,7 +111,7 @@ export async function createSlot(_p: ApptState, fd: FormData): Promise<ApptState
   }).select('id').single();
   if (error || !slot) return { error: '枠の作成に失敗しました：' + (error?.message ?? '') };
   // Googleカレンダーへ同期（連携済みなら）
-  try { const { pushSlotToGoogle } = await import('@/lib/google'); await pushSlotToGoogle(ctx.appUser.tenant_id, (slot as { id: string }).id); } catch { /* 未設定なら無視 */ }
+  try { const { pushSlotToGoogle } = await import('@/lib/google'); await pushSlotToGoogle(ctx.appUser.id, (slot as { id: string }).id); } catch { /* 未設定なら無視 */ }
   revalidatePath('/appointments/slots');
   redirect('/appointments/slots');
 }
@@ -155,7 +155,7 @@ export async function generateSlots(_p: ApptState, fd: FormData): Promise<ApptSt
   // Googleへ同期（連携済みなら）
   try {
     const { pushSlotToGoogle } = await import('@/lib/google');
-    for (const r of (data ?? []) as { id: string }[]) await pushSlotToGoogle(ctx.appUser.tenant_id, r.id);
+    for (const r of (data ?? []) as { id: string }[]) await pushSlotToGoogle(ctx.appUser.id, r.id);
   } catch { /* ignore */ }
 
   revalidatePath('/appointments/slots');
@@ -171,7 +171,7 @@ export async function toggleSlot(fd: FormData): Promise<void> {
   const supabase = createClient();
   await supabase.from('appointment_slots').update({ is_blocked: blocked === '1' }).eq('id', id);
   // Google側の表記（受付中/受付不可）も更新
-  try { const { pushSlotToGoogle } = await import('@/lib/google'); await pushSlotToGoogle(ctx.appUser.tenant_id, id); } catch { /* ignore */ }
+  try { const { pushSlotToGoogle } = await import('@/lib/google'); await pushSlotToGoogle(ctx.appUser.id, id); } catch { /* ignore */ }
   revalidatePath('/appointments/slots');
 }
 export async function deleteSlot(fd: FormData): Promise<void> {
@@ -180,7 +180,7 @@ export async function deleteSlot(fd: FormData): Promise<void> {
   const id = s(fd, 'id'); if (!id) return;
   const supabase = createClient();
   // 先に Google イベントを削除（枠の google_event_id を読むため delete 前に実行）
-  try { const { removeSlotFromGoogle } = await import('@/lib/google'); await removeSlotFromGoogle(ctx.appUser.tenant_id, id); } catch { /* ignore */ }
+  try { const { removeSlotFromGoogle } = await import('@/lib/google'); await removeSlotFromGoogle(ctx.appUser.id, id); } catch { /* ignore */ }
   await supabase.from('appointment_slots').delete().eq('id', id);
   revalidatePath('/appointments/slots');
 }
@@ -222,7 +222,7 @@ export async function addSlotAt(date: string, time: string, minutes: number): Pr
   }).select('id').single();
   if (error || !slot) return { error: '枠の作成に失敗しました：' + (error?.message ?? '') };
   const id = (slot as { id: string }).id;
-  try { const { pushSlotToGoogle } = await import('@/lib/google'); await pushSlotToGoogle(ctx.appUser.tenant_id, id); } catch { /* ignore */ }
+  try { const { pushSlotToGoogle } = await import('@/lib/google'); await pushSlotToGoogle(ctx.appUser.id, id); } catch { /* ignore */ }
   revalidatePath('/appointments/slots');
   revalidatePath('/appointments');
   return { id };
@@ -234,7 +234,7 @@ export async function removeSlotById(id: string): Promise<ApptState> {
   if (!ctx?.appUser) return { error: 'アカウントが未設定です。' };
   if (!id) return { error: '対象がありません。' };
   const supabase = createClient();
-  try { const { removeSlotFromGoogle } = await import('@/lib/google'); await removeSlotFromGoogle(ctx.appUser.tenant_id, id); } catch { /* ignore */ }
+  try { const { removeSlotFromGoogle } = await import('@/lib/google'); await removeSlotFromGoogle(ctx.appUser.id, id); } catch { /* ignore */ }
   const { error } = await supabase.from('appointment_slots').delete().eq('id', id);
   if (error) return { error: '削除に失敗しました：' + error.message };
   revalidatePath('/appointments/slots');
@@ -249,7 +249,7 @@ export async function setSlotBlocked(id: string, blocked: boolean): Promise<Appt
   const supabase = createClient();
   const { error } = await supabase.from('appointment_slots').update({ is_blocked: blocked }).eq('id', id);
   if (error) return { error: '更新に失敗しました：' + error.message };
-  try { const { pushSlotToGoogle } = await import('@/lib/google'); await pushSlotToGoogle(ctx.appUser.tenant_id, id); } catch { /* ignore */ }
+  try { const { pushSlotToGoogle } = await import('@/lib/google'); await pushSlotToGoogle(ctx.appUser.id, id); } catch { /* ignore */ }
   revalidatePath('/appointments/slots');
   return {};
 }
@@ -334,7 +334,7 @@ export async function applyTemplate(_p: ApptState, fd: FormData): Promise<ApptSt
   const supabase = createClient();
   const { data, error } = await supabase.from('appointment_slots').insert(rows).select('id');
   if (error) return { error: '適用に失敗しました：' + error.message };
-  try { const { pushSlotToGoogle } = await import('@/lib/google'); for (const r of (data ?? []) as { id: string }[]) await pushSlotToGoogle(ctx.appUser.tenant_id, r.id); } catch { /* ignore */ }
+  try { const { pushSlotToGoogle } = await import('@/lib/google'); for (const r of (data ?? []) as { id: string }[]) await pushSlotToGoogle(ctx.appUser.id, r.id); } catch { /* ignore */ }
   revalidatePath('/appointments/slots');
   return {};
 }

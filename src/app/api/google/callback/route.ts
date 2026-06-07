@@ -15,6 +15,6 @@ export async function GET(request: NextRequest) {
   if (!token) return NextResponse.redirect(new URL('/appointments?google=error', request.url));
 
   // セキュリティ: state を信用せず、ログイン中テナントに保存
-  await saveToken(ctx.appUser.tenant_id, token);
+  await saveToken(ctx.appUser.id, token);
   return NextResponse.redirect(new URL('/appointments?google=connected', request.url));
 }
