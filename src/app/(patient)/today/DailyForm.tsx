@@ -46,8 +46,8 @@ const GROUPS: { title: string; keys: string[] }[] = [
   { title: '🌿 東洋医学（冷え・舌診）', keys: ['chillArea', 'edemaArea', 'tongue', 'oriental'] },
 ];
 
-export function DailyForm({ initial }: { initial: DailyInitial }) {
-  const [state, formAction] = useFormState<DailyState, FormData>(saveDaily, {});
+export function DailyForm({ initial, action, hidden }: { initial: DailyInitial; action?: (prev: DailyState, fd: FormData) => Promise<DailyState>; hidden?: Record<string, string> }) {
+  const [state, formAction] = useFormState<DailyState, FormData>(action ?? saveDaily, {});
   const i = initial;
   const g = i.gyneco ?? {};
   const pl = i.payload ?? {};
@@ -56,6 +56,7 @@ export function DailyForm({ initial }: { initial: DailyInitial }) {
   return (
     <form action={formAction}>
       <input type="hidden" name="record_date" value={i.record_date} />
+      {hidden ? Object.entries(hidden).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />) : null}
 
       {/* 基礎体温は最重要なので常時表示 */}
       <div className="card">

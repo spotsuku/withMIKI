@@ -72,6 +72,37 @@ export async function createInviteLink(_p: InviteState, fd: FormData): Promise<I
   return { ok: true, url: `${base}/invite/${token}` };
 }
 
+/** ログイン不要の記録URL（トークン+PIN方式）を発行 */
+export async function createRecordLink(_p: InviteState, fd: FormData): Promise<InviteState> {
+  const ctx = await getUserContext();
+  if (!ctx?.appUser) return { error: 'アカウントが未設定です。' };
+  const patientId = String(fd.get('patientId') ?? '');
+  if (!patientId) return { error: '患者IDがありません。' };
+
+  const prodHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  const h = headers();
+  const reqHost = h.get('x-forwarded-host') || h.get('host');
+  const reqProto = h.get('x-forwarded-proto') || 'https';
+  const base = (process.env.PATIENT_APP_URL || process.env.NEXT_PUBLIC_SITE_URL ||
+    (prodHost ? `https://${prodHost}` : '') || (reqHost ? `${reqProto}://${reqHost}` : '')).replace(/\/$/, '');
+  if (!base) return { error: 'サイトURLを特定できませんでした。' };
+
+  const supabase = createClient();
+  const { data: pat } = await supabase.from('patient').select('tenant_id').eq('id', patientId).maybeSingle();
+  const p = pat as { tenant_id: string } | null;
+  if (!p) return { error: '患者が見つかりません。' };
+
+  // 既存トークンを再利用、無ければ発行
+  const { data: ex } = await supabase.from('patient_record_token').select('token').eq('patient_id', patientId).eq('revoked', false).order('created_at', { ascending: false }).limit(1).maybeSingle();
+  let token = (ex as { token: string } | null)?.token ?? null;
+  if (!token) {
+    token = randomBytes(24).toString('hex');
+    const { error } = await supabase.from('patient_record_token').insert({ tenant_id: p.tenant_id, patient_id: patientId, token });
+    if (error) return { error: '発行に失敗しました：' + error.message };
+  }
+  return { ok: true, url: `${base}/r/${token}` };
+}
+
 /** 患者にログインアカウントを発行し patient_user へ連携（招待） */
 export async function invitePatient(_p: InviteState, fd: FormData): Promise<InviteState> {
   const ctx = await getUserContext();

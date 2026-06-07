@@ -1260,3 +1260,24 @@ ALTER TABLE app_user ADD COLUMN IF NOT EXISTS google_calendar_id text;
 -- =============================================================================
 ALTER TABLE appointments ADD COLUMN IF NOT EXISTS guest_kana  text;
 ALTER TABLE appointments ADD COLUMN IF NOT EXISTS guest_phone text;
+
+-- =============================================================================
+-- 0019_patient_record_token.sql  ログイン不要(URL+PIN)カルテ記録
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS patient_record_token (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id    uuid NOT NULL REFERENCES tenant(id),
+  patient_id   uuid NOT NULL REFERENCES patient(id),
+  token        text NOT NULL UNIQUE,
+  pin_hash     text,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  last_used_at timestamptz,
+  revoked      boolean NOT NULL DEFAULT false
+);
+CREATE INDEX IF NOT EXISTS idx_prt_patient ON patient_record_token(patient_id);
+ALTER TABLE patient_record_token ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS prt_staff ON patient_record_token;
+CREATE POLICY prt_staff ON patient_record_token
+  USING (tenant_id = app_current_tenant())
+  WITH CHECK (tenant_id = app_current_tenant());
+GRANT SELECT, INSERT, UPDATE, DELETE ON patient_record_token TO authenticated;
