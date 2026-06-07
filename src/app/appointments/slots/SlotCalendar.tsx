@@ -36,9 +36,8 @@ export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: Sl
   const [mStart, setMStart] = useState('10:00');
   const [mEnd, setMEnd] = useState('11:00');
 
-  const combined = !!appts;
-  // 予約を Google 風に「内容が見える」全幅ブロックで表示するため、空き枠は左の細いレールにする
-  const slotRight = combined ? 'calc(100% - 12px)' : '2px';
+  // 空き枠は全幅の薄い背景、予約はその上に重なる全幅ブロック（Google風）
+  const slotRight = '2px';
   const dayHeight = (END_HOUR - START_HOUR) * ROW;
 
   const byDate: Record<string, SlotItem[]> = {};
@@ -154,7 +153,7 @@ export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: Sl
                 return (
                   <a key={a.id} href={`/appointments/${a.id}/edit`}
                     className={'cal-slot appt' + (a.status === 'pending' ? ' pending' : '')}
-                    style={{ top, height, left: 14, right: '2px', zIndex: 2 }}
+                    style={{ top, height, left: '2px', right: '2px', zIndex: 2 }}
                     onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
                     <span className="appt-time">{hhmm(st)}–{hhmm(en)}</span>
                     <span className="appt-name">{a.name}</span>
