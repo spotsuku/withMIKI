@@ -107,7 +107,7 @@ export default async function TodayPage() {
   // ===== 婦人科（既定） =====
   const { data: daily } = await supabase
     .from('daily_record')
-    .select('id, weight, body_fat, body_temp, sleep_hours, water, memo, payload')
+    .select('id, weight, body_fat, body_temp, height, sbp, dbp, hr, sleep_hours, sleep_quality, water, memo, payload')
     .eq('patient_id', ctx.patient.id)
     .eq('record_date', today)
     .is('deleted_at', null)
@@ -148,7 +148,12 @@ export default async function TodayPage() {
     weight: (d.weight as number) ?? null,
     body_fat: (d.body_fat as number) ?? null,
     body_temp: (d.body_temp as number) ?? null,
+    height: (d.height as number) ?? null,
+    sbp: (d.sbp as number) ?? null,
+    dbp: (d.dbp as number) ?? null,
+    hr: (d.hr as number) ?? null,
     sleep_hours: (d.sleep_hours as number) ?? null,
+    sleep_quality: (d.sleep_quality as string) ?? null,
     water: (d.water as number) ?? null,
     memo: (d.memo as string) ?? null,
     bbt: (gyneco?.bbt as number) ?? null,
