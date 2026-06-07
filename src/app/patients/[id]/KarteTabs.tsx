@@ -13,7 +13,7 @@ export function KarteTabs({ basic, patient, system }: { basic: React.ReactNode; 
   ];
   return (
     <>
-      <div style={{ display: 'flex', gap: 6, position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg)', padding: '8px 0', marginBottom: 4 }}>
+      <div style={{ display: 'flex', gap: 6, background: 'var(--bg)', padding: '8px 0', marginBottom: 4 }}>
         {TABS.map((t) => (
           <button key={t.k} type="button" onClick={() => setTab(t.k)}
             className={`btn${tab === t.k ? '' : ' secondary'}`}

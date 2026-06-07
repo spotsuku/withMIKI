@@ -105,7 +105,7 @@ export function RecordClient({
       </div>
 
       {/* タブ */}
-      <div style={{ display: 'flex', gap: 4, position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg)', padding: '8px 0' }}>
+      <div style={{ display: 'flex', gap: 4, background: 'var(--bg)', padding: '8px 0' }}>
         {TABS.map((t) => (
           <button key={t.key} type="button" onClick={() => setTab(t.key)}
             className={`btn${tab === t.key ? '' : ' secondary'}`}

@@ -42,6 +42,8 @@ a:hover { text-decoration: underline; }
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 16px; background: var(--grad); color: #fff; border-bottom: none;
+  /* 全ページでヘッダーを上部固定 */
+  position: sticky; top: 0; z-index: 100;
 }
 .topbar a, .topbar .meta { color: #fff; }
 .topbar .brand { font-weight: 700; letter-spacing: .04em; color: #fff; }
@@ -118,7 +120,7 @@ a:hover { text-decoration: underline; }
 .login-wrap { max-width: 380px; margin: 8vh auto; }
 
 /* 週カレンダー（予約・空き枠） */
-.cal-wrap { overflow: auto; max-height: 72vh; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.cal-wrap { overflow-x: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .cal { display: grid; grid-template-columns: 44px repeat(7, minmax(64px, 1fr)); min-width: 560px; }
 .cal-head { position: sticky; top: 0; background: var(--card); border-bottom: 1px solid var(--line); padding: 6px 2px; text-align: center; font-size: 12px; }
 .cal-head.today { color: var(--accent); font-weight: 700; }
