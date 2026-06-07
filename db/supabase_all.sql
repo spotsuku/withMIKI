@@ -1236,3 +1236,9 @@ CREATE POLICY patient_invite_staff ON patient_invite
   USING (tenant_id = app_current_tenant())
   WITH CHECK (tenant_id = app_current_tenant());
 GRANT SELECT, INSERT, UPDATE, DELETE ON patient_invite TO authenticated;
+
+-- =============================================================================
+-- 0015_app_user_line.sql  管理者(先生)のLINEログイン連携
+-- =============================================================================
+ALTER TABLE app_user ADD COLUMN IF NOT EXISTS line_user_id text;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_app_user_line ON app_user(line_user_id) WHERE line_user_id IS NOT NULL;

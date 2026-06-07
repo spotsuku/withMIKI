@@ -156,8 +156,9 @@ a:hover { text-decoration: underline; }
 .avatar-mini {
   width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,.25); color: #fff;
   display: inline-flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: .85rem; flex: 0 0 auto;
+  font-weight: 700; font-size: .85rem; flex: 0 0 auto; text-decoration: none;
 }
+.avatar-mini:hover { background: rgba(255,255,255,.4); text-decoration: none; }
 
 /* 曜日チェック（崩れ防止：均一なピル） */
 .wd-list { display: flex; flex-wrap: wrap; gap: 8px; }

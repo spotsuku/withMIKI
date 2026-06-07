@@ -13,7 +13,7 @@ export async function Topbar(_props?: { userEmail?: string | null }) {
       <nav className="topnav">
         <Link href="/patients" className="navbtn">カルテ</Link>
         <Link href="/appointments" className="navbtn">予約</Link>
-        <span className="avatar-mini" title={name}>{initial}</span>
+        <Link href="/settings" className="avatar-mini" title={`${name}（設定）`}>{initial}</Link>
         <form action="/auth/signout" method="post">
           <button className="navbtn" type="submit">ログアウト</button>
         </form>

@@ -43,7 +43,7 @@ export default function LiffPage() {
         const supabase = createClient();
         const { error } = await supabase.auth.verifyOtp({ email: json.email, token: json.otp, type: 'magiclink' });
         if (error) { setStatus('セッション確立に失敗しました：' + error.message); return; }
-        router.push('/today');
+        router.push(json.role === 'staff' ? '/patients' : '/today');
         router.refresh();
       } catch (e) {
         setStatus('エラー：' + (e as Error).message);

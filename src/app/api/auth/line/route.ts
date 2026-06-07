@@ -33,23 +33,36 @@ export async function POST(req: NextRequest) {
   const lineUserId = profile.sub;
   if (!lineUserId) return NextResponse.json({ error: 'LINEユーザーを特定できません' }, { status: 401 });
 
-  // 2) line_account → patient → patient_user → auth ユーザー
+  // 2) 先生（app_user）に LINE がひも付いていれば、そのアカウントでログイン
+  const { data: staff } = await admin.from('app_user').select('auth_user_id').eq('line_user_id', lineUserId).maybeSingle();
+  const staffAuthId = (staff as { auth_user_id: string | null } | null)?.auth_user_id;
+  if (staffAuthId) {
+    const otpRes = await issueOtp(admin, staffAuthId);
+    if ('error' in otpRes) return NextResponse.json({ error: otpRes.error }, { status: 500 });
+    return NextResponse.json({ email: otpRes.email, otp: otpRes.otp, role: 'staff' });
+  }
+
+  // 3) line_account → patient → patient_user → auth ユーザー
   const { data: la } = await admin.from('line_account').select('patient_id').eq('line_user_id', lineUserId).maybeSingle();
   const patientId = (la as { patient_id: string } | null)?.patient_id;
-  if (!patientId) return NextResponse.json({ error: 'この LINE はまだ患者にひも付いていません。先生にご連絡ください。' }, { status: 404 });
+  if (!patientId) return NextResponse.json({ error: 'この LINE はまだアカウントにひも付いていません。招待URLから登録するか、先生にご連絡ください。' }, { status: 404 });
 
   const { data: pu } = await admin.from('patient_user').select('auth_user_id').eq('patient_id', patientId).maybeSingle();
   const authUserId = (pu as { auth_user_id: string } | null)?.auth_user_id;
   if (!authUserId) return NextResponse.json({ error: 'ログインアカウントが未設定です。先生にご連絡ください。' }, { status: 404 });
 
+  const otpRes = await issueOtp(admin, authUserId);
+  if ('error' in otpRes) return NextResponse.json({ error: otpRes.error }, { status: 500 });
+  return NextResponse.json({ email: otpRes.email, otp: otpRes.otp, role: 'patient' });
+}
+
+/** auth_user_id からメール＆マジックリンクOTPを発行 */
+async function issueOtp(admin: NonNullable<ReturnType<typeof createAdminClient>>, authUserId: string) {
   const { data: userRes, error: userErr } = await admin.auth.admin.getUserById(authUserId);
   const email = userRes?.user?.email;
-  if (userErr || !email) return NextResponse.json({ error: 'アカウントの取得に失敗しました' }, { status: 500 });
-
-  // 3) マジックリンクOTPを発行（クライアントで verifyOtp してセッション確立）
+  if (userErr || !email) return { error: 'アカウントの取得に失敗しました' };
   const { data: link, error: linkErr } = await admin.auth.admin.generateLink({ type: 'magiclink', email });
   const otp = link?.properties?.email_otp;
-  if (linkErr || !otp) return NextResponse.json({ error: 'ログイントークンの発行に失敗しました' }, { status: 500 });
-
-  return NextResponse.json({ email, otp });
+  if (linkErr || !otp) return { error: 'ログイントークンの発行に失敗しました' };
+  return { email, otp };
 }
