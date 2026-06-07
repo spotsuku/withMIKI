@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getUserContext } from '@/lib/auth';
 import { jstToIso, addMinutesIso } from '@/lib/datetime';
+import { DEFAULT_TEMPLATES, type SlotTemplate } from '@/lib/slotTemplates';
 
 export interface ApptState { error?: string }
 
@@ -198,4 +199,133 @@ export async function regenerateBookingToken(): Promise<void> {
   const token = randomBytes(16).toString('hex');
   await supabase.from('tenant_settings').upsert({ tenant_id: ctx.appUser.tenant_id, booking_token: token }, { onConflict: 'tenant_id' });
   revalidatePath('/appointments');
+}
+
+// ===== カレンダーUI（クライアントから直接呼ぶ引数ベースのアクション） =====
+
+/** 指定日時に空き枠を作成（Google同期）。カレンダーのセルクリック用 */
+export async function addSlotAt(date: string, time: string, minutes: number): Promise<ApptState> {
+  const ctx = await getUserContext();
+  if (!ctx?.appUser) return { error: 'アカウントが未設定です。' };
+  if (!date || !time) return { error: '日時が不正です。' };
+  const start = jstToIso(date, time);
+  const supabase = createClient();
+  const { data: slot, error } = await supabase.from('appointment_slots').insert({
+    tenant_id: ctx.appUser.tenant_id, start_at: start, end_at: addMinutesIso(start, minutes || 60), is_blocked: false,
+  }).select('id').single();
+  if (error || !slot) return { error: '枠の作成に失敗しました：' + (error?.message ?? '') };
+  try { const { pushSlotToGoogle } = await import('@/lib/google'); await pushSlotToGoogle(ctx.appUser.tenant_id, (slot as { id: string }).id); } catch { /* ignore */ }
+  revalidatePath('/appointments/slots');
+  return {};
+}
+
+/** 枠を削除（Google同期）。カレンダーの×用 */
+export async function removeSlotById(id: string): Promise<ApptState> {
+  const ctx = await getUserContext();
+  if (!ctx?.appUser) return { error: 'アカウントが未設定です。' };
+  if (!id) return { error: '対象がありません。' };
+  const supabase = createClient();
+  try { const { removeSlotFromGoogle } = await import('@/lib/google'); await removeSlotFromGoogle(ctx.appUser.tenant_id, id); } catch { /* ignore */ }
+  const { error } = await supabase.from('appointment_slots').delete().eq('id', id);
+  if (error) return { error: '削除に失敗しました：' + error.message };
+  revalidatePath('/appointments/slots');
+  return {};
+}
+
+/** 枠の受付可/不可を切替（Google同期）。カレンダークリック用 */
+export async function setSlotBlocked(id: string, blocked: boolean): Promise<ApptState> {
+  const ctx = await getUserContext();
+  if (!ctx?.appUser) return { error: 'アカウントが未設定です。' };
+  if (!id) return { error: '対象がありません。' };
+  const supabase = createClient();
+  const { error } = await supabase.from('appointment_slots').update({ is_blocked: blocked }).eq('id', id);
+  if (error) return { error: '更新に失敗しました：' + error.message };
+  try { const { pushSlotToGoogle } = await import('@/lib/google'); await pushSlotToGoogle(ctx.appUser.tenant_id, id); } catch { /* ignore */ }
+  revalidatePath('/appointments/slots');
+  return {};
+}
+
+// ===== 空き枠テンプレート（tenant_settings.settings.slot_templates に保存） =====
+
+async function readSettings(): Promise<Record<string, unknown>> {
+  const ctx = await getUserContext();
+  if (!ctx?.appUser) return {};
+  const supabase = createClient();
+  const { data } = await supabase.from('tenant_settings').select('settings').eq('tenant_id', ctx.appUser.tenant_id).maybeSingle();
+  return ((data as { settings: Record<string, unknown> } | null)?.settings) ?? {};
+}
+
+/** テンプレ一覧（未登録なら既定テンプレを返す） */
+export async function listTemplates(): Promise<SlotTemplate[]> {
+  const settings = await readSettings();
+  const tpls = settings.slot_templates as SlotTemplate[] | undefined;
+  if (tpls && tpls.length) return tpls;
+  return DEFAULT_TEMPLATES;
+}
+
+/** テンプレを保存 */
+export async function saveTemplate(_p: ApptState, fd: FormData): Promise<ApptState> {
+  const ctx = await getUserContext();
+  if (!ctx?.appUser) return { error: 'アカウントが未設定です。' };
+  const name = s(fd, 'name'); const start = s(fd, 'start'); const end = s(fd, 'end');
+  const interval = parseInt(String(fd.get('interval') ?? '60'), 10) || 60;
+  const weekdays = fd.getAll('wd').map((x) => parseInt(String(x), 10));
+  if (!name || !start || !end || weekdays.length === 0) return { error: '名称・曜日・時間帯を入力してください。' };
+  const settings = await readSettings();
+  const tpls = (settings.slot_templates as SlotTemplate[] | undefined) ?? [...DEFAULT_TEMPLATES];
+  tpls.push({ name, weekdays, start, end, interval });
+  const supabase = createClient();
+  await supabase.from('tenant_settings').upsert({ tenant_id: ctx.appUser.tenant_id, settings: { ...settings, slot_templates: tpls } }, { onConflict: 'tenant_id' });
+  revalidatePath('/appointments/slots');
+  return {};
+}
+
+/** テンプレを削除 */
+export async function deleteTemplate(fd: FormData): Promise<void> {
+  const ctx = await getUserContext();
+  if (!ctx?.appUser) return;
+  const idx = parseInt(String(fd.get('idx') ?? '-1'), 10);
+  const settings = await readSettings();
+  const tpls = (settings.slot_templates as SlotTemplate[] | undefined) ?? [...DEFAULT_TEMPLATES];
+  if (idx < 0 || idx >= tpls.length) return;
+  tpls.splice(idx, 1);
+  const supabase = createClient();
+  await supabase.from('tenant_settings').upsert({ tenant_id: ctx.appUser.tenant_id, settings: { ...settings, slot_templates: tpls } }, { onConflict: 'tenant_id' });
+  revalidatePath('/appointments/slots');
+}
+
+/** テンプレを期間に適用（generateSlots を内部呼び出し相当） */
+export async function applyTemplate(_p: ApptState, fd: FormData): Promise<ApptState> {
+  const ctx = await getUserContext();
+  if (!ctx?.appUser) return { error: 'アカウントが未設定です。' };
+  const from = s(fd, 'date_from'); const to = s(fd, 'date_to');
+  const tpls = await listTemplates();
+  const idx = parseInt(String(fd.get('idx') ?? '-1'), 10);
+  const tpl = tpls[idx];
+  if (!from || !to || !tpl) return { error: '期間とテンプレを指定してください。' };
+
+  const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+  const sMin = toMin(tpl.start); const eMin = toMin(tpl.end);
+  const rows: { tenant_id: string; start_at: string; end_at: string; is_blocked: boolean }[] = [];
+  const cur = new Date(`${from}T12:00:00+09:00`); const last = new Date(`${to}T12:00:00+09:00`); let guard = 0;
+  while (cur <= last && guard < 400) {
+    guard++;
+    const dateStr = cur.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' });
+    if (tpl.weekdays.includes(cur.getUTCDay())) {
+      for (let m = sMin; m + tpl.interval <= eMin; m += tpl.interval) {
+        const st = jstToIso(dateStr, hhmm(m));
+        rows.push({ tenant_id: ctx.appUser.tenant_id, start_at: st, end_at: addMinutesIso(st, tpl.interval), is_blocked: false });
+      }
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  if (!rows.length) return { error: '生成対象がありませんでした。' };
+  if (rows.length > 500) return { error: `生成枠が多すぎます（${rows.length}）。期間を短くしてください。` };
+  const supabase = createClient();
+  const { data, error } = await supabase.from('appointment_slots').insert(rows).select('id');
+  if (error) return { error: '適用に失敗しました：' + error.message };
+  try { const { pushSlotToGoogle } = await import('@/lib/google'); for (const r of (data ?? []) as { id: string }[]) await pushSlotToGoogle(ctx.appUser.tenant_id, r.id); } catch { /* ignore */ }
+  revalidatePath('/appointments/slots');
+  return {};
 }

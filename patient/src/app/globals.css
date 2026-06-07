@@ -1,12 +1,22 @@
 :root {
-  --bg: #f7f7f5;
+  --bg: #f5f7fb;
   --card: #ffffff;
-  --ink: #2b2b2b;
-  --muted: #777;
-  --line: #e6e3dd;
-  --accent: #8a6d3b;
-  --accent-soft: #f0e9dd;
+  --ink: #1f2733;
+  --muted: #6b7280;
+  --line: #e2e8f0;
+  --accent: #0b3da6;
+  --accent-dark: #002a8f;
+  --accent-soft: #e7eefc;
+  --grad: linear-gradient(135deg, #002a8f 0%, #0b3da6 50%, #1565d8 100%);
   --danger: #c0392b;
+}
+
+/* 婦人科テーマ＝濃いピンク＋薄ピンク */
+.theme-gyneco {
+  --accent: #d6336c;
+  --accent-dark: #a61e4d;
+  --accent-soft: #fde4ee;
+  --grad: linear-gradient(135deg, #a61e4d 0%, #d6336c 50%, #f06595 100%);
 }
 
 * { box-sizing: border-box; }
@@ -28,10 +38,11 @@ a:hover { text-decoration: underline; }
 
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px; background: var(--card); border-bottom: 1px solid var(--line);
+  padding: 12px 16px; background: var(--grad); color: #fff; border-bottom: none;
 }
-.topbar .brand { font-weight: 700; letter-spacing: .04em; }
-.topbar .brand small { color: var(--muted); font-weight: 400; margin-left: 8px; }
+.topbar a, .topbar .meta { color: #fff; }
+.topbar .brand { font-weight: 700; letter-spacing: .04em; color: #fff; }
+.topbar .brand small { color: rgba(255,255,255,.8); font-weight: 400; margin-left: 8px; }
 
 .card {
   background: var(--card); border: 1px solid var(--line); border-radius: 12px;
@@ -57,11 +68,13 @@ a:hover { text-decoration: underline; }
 .meta { color: var(--muted); font-size: .85rem; }
 
 .btn {
-  display: inline-block; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--accent);
-  background: var(--accent); color: #fff; cursor: pointer; font-size: .95rem;
+  display: inline-block; padding: 9px 16px; border-radius: 8px; border: none;
+  background: var(--grad); color: #fff; cursor: pointer; font-size: .95rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.12);
 }
-.btn.secondary { background: transparent; color: var(--accent); }
-.btn:hover { opacity: .9; text-decoration: none; }
+.btn.secondary { background: #fff; color: var(--accent); border: 1px solid var(--accent); box-shadow: none; }
+.btn:hover { filter: brightness(1.05); text-decoration: none; }
+.topbar .btn.secondary { background: transparent; color: #fff; border-color: rgba(255,255,255,.7); }
 
 .field { margin-bottom: 12px; }
 .field label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 4px; }

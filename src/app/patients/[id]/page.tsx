@@ -147,7 +147,7 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
   const age = ageFromDob(p.dob);
 
   return (
-    <>
+    <div className={program?.code === 'gyneco' ? 'theme-gyneco' : undefined}>
       <Topbar userEmail={user.email} />
       <div className="container">
         <p className="meta">
@@ -375,6 +375,6 @@ export default async function PatientDetailPage({ params }: { params: { id: stri
         {/* AI カルテ補助 */}
         <KarteChat patientId={p.id} />
       </div>
-    </>
+    </div>
   );
 }

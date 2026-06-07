@@ -1,12 +1,23 @@
 :root {
-  --bg: #f7f7f5;
+  --bg: #f5f7fb;
   --card: #ffffff;
-  --ink: #2b2b2b;
-  --muted: #777;
-  --line: #e6e3dd;
-  --accent: #8a6d3b;
-  --accent-soft: #f0e9dd;
+  --ink: #1f2733;
+  --muted: #6b7280;
+  --line: #e2e8f0;
+  /* デフォルト＝ジャパンブルー */
+  --accent: #0b3da6;
+  --accent-dark: #002a8f;
+  --accent-soft: #e7eefc;
+  --grad: linear-gradient(135deg, #002a8f 0%, #0b3da6 50%, #1565d8 100%);
   --danger: #c0392b;
+}
+
+/* 婦人科テーマ＝濃いピンク＋薄ピンク */
+.theme-gyneco {
+  --accent: #d6336c;
+  --accent-dark: #a61e4d;
+  --accent-soft: #fde4ee;
+  --grad: linear-gradient(135deg, #a61e4d 0%, #d6336c 50%, #f06595 100%);
 }
 
 * { box-sizing: border-box; }
@@ -28,10 +39,11 @@ a:hover { text-decoration: underline; }
 
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px; background: var(--card); border-bottom: 1px solid var(--line);
+  padding: 12px 16px; background: var(--grad); color: #fff; border-bottom: none;
 }
-.topbar .brand { font-weight: 700; letter-spacing: .04em; }
-.topbar .brand small { color: var(--muted); font-weight: 400; margin-left: 8px; }
+.topbar a, .topbar .meta { color: #fff; }
+.topbar .brand { font-weight: 700; letter-spacing: .04em; color: #fff; }
+.topbar .brand small { color: rgba(255,255,255,.8); font-weight: 400; margin-left: 8px; }
 
 .card {
   background: var(--card); border: 1px solid var(--line); border-radius: 12px;
@@ -57,11 +69,13 @@ a:hover { text-decoration: underline; }
 .meta { color: var(--muted); font-size: .85rem; }
 
 .btn {
-  display: inline-block; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--accent);
-  background: var(--accent); color: #fff; cursor: pointer; font-size: .95rem;
+  display: inline-block; padding: 9px 16px; border-radius: 8px; border: none;
+  background: var(--grad); color: #fff; cursor: pointer; font-size: .95rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.12);
 }
-.btn.secondary { background: transparent; color: var(--accent); }
-.btn:hover { opacity: .9; text-decoration: none; }
+.btn.secondary { background: #fff; color: var(--accent); border: 1px solid var(--accent); box-shadow: none; }
+.btn:hover { filter: brightness(1.05); text-decoration: none; }
+.topbar .btn.secondary { background: transparent; color: #fff; border-color: rgba(255,255,255,.7); }
 
 .field { margin-bottom: 12px; }
 .field label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 4px; }
@@ -86,3 +100,18 @@ a:hover { text-decoration: underline; }
 .error { color: var(--danger); font-size: .9rem; margin-top: 8px; }
 .empty { color: var(--muted); padding: 24px 0; text-align: center; }
 .login-wrap { max-width: 380px; margin: 8vh auto; }
+
+/* 週カレンダー（予約・空き枠） */
+.cal-wrap { overflow-x: auto; }
+.cal { display: grid; grid-template-columns: 44px repeat(7, minmax(64px, 1fr)); min-width: 560px; }
+.cal-head { position: sticky; top: 0; background: var(--card); border-bottom: 1px solid var(--line); padding: 6px 2px; text-align: center; font-size: 12px; }
+.cal-head.today { color: var(--accent); font-weight: 700; }
+.cal-timeaxis { position: relative; }
+.cal-hourlabel { height: 48px; font-size: 10px; color: var(--muted); text-align: right; padding-right: 4px; transform: translateY(-6px); }
+.cal-day { position: relative; border-left: 1px solid var(--line); cursor: pointer; }
+.cal-hourline { height: 48px; border-bottom: 1px dashed #eee; }
+.cal-slot { position: absolute; left: 2px; right: 2px; border-radius: 6px; padding: 2px 4px; font-size: 10px; overflow: hidden; box-sizing: border-box; }
+.cal-slot.open { background: var(--accent-soft); border: 1px solid var(--accent); color: var(--accent); }
+.cal-slot.blocked { background: #eee; border: 1px solid #ccc; color: #888; }
+.cal-slot.appt { background: #dfeffd; border: 1px solid #1d6fb8; color: #155; }
+.cal-slot .x { float: right; cursor: pointer; font-weight: 700; }
