@@ -3,6 +3,15 @@
 import { useEffect, useState, useTransition } from 'react';
 import { addSlotAt, removeSlotById, setSlotBlocked } from '../actions';
 
+function Legend({ color, border, label }: { color: string; border: string; label: string }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+      <span style={{ width: 14, height: 14, borderRadius: 4, background: color, border: `1px solid ${border}`, display: 'inline-block' }} />
+      {label}
+    </span>
+  );
+}
+
 export interface SlotItem { id: string; start_at: string; end_at: string; is_blocked: boolean }
 export interface ApptBlock { id: string; start_at: string; end_at: string; status: string; name: string; title?: string | null; location?: string | null }
 
@@ -111,6 +120,15 @@ export function SlotCalendar({ week, slots, appts }: { week: string[]; slots: Sl
         </label>
       </div>
       <p className="meta">縦に<strong>ドラッグ</strong>（またはタップ）→確認画面で作成。枠タップで受付可/不可・×で削除。</p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', margin: '4px 0 8px', fontSize: '.78rem' }}>
+        <Legend color="var(--accent-soft)" border="var(--accent)" label="空き枠（受付中）" />
+        <Legend color="#eee" border="#ccc" label="受付不可" />
+        <Legend color="var(--accent)" border="var(--accent-dark)" label="確定予約" />
+        <Legend color="#f59f00" border="#e8590c" label="申込（未確定）" />
+      </div>
+      {appts && Object.keys(apptByDate).length === 0 ? (
+        <p className="meta">※ この週に予約はありません。予約はその日がある週に表示されます（「翌週」で移動／「リスト」表示も便利）。</p>
+      ) : null}
       {msg ? <p className="error">{msg}</p> : null}
 
       <div className="cal-wrap">
