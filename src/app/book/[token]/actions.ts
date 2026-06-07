@@ -19,7 +19,9 @@ export async function bookSlot(_p: BookState, fd: FormData): Promise<BookState> 
   const bookingPageToken = s(fd, 'pageToken');
   const slotId = s(fd, 'slot_id');
   const name = s(fd, 'name');
-  if (!bookingPageToken || !slotId || !name) return { error: 'お名前と希望枠を入力してください。' };
+  const kana = s(fd, 'kana');
+  const phone = s(fd, 'phone');
+  if (!bookingPageToken || !slotId || !name || !phone) return { error: 'お名前・電話番号・希望枠を入力してください。' };
 
   // トークン→テナント
   const { data: ts } = await admin.from('tenant_settings').select('tenant_id').eq('booking_token', bookingPageToken).maybeSingle();
@@ -33,15 +35,26 @@ export async function bookSlot(_p: BookState, fd: FormData): Promise<BookState> 
   if (sl.is_blocked) return { error: 'この枠は既に埋まっています。別の枠をお選びください。' };
 
   const token = randomBytes(24).toString('hex');
-  const { data: created, error } = await admin.from('appointments').insert({
+  // ふりがな・電話はメモにも入れて先生が必ず見られるようにする
+  const infoNote = [kana ? `ふりがな: ${kana}` : null, phone ? `TEL: ${phone}` : null].filter(Boolean).join(' / ');
+  const payload: Record<string, unknown> = {
     tenant_id: tenantId,
     title: 'オンライン予約',
     start_at: sl.start_at,
     end_at: sl.end_at,
     status: 'pending',
     guest_name: name,
+    guest_kana: kana,
+    guest_phone: phone,
+    notes: infoNote || null,
     booking_token: token,
-  }).select('id').single();
+  };
+  let { data: created, error } = await admin.from('appointments').insert(payload).select('id').single();
+  // guest_kana/guest_phone 列が未適用でも作成できるよう、無い場合は外して再試行（情報はnotesに残る）
+  if (error && /guest_kana|guest_phone/.test(error.message)) {
+    delete payload.guest_kana; delete payload.guest_phone;
+    ({ data: created, error } = await admin.from('appointments').insert(payload).select('id').single());
+  }
   if (error || !created) return { error: '予約に失敗しました：' + (error?.message ?? '') };
 
   // 二重予約防止に枠をブロック

@@ -1254,3 +1254,9 @@ ALTER TABLE patient  ADD COLUMN IF NOT EXISTS avatar_url text;
 -- =============================================================================
 ALTER TABLE app_user ADD COLUMN IF NOT EXISTS google_token jsonb;
 ALTER TABLE app_user ADD COLUMN IF NOT EXISTS google_calendar_id text;
+
+-- =============================================================================
+-- 0018_guest_contact.sql  公開予約ゲストのふりがな・電話番号
+-- =============================================================================
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS guest_kana  text;
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS guest_phone text;
