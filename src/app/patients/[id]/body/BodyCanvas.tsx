@@ -113,10 +113,17 @@ function ellipse(ctx: CanvasRenderingContext2D, x: number, y: number, rx: number
   ctx.stroke();
 }
 
-function redraw(canvas: HTMLCanvasElement, view: 'front' | 'back', marks: Mark[]) {
+function redraw(canvas: HTMLCanvasElement, view: 'front' | 'back', marks: Mark[], bg?: HTMLImageElement | null) {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
-  drawBody(ctx, view);
+  if (bg && bg.complete && bg.naturalWidth > 0) {
+    // 用意された人体図画像（public/body-front.png / body-back.png）を背景に使う
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    ctx.drawImage(bg, 0, 0, W, H);
+  } else {
+    drawBody(ctx, view);
+  }
   for (const m of marks) {
     ctx.beginPath();
     ctx.arc(m.x * W, m.y * H, m.size ?? 10, 0, Math.PI * 2);
@@ -150,11 +157,20 @@ export function BodyCanvas({
   const [marks, setMarks] = useState<Mark[]>(initialMarks);
   const [color, setColor] = useState<string>(COLORS[0]);
   const [size, setSize] = useState<number>(10);
+  const [bg, setBg] = useState<HTMLImageElement | null>(null);
   const [state, formAction] = useFormState<BodyFormState, FormData>(saveBodyDiagram, {});
 
+  // 人体図画像（public/body-front.png / body-back.png）があれば読み込んで使う
   useEffect(() => {
-    if (canvasRef.current) redraw(canvasRef.current, view, marks);
-  }, [marks, view]);
+    const img = new Image();
+    img.onload = () => setBg(img);
+    img.onerror = () => setBg(null);
+    img.src = `/body-${view}.png`;
+  }, [view]);
+
+  useEffect(() => {
+    if (canvasRef.current) redraw(canvasRef.current, view, marks, bg);
+  }, [marks, view, bg]);
 
   function onDown(e: React.PointerEvent<HTMLCanvasElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
