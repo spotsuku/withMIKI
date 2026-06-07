@@ -27,7 +27,10 @@ export async function POST(req: NextRequest) {
     body: new URLSearchParams({ id_token: body.idToken, client_id: channelId }),
   });
   if (!verifyRes.ok) {
-    return NextResponse.json({ error: 'LINE認証に失敗しました' }, { status: 401 });
+    const detail = (await verifyRes.json().catch(() => ({}))) as { error?: string; error_description?: string };
+    return NextResponse.json({
+      error: 'LINE認証に失敗しました（' + (detail.error_description || detail.error || 'verify失敗') + '）。サーバーの LINE_LOGIN_CHANNEL_ID が、LIFFを含むLINEログインチャネルのIDと一致しているか確認してください。',
+    }, { status: 401 });
   }
   const profile = (await verifyRes.json()) as { sub?: string; picture?: string };
   const lineUserId = profile.sub;
