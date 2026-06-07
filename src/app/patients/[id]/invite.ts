@@ -1,6 +1,7 @@
 'use server';
 
 import { randomBytes } from 'node:crypto';
+import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getUserContext } from '@/lib/auth';
@@ -23,10 +24,18 @@ export async function createInviteLink(_p: InviteState, fd: FormData): Promise<I
   const patientId = String(fd.get('patientId') ?? '');
   if (!patientId) return { error: '患者IDがありません。' };
 
-  // 統合アプリでは同一オリジン。PATIENT_APP_URL があれば優先、無ければ自オリジン。
-  const base = (process.env.PATIENT_APP_URL || process.env.NEXT_PUBLIC_SITE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')).replace(/\/$/, '');
-  if (!base) return { error: 'サイトURL（NEXT_PUBLIC_SITE_URL）が未設定です。' };
+  // 招待URLのベース。明示env優先 → 実アクセス中のドメイン(host) → 本番ドメイン。
+  // VERCEL_URL（デプロイ個別＝プレビュー/認証保護）は使わない。
+  const h = headers();
+  const reqHost = h.get('x-forwarded-host') || h.get('host');
+  const reqProto = h.get('x-forwarded-proto') || 'https';
+  const base = (
+    process.env.PATIENT_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (reqHost ? `${reqProto}://${reqHost}` : '') ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '')
+  ).replace(/\/$/, '');
+  if (!base) return { error: 'サイトURLを特定できませんでした。' };
 
   const supabase = createClient();
   const { data: pat } = await supabase.from('patient').select('tenant_id').eq('id', patientId).maybeSingle();
