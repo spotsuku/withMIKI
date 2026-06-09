@@ -115,7 +115,37 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
     setGTitle(g.title);
     setGStart(hhmm(jstParts(g.start_at).minutes));
     setGEnd(hhmm(jstParts(g.end_at).minutes));
+    setMType('open'); setMPatient(''); setMTitle('');
     setGModal(g);
+  }
+  /** Google予定の時間に、空き枠/受付不可/確定予約/申込を作成（種類を付与） */
+  function convertGEvent() {
+    if (!gModal) return;
+    const date = jstParts(gModal.start_at).date;
+    const s = toMin(gStart); const en = toMin(gEnd);
+    if (en <= s) { setMsg('終了は開始より後にしてください。'); return; }
+    const mins = en - s;
+    setGModal(null); setMsg(null);
+    if (mType === 'open' || mType === 'blocked') {
+      const blocked = mType === 'blocked';
+      const tmpId = 'tmp-' + Date.now();
+      setList((p) => [...p, { id: tmpId, start_at: isoFromJst(date, s), end_at: isoFromJst(date, en), is_blocked: blocked }]);
+      startTr(async () => {
+        const r = await addSlotAt(date, hhmm(s), mins, blocked);
+        if (r.error) { setList((p) => p.filter((x) => x.id !== tmpId)); setMsg(r.error); }
+        else if (r.id) setList((p) => p.map((x) => (x.id === tmpId ? { ...x, id: r.id! } : x)));
+      });
+    } else {
+      const status = mType;
+      const patientName = patients?.find((x) => x.id === mPatient)?.name;
+      const tmpId = 'tmp-' + Date.now();
+      setApptList((p) => [...p, { id: tmpId, start_at: isoFromJst(date, s), end_at: isoFromJst(date, en), status, name: patientName ?? '（予約）', title: mTitle || null }]);
+      startTr(async () => {
+        const r = await addApptAt(date, hhmm(s), mins, { patientId: mPatient || null, title: mTitle || null, status });
+        if (r.error) { setApptList((p) => p.filter((x) => x.id !== tmpId)); setMsg(r.error); }
+        else if (r.id) setApptList((p) => p.map((x) => (x.id === tmpId ? { ...x, id: r.id! } : x)));
+      });
+    }
   }
   function saveGEvent() {
     if (!gModal) return;
@@ -483,6 +513,36 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
                 <button className="btn secondary" onClick={() => setGModal(null)}>閉じる</button>
                 <button className="btn" onClick={saveGEvent}>保存</button>
               </span>
+            </div>
+
+            {/* この時間に種類を付与（空き枠のように扱う） */}
+            <div style={{ borderTop: '1px solid var(--line)', marginTop: 14, paddingTop: 12 }}>
+              <h2 style={{ fontSize: '1rem', margin: '0 0 8px' }}>この時間を予約枠にする</h2>
+              <p className="meta" style={{ marginTop: 0 }}>Google予定はそのまま残し、同じ時間に下の種類で枠／予約を作成します。</p>
+              <div className="field">
+                <label>種類</label>
+                <div className="chips">
+                  {([['open', '空き枠'], ['blocked', '受付不可'], ['confirmed', '確定予約'], ['pending', '申込']] as const).map(([v, label]) => (
+                    <button key={v} type="button" className={'chip' + (mType === v ? ' on' : '')} onClick={() => setMType(v)}>{label}</button>
+                  ))}
+                </div>
+              </div>
+              {mType === 'confirmed' || mType === 'pending' ? (
+                <>
+                  <div className="field">
+                    <label>患者</label>
+                    <select value={mPatient} onChange={(e) => setMPatient(e.target.value)}>
+                      <option value="">（未選択）</option>
+                      {(patients ?? []).map((pp) => <option key={pp.id} value={pp.id}>{pp.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label>メニュー・件名</label>
+                    <input value={mTitle} onChange={(e) => setMTitle(e.target.value)} placeholder="例: 鍼灸施術" />
+                  </div>
+                </>
+              ) : null}
+              <button className="btn" onClick={convertGEvent}>この時間に作成する</button>
             </div>
           </div>
         </div>
