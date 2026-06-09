@@ -32,7 +32,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
 
   const { data } = await supabase
     .from('appointments')
-    .select('id, title, location, start_at, end_at, status, guest_name, patient:patient_id(name)')
+    .select('id, title, location, start_at, end_at, status, guest_name, google_event_id, patient:patient_id(name)')
     .gte('start_at', rangeStart)
     .lte('start_at', rangeEnd)
     .order('start_at', { ascending: true });
@@ -46,7 +46,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
   // 空き枠（カレンダーで直接追加できるように同ページで取得）
   const { data: slotData } = await supabase
     .from('appointment_slots')
-    .select('id, start_at, end_at, is_blocked')
+    .select('id, start_at, end_at, is_blocked, google_event_id')
     .gte('start_at', rangeStart)
     .lte('start_at', rangeEnd)
     .order('start_at', { ascending: true });
@@ -60,7 +60,15 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
   // Googleの予定をライブ取得（カレンダー表示時のみ・実質リアルタイム）
   let googleEvents: { id: string; title: string; start_at: string; end_at: string }[] = [];
   if (view === 'calendar' && googleConnected && gsetRow?.tenant_id) {
-    try { const { listGoogleEvents } = await import('@/lib/google'); googleEvents = await listGoogleEvents(gsetRow.tenant_id, rangeStart, rangeEnd); } catch { /* ignore */ }
+    try {
+      const { listGoogleEvents } = await import('@/lib/google');
+      const ev = await listGoogleEvents(gsetRow.tenant_id, rangeStart, rangeEnd);
+      // アプリが作成しGoogleへ同期した予定は、Google側の重複表示を抑制
+      const usedGoogleIds = new Set<string>();
+      for (const a of (data ?? []) as { google_event_id?: string | null }[]) if (a.google_event_id) usedGoogleIds.add(a.google_event_id);
+      for (const s of (slotData ?? []) as { google_event_id?: string | null }[]) if (s.google_event_id) usedGoogleIds.add(s.google_event_id);
+      googleEvents = ev.filter((e) => !usedGoogleIds.has(e.id));
+    } catch { /* ignore */ }
   }
   const { data: patData } = await supabase.from('patient').select('id, name').is('deleted_at', null).order('name');
   const patients = (patData ?? []) as { id: string; name: string }[];

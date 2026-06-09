@@ -266,18 +266,21 @@ export async function regenerateBookingToken(): Promise<void> {
 // ===== カレンダーUI（クライアントから直接呼ぶ引数ベースのアクション） =====
 
 /** 指定日時に空き枠を作成（Google同期）。blocked=trueで受付不可枠。作成IDを返す */
-export async function addSlotAt(date: string, time: string, minutes: number, blocked = false): Promise<{ id?: string; error?: string }> {
+export async function addSlotAt(date: string, time: string, minutes: number, blocked = false, googleEventId?: string | null): Promise<{ id?: string; error?: string }> {
   const ctx = await getUserContext();
   if (!ctx?.appUser) return { error: 'アカウントが未設定です。' };
   if (!date || !time) return { error: '日時が不正です。' };
   const start = jstToIso(date, time);
   const supabase = createClient();
-  const { data: slot, error } = await supabase.from('appointment_slots').insert({
+  const insert: Record<string, unknown> = {
     tenant_id: ctx.appUser.tenant_id, start_at: start, end_at: addMinutesIso(start, minutes || 60), is_blocked: blocked,
-  }).select('id').single();
+  };
+  if (googleEventId) insert.google_event_id = googleEventId; // 既存Google予定を引き継ぐ
+  const { data: slot, error } = await supabase.from('appointment_slots').insert(insert).select('id').single();
   if (error || !slot) return { error: '枠の作成に失敗しました：' + (error?.message ?? '') };
   const id = (slot as { id: string }).id;
-  try { const { pushSlotToGoogle } = await import('@/lib/google'); await pushSlotToGoogle(ctx.appUser.tenant_id, id); } catch { /* ignore */ }
+  // 既存Google予定の引き継ぎ時は新規作成しない（重複防止）
+  if (!googleEventId) { try { const { pushSlotToGoogle } = await import('@/lib/google'); await pushSlotToGoogle(ctx.appUser.tenant_id, id); } catch { /* ignore */ } }
   revalidatePath('/appointments/slots');
   revalidatePath('/appointments');
   return { id };
@@ -286,7 +289,7 @@ export async function addSlotAt(date: string, time: string, minutes: number, blo
 /** 指定日時に予約を作成（カレンダーから。確定/申込）。作成IDを返す */
 export async function addApptAt(
   date: string, time: string, minutes: number,
-  opts: { patientId?: string | null; title?: string | null; status: string },
+  opts: { patientId?: string | null; title?: string | null; status: string; googleEventId?: string | null },
 ): Promise<{ id?: string; error?: string }> {
   const ctx = await getUserContext();
   if (!ctx?.appUser) return { error: 'アカウントが未設定です。' };
@@ -303,10 +306,12 @@ export async function addApptAt(
     booking_token: randomBytes(24).toString('hex'),
     created_by: ctx.appUser.id,
   };
+  if (opts.googleEventId) payload.google_event_id = opts.googleEventId; // 既存Google予定を引き継ぐ
   const { data: created, error } = await supabase.from('appointments').insert(payload).select('id').single();
   if (error || !created) return { error: '予約の作成に失敗しました：' + (error?.message ?? '') };
   const id = (created as { id: string }).id;
-  if (opts.status === 'confirmed') {
+  // 既存Google予定の引き継ぎ時は新規作成しない（重複防止）
+  if (opts.status === 'confirmed' && !opts.googleEventId) {
     try { const { syncAppointmentToGoogle } = await import('@/lib/google'); await syncAppointmentToGoogle(ctx.appUser.tenant_id, id); } catch { /* ignore */ }
   }
   revalidatePath('/appointments');

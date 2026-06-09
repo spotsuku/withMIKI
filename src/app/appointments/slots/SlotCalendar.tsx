@@ -121,17 +121,20 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
   /** Google予定の時間に、空き枠/受付不可/確定予約/申込を作成（種類を付与） */
   function convertGEvent() {
     if (!gModal) return;
+    const gid = gModal.id; // 引き継ぐGoogleイベントID（重複作成しない）
     const date = jstParts(gModal.start_at).date;
     const s = toMin(gStart); const en = toMin(gEnd);
     if (en <= s) { setMsg('終了は開始より後にしてください。'); return; }
     const mins = en - s;
     setGModal(null); setMsg(null);
+    // 元のGoogle予定の重複表示を即時に抑制
+    setGList((p) => p.filter((x) => x.id !== gid));
     if (mType === 'open' || mType === 'blocked') {
       const blocked = mType === 'blocked';
       const tmpId = 'tmp-' + Date.now();
       setList((p) => [...p, { id: tmpId, start_at: isoFromJst(date, s), end_at: isoFromJst(date, en), is_blocked: blocked }]);
       startTr(async () => {
-        const r = await addSlotAt(date, hhmm(s), mins, blocked);
+        const r = await addSlotAt(date, hhmm(s), mins, blocked, gid);
         if (r.error) { setList((p) => p.filter((x) => x.id !== tmpId)); setMsg(r.error); }
         else if (r.id) setList((p) => p.map((x) => (x.id === tmpId ? { ...x, id: r.id! } : x)));
       });
@@ -141,7 +144,7 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
       const tmpId = 'tmp-' + Date.now();
       setApptList((p) => [...p, { id: tmpId, start_at: isoFromJst(date, s), end_at: isoFromJst(date, en), status, name: patientName ?? '（予約）', title: mTitle || null }]);
       startTr(async () => {
-        const r = await addApptAt(date, hhmm(s), mins, { patientId: mPatient || null, title: mTitle || null, status });
+        const r = await addApptAt(date, hhmm(s), mins, { patientId: mPatient || null, title: mTitle || null, status, googleEventId: gid });
         if (r.error) { setApptList((p) => p.filter((x) => x.id !== tmpId)); setMsg(r.error); }
         else if (r.id) setApptList((p) => p.map((x) => (x.id === tmpId ? { ...x, id: r.id! } : x)));
       });
