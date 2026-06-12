@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { login, devLogin } from './actions';
 
@@ -31,6 +31,11 @@ export default function LoginPage() {
   const [state, formAction] = useFormState(login, initialState);
   const [devState, devAction] = useFormState(devLogin, initialState);
   const [showAdmin, setShowAdmin] = useState(false);
+  // 管理者ログインは専用URL（/login?admin=1）でのみ表示。患者用URLには出さない
+  const [adminAllowed, setAdminAllowed] = useState(false);
+  useEffect(() => {
+    try { setAdminAllowed(new URLSearchParams(window.location.search).get('admin') === '1'); } catch { /* noop */ }
+  }, []);
 
   function startLineLogin() {
     try { sessionStorage.setItem('liff_mode', 'login'); sessionStorage.removeItem('liff_token'); } catch { /* noop */ }
@@ -51,7 +56,8 @@ export default function LoginPage() {
           初めての方は、先生から届く「招待URL」から登録できます。
         </p>
 
-        {/* 管理者（先生）のみ：メール・パスワード */}
+        {/* 管理者（先生）のみ：メール・パスワード（専用URL /login?admin=1 でのみ表示） */}
+        {adminAllowed ? (
         <div style={{ borderTop: '1px dashed var(--line)', marginTop: 16, paddingTop: 12 }}>
           {!showAdmin ? (
             <button className="btn secondary" style={{ width: '100%' }} onClick={() => setShowAdmin(true)}>
@@ -80,6 +86,7 @@ export default function LoginPage() {
             </form>
           ) : null}
         </div>
+        ) : null}
       </div>
     </div>
   );
