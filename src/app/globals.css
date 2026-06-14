@@ -129,7 +129,7 @@ a:hover { text-decoration: underline; }
 .cal { display: grid; grid-template-columns: 44px repeat(7, minmax(64px, 1fr)); min-width: 560px; }
 .cal-head { position: sticky; top: 0; background: var(--card); border-bottom: 1px solid var(--line); padding: 6px 2px; text-align: center; font-size: 12px; }
 .cal-head.today { color: var(--accent); font-weight: 700; }
-.cal-timeaxis { position: relative; }
+.cal-timeaxis { position: sticky; left: 0; z-index: 4; background: var(--card); }
 .cal-hourlabel { height: 40px; font-size: 10px; color: var(--muted); text-align: right; padding-right: 4px; transform: translateY(-6px); }
 .cal-day { position: relative; border-left: 1px solid var(--line); cursor: pointer; }
 .cal-hourline { height: 40px; border-bottom: 1px dashed #eee; }
