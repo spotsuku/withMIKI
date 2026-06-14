@@ -57,23 +57,8 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
   const { data: gset } = await supabase.from('tenant_settings').select('tenant_id, google_token').maybeSingle();
   const gsetRow = gset as { tenant_id: string; google_token: unknown } | null;
   const googleConnected = Boolean(gsetRow?.google_token);
-  // Googleの予定をライブ取得（カレンダー表示時のみ・実質リアルタイム）
-  let googleEvents: { id: string; title: string; start_at: string; end_at: string }[] = [];
-  if (view === 'calendar' && googleConnected && gsetRow?.tenant_id) {
-    try {
-      const { listGoogleEvents } = await import('@/lib/google');
-      // Googleが遅い/不調でも週送りが止まらないよう、タイムアウト付きで取得
-      const ev = await Promise.race([
-        listGoogleEvents(gsetRow.tenant_id, rangeStart, rangeEnd),
-        new Promise<typeof googleEvents>((resolve) => setTimeout(() => resolve([]), 4000)),
-      ]);
-      // アプリが作成しGoogleへ同期した予定は、Google側の重複表示を抑制
-      const usedGoogleIds = new Set<string>();
-      for (const a of (data ?? []) as { google_event_id?: string | null }[]) if (a.google_event_id) usedGoogleIds.add(a.google_event_id);
-      for (const s of (slotData ?? []) as { google_event_id?: string | null }[]) if (s.google_event_id) usedGoogleIds.add(s.google_event_id);
-      googleEvents = ev.filter((e) => !usedGoogleIds.has(e.id));
-    } catch { /* ignore */ }
-  }
+  // Google予定はクライアントから非同期取得（週送りを即時化するためサーバー描画では取らない）
+  const googleEvents: { id: string; title: string; start_at: string; end_at: string }[] = [];
   const { data: patData } = await supabase.from('patient').select('id, name').is('deleted_at', null).order('name');
   const patients = (patData ?? []) as { id: string; name: string }[];
   const wd = ['月', '火', '水', '木', '金', '土', '日'];
@@ -104,7 +89,7 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
           <Link className="btn secondary" href={`/appointments?w=${offset + 1}&view=${view}`}>翌週 ›</Link>
         </div>
 
-        {view === 'calendar' ? <SlotCalendar week={week} slots={slots} appts={calAppts} googleEvents={googleEvents} patients={patients} /> : week.map((d, i) => (
+        {view === 'calendar' ? <SlotCalendar week={week} slots={slots} appts={calAppts} googleEvents={googleEvents} googleConnected={googleConnected} patients={patients} /> : week.map((d, i) => (
           <div className="card" key={d} style={{ padding: '12px 14px' }}>
             <h2 style={{ margin: 0, fontSize: '1rem' }}>{d}（{wd[i]}）</h2>
             {byDay[d]?.length ? (

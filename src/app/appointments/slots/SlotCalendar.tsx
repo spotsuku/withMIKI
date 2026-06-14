@@ -34,7 +34,7 @@ function hhmm(min: number) { return `${String(Math.floor(min / 60)).padStart(2, 
 function toMin(t: string) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
 function isoFromJst(date: string, min: number) { return new Date(`${date}T${hhmm(min)}:00+09:00`).toISOString(); }
 
-export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { week: string[]; slots: SlotItem[]; appts?: ApptBlock[]; googleEvents?: GEvent[]; patients?: { id: string; name: string }[] }) {
+export function SlotCalendar({ week, slots, appts, googleEvents, googleConnected, patients }: { week: string[]; slots: SlotItem[]; appts?: ApptBlock[]; googleEvents?: GEvent[]; googleConnected?: boolean; patients?: { id: string; name: string }[] }) {
   const [, startTr] = useTransition();
   const router = useRouter();
   const [list, setList] = useState<SlotItem[]>(slots);
@@ -42,7 +42,7 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
   const [apptList, setApptList] = useState<ApptBlock[]>(appts ?? []);
   useEffect(() => { setApptList(appts ?? []); }, [appts]);
   const [gList, setGList] = useState<GEvent[]>(googleEvents ?? []);
-  useEffect(() => { setGList(googleEvents ?? []); }, [googleEvents]);
+  const weekKey = week[0];
 
   const [duration, setDuration] = useState(60);
   const [msg, setMsg] = useState<string | null>(null);
@@ -69,6 +69,26 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
     const id = setInterval(() => { if (!busyRef.current && document.visibilityState === 'visible') router.refresh(); }, 20000);
     return () => clearInterval(id);
   }, [router]);
+
+  // Google予定はクライアントから非同期取得（週送りを即時化）。週が変わるたび＋20秒ごとに更新
+  useEffect(() => {
+    if (!googleConnected) { setGList([]); return; }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const from = `${week[0]}T00:00:00+09:00`;
+        const to = `${week[6]}T23:59:59+09:00`;
+        const res = await fetch(`/api/appointments/google-events?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+        if (!res.ok) return;
+        const j = await res.json();
+        if (!cancelled) setGList((j.events ?? []) as GEvent[]);
+      } catch { /* ignore */ }
+    };
+    load();
+    const id = setInterval(() => { if (document.visibilityState === 'visible' && !busyRef.current) load(); }, 20000);
+    return () => { cancelled = true; clearInterval(id); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekKey, googleConnected]);
 
   // 空き枠は全幅の薄い背景、予約はその上に重なる全幅ブロック（Google風）
   const slotRight = '2px';
@@ -327,7 +347,7 @@ export function SlotCalendar({ week, slots, appts, googleEvents, patients }: { w
         <Legend color="#eee" border="#ccc" label="受付不可" />
         <Legend color="var(--accent)" border="var(--accent-dark)" label="確定予約" />
         <Legend color="#f59f00" border="#e8590c" label="申込（未確定）" />
-        {googleEvents ? <Legend color="#5c7cfa" border="#3b5bdb" label="Google予定" /> : null}
+        {googleConnected ? <Legend color="#5c7cfa" border="#3b5bdb" label="Google予定" /> : null}
       </div>
       {appts && Object.keys(apptByDate).length === 0 ? (
         <p className="meta">※ この週に予約はありません。予約はその日がある週に表示されます（「翌週」で移動／「リスト」表示も便利）。</p>
