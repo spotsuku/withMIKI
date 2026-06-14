@@ -62,7 +62,11 @@ export default async function AppointmentsPage({ searchParams }: { searchParams:
   if (view === 'calendar' && googleConnected && gsetRow?.tenant_id) {
     try {
       const { listGoogleEvents } = await import('@/lib/google');
-      const ev = await listGoogleEvents(gsetRow.tenant_id, rangeStart, rangeEnd);
+      // Googleが遅い/不調でも週送りが止まらないよう、タイムアウト付きで取得
+      const ev = await Promise.race([
+        listGoogleEvents(gsetRow.tenant_id, rangeStart, rangeEnd),
+        new Promise<typeof googleEvents>((resolve) => setTimeout(() => resolve([]), 4000)),
+      ]);
       // アプリが作成しGoogleへ同期した予定は、Google側の重複表示を抑制
       const usedGoogleIds = new Set<string>();
       for (const a of (data ?? []) as { google_event_id?: string | null }[]) if (a.google_event_id) usedGoogleIds.add(a.google_event_id);

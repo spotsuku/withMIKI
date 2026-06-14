@@ -194,7 +194,12 @@ export async function listGoogleEvents(tenantId: string, fromIso: string, toIso:
   const auth = await getToken(tenantId);
   if (!auth) return [];
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(auth.calendarId)}/events?timeMin=${encodeURIComponent(fromIso)}&timeMax=${encodeURIComponent(toIso)}&singleEvents=true&orderBy=startTime`;
-  const res = await fetch(url, { headers: { authorization: `Bearer ${auth.token.access_token}` }, cache: 'no-store' });
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 5000);
+  let res: Response;
+  try {
+    res = await fetch(url, { headers: { authorization: `Bearer ${auth.token.access_token}` }, cache: 'no-store', signal: ctrl.signal });
+  } catch { return []; } finally { clearTimeout(tid); }
   if (!res.ok) return [];
   const j = (await res.json()) as { items?: { id: string; summary?: string; start?: { dateTime?: string }; end?: { dateTime?: string } }[] };
   const out: GCalEvent[] = [];
