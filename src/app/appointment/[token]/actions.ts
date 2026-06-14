@@ -15,5 +15,7 @@ export async function cancelBooking(fd: FormData): Promise<void> {
   await admin.from('appointments').update({ status: 'cancelled', cancelled_at: new Date().toISOString() }).eq('id', a.id);
   // 枠を再開放（時間一致の枠を受付可へ戻す）
   await admin.from('appointment_slots').update({ is_blocked: false }).eq('tenant_id', a.tenant_id).eq('start_at', a.start_at);
+  // 管理者へLINE通知（キャンセル）
+  try { const { notifyStaffOfBooking } = await import('@/lib/notify'); await notifyStaffOfBooking(a.id, 'cancelled'); } catch { /* ignore */ }
   revalidatePath(`/appointment/${token}`);
 }

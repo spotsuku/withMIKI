@@ -86,6 +86,37 @@ export async function notifyAppointment(appointmentId: string, kind: 'booked' | 
   }
 }
 
+/** 予約が入った/キャンセルされた時に、テナントのスタッフ（LINE連携済み）へ通知 */
+export async function notifyStaffOfBooking(appointmentId: string, kind: 'booked' | 'cancelled' = 'booked'): Promise<void> {
+  const admin = createAdminClient();
+  if (!admin) return;
+  const { data } = await admin
+    .from('appointments')
+    .select('tenant_id, start_at, end_at, title, guest_name, patient_id')
+    .eq('id', appointmentId)
+    .maybeSingle();
+  const a = data as { tenant_id: string; start_at: string; end_at: string; title: string | null; guest_name: string | null; patient_id: string | null } | null;
+  if (!a) return;
+
+  let who = a.guest_name ?? '';
+  if (!who && a.patient_id) {
+    const { data: p } = await admin.from('patient').select('name').eq('id', a.patient_id).maybeSingle();
+    who = (p as { name: string } | null)?.name ?? '';
+  }
+  const when = `${fmtJst(a.start_at)}〜${fmtTimeJst(a.end_at)}`;
+  const head = kind === 'cancelled' ? '【予約キャンセル】' : '【新規予約】';
+  const url = appBaseUrl() ? `${appBaseUrl()}/appointments?view=calendar` : '';
+  const body = `${head}\n` + (who ? `${who} 様\n` : '') + `日時: ${when}\n` + (a.title ? `内容: ${a.title}\n` : '') + (url ? `カレンダー: ${url}` : '');
+
+  const { data: staff } = await admin
+    .from('app_user').select('line_user_id')
+    .eq('tenant_id', a.tenant_id)
+    .not('line_user_id', 'is', null);
+  for (const s of (staff ?? []) as { line_user_id: string | null }[]) {
+    if (s.line_user_id) await linePush(s.line_user_id, body);
+  }
+}
+
 /** 予約リンク（公開ページ）を患者へ LINE で送る */
 export async function sendBookingLinkToPatient(patientId: string, bookingToken: string): Promise<boolean> {
   const admin = createAdminClient();

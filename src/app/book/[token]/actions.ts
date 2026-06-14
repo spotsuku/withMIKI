@@ -60,8 +60,12 @@ export async function bookSlot(_p: BookState, fd: FormData): Promise<BookState> 
   // 二重予約防止に枠をブロック
   await admin.from('appointment_slots').update({ is_blocked: true }).eq('id', slotId);
 
-  // 受付通知（メール等。未設定なら no-op）
-  try { const { notifyAppointment } = await import('@/lib/notify'); await notifyAppointment((created as { id: string }).id, 'booked'); } catch { /* ignore */ }
+  // 受付通知（患者へメール/LINE。未設定なら no-op）＋ 管理者へLINE通知
+  try {
+    const { notifyAppointment, notifyStaffOfBooking } = await import('@/lib/notify');
+    await notifyAppointment((created as { id: string }).id, 'booked');
+    await notifyStaffOfBooking((created as { id: string }).id, 'booked');
+  } catch { /* ignore */ }
 
   redirect(`/appointment/${token}`);
 }
