@@ -40,6 +40,26 @@ export async function linePush(to: string, text: string): Promise<void> {
   } catch { /* ignore */ }
 }
 
+/** LINE push（結果つき）。疎通テスト用にAPI応答を返す。 */
+export async function linePushResult(to: string, text: string): Promise<{ ok: boolean; status?: number; error?: string }> {
+  if (!lineEnabled()) return { ok: false, error: 'LINE_CHANNEL_ACCESS_TOKEN が未設定です。' };
+  if (!to) return { ok: false, error: '送信先(line_user_id)がありません。' };
+  try {
+    const res = await fetch('https://api.line.me/v2/bot/message/push', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${lineToken()}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ to, messages: [{ type: 'text', text }] }),
+    });
+    if (res.ok) return { ok: true, status: res.status };
+    let detail = '';
+    try { detail = JSON.stringify(await res.json()); } catch { /* noop */ }
+    return { ok: false, status: res.status, error: detail || res.statusText };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
+
 interface ApptInfo {
   start_at: string; end_at: string; title: string | null; status: string;
   guest_name: string | null; guest_email: string | null; patient_id: string | null; booking_token: string;

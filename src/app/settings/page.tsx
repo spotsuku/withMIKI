@@ -4,6 +4,7 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { Topbar } from '@/components/Topbar';
 import { getUserContext } from '@/lib/auth';
 import { LineLinkButton } from './LineLinkButton';
+import { TestLineButton } from './TestLineButton';
 import { StaffPanel } from './StaffPanel';
 import { ClinicForm } from './ClinicForm';
 import { listStaff } from './staff-actions';
@@ -46,6 +47,7 @@ export default async function SettingsPage() {
         <div className="card">
           <h2>LINEログイン連携</h2>
           <LineLinkButton linked={linked} />
+          {linked ? <TestLineButton /> : null}
         </div>
 
         <StaffPanel staff={staff} />
